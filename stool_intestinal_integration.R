@@ -1,4 +1,5 @@
 library("RGCCA")
+library("ggplo2")
 source("helper_functions.R")
 
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
@@ -18,22 +19,22 @@ C <- subSymm(C, "intestinal", "stools", 1)
 
 (shrinkage <- sapply(A, tau.estimate))
 
-
+ncomp <- c(2, 2)
 
 sgcca.centroid <-  sgcca(A, C, c1 = shrinkage,
-                     ncomp = c(1, 1),
+                     ncomp = ncomp,
                      scheme = "centroid",
                      scale = TRUE,
                      verbose = FALSE)
 
 sgcca.factorial <-  sgcca(A, C, c1 = shrinkage,
-                         ncomp = c(1, 1),
+                         ncomp = ncomp,
                          scheme = "factorial",
                          scale = TRUE,
                          verbose = FALSE)
 
 sgcca.horst <-  sgcca(A, C, c1 = shrinkage,
-                         ncomp = c(1, 1, 1),
+                         ncomp = ncomp,
                          scheme = "horst",
                          scale = TRUE,
                          verbose = FALSE)
