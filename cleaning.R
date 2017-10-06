@@ -138,20 +138,22 @@ char_com_s <- meta_s[names_clean, c("Patient_ID", "Time")]
 o <- order(char_com_s$Patient_ID, char_com_i$Time)
 
 otus_s <- com_otus_table_s[, o]
-otus_i <- com_otus_table_s
+otus_i <- com_otus_table_i
 
-# The number of columns and order!!! of the samples must match
-# ncol(s) == ncol(i) s$Time == i$Time & s$Patient_ID == i$Patient_ID
-# Before going to RGCCA
-# # Integrate them
-library("RGCCA")
 # We transpose the data because it requires the data in column for variable, row
-# for sample
-A <- list(stools = t(otus_s), intestinal = t(otus_i), 
-          metadata = com_meta_i[colnames(otus_i),])
-C <- matrix(0, ncol = 3, nrow = 3, dimnames = list(names(A), names(A)))
-sgcca.glioma = sgcca(A, C, c1 = c(.071,.2, 1),
-                     ncomp = c(1, 1, 1),
-                     scheme = "centroid",
-                     scale = TRUE,
-                     verbose = FALSE)
+# for sample and we remove thosw which are all empty
+otus_s_f <- t(otus_s)[,apply(t(otus_s), 2, sd) != 0]
+otus_i_f <- t(otus_i)[,apply(t(otus_i), 2, sd) != 0]
+
+# Clean the metadata
+meta <- com_meta_i[colnames(otus_i),]
+meta$HSCT_responder[meta$HSCT_responder == "C"] <- NA
+# Remove non informative variables
+meta <- meta[, apply(meta, 2, function(x){length(unique(x)) != 1})]
+
+
+write.csv(otus_s_f, row.names = FALSE, 
+          file = "stools_16S/otus_coherent.csv")
+write.csv(otus_i_f, row.names = FALSE, 
+          file = "intestinal_16S//otus_coherent.csv")
+write.csv(meta, file = "meta_coherent.csv")
