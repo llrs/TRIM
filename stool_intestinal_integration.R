@@ -9,14 +9,10 @@ meta <- read.csv(file = "meta_coherent.csv", row.names = 1)
 A <- list(stools = otus_s, intestinal = otus_i)
 C <- matrix(0, ncol = 2, nrow = 2, dimnames = list(names(A), names(A)))
 
-subSymm <- function(m, x, y, val){
-  m[x, y] <- val
-  m[y, x] <- val
-  m
-}
 C <- subSymm(C, "intestinal", "stools", 1)
 # C <- subSymm(C, "metadata", "stools", 1)
 # C <- subSymm(C, "metadata", "intestinal", 1)
+
 theme_set(theme_bw())
 
 (shrinkage <- sapply(A, tau.estimate))
@@ -50,36 +46,78 @@ names(sgcca.horst$Y) <- names(A)
 names(sgcca.horst$a) <- names(A)
 names(sgcca.horst$astar) <- names(A)
 
-list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst, 
-     sgcca.factorial = sgcca.factorial)
+# list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst, 
+     # sgcca.factorial = sgcca.factorial)
 
 
-df <- data.frame(Stools = sgcca.horst$Y[[1]][, 1],
+samples <- data.frame(Stools = sgcca.horst$Y[[1]][, 1],
                  Intestinal = sgcca.horst$Y[[2]][, 1])
 
-df <- cbind(df, meta)
-subDf <- df[df$Time == "T26", ]
+samples <- cbind(samples, meta)
+subSamples <- samples[samples$Time == "T106", ]
 
-ggplot(subDf, aes(Stools, Intestinal)) +
+ggplot(subSamples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  Patient_ID, shape = Treatment, label = Sample_Code)) + 
   geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0)
+  geom_hline(yintercept = 0) +
+  ggtitle("Samples integration", 
+          subtitle = "Showing all samples after two years") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)")
   # coord_cartesian(ylim=c(-0.5, 0.5))
   # xlim(c(-0.25, 0.25)) + 
   # ylim(c(-0.5, 0.25))
-
-
 
 variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 1]})),
                         comp2 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 2]})),
-                        orig = rep(names(A), sapply(A, ncol)))
+                        Origin = rep(names(A), sapply(A, ncol)))
+variables$var <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
 # Remove the variables that in both components are 0
-keep <-  apply(variables[, c("comp1", "comp2")], 1, function(x){all(x != 0)})
-subVariables <- variables[keep, ]
+keepComp1 <- abs(variables$comp1) > mean(abs(variables$comp1))
+keepComp2 <- abs(variables$comp2) > mean(abs(variables$comp2))
+subVariables <- variables[keepComp1 & keepComp2, ]
 
-ggplot(subVariables, aes(comp1, comp2), color = orig) +
-  # geom_path(aes(x, y), data = circle) + 
-  geom_text(aes(color = orig, label = rownames(subVariables)))
-  # coord_cartesian(xlim=c(-0.3, 0.3), ylim = c(-0.3, 0.3))
+ggplot(subVariables, aes(comp1, comp2), color = Origin) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.1, npoints = 100)) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.2, npoints = 100)) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.3, npoints = 100)) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.4, npoints = 100)) +
+  geom_text(aes(color = Origin, label = var)) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  coord_cartesian(xlim=c(-0.25 , 0.25), ylim = c(-0.25, 0.25)) + 
+  ggtitle("Variables important for the first two components", 
+          subtitle = "Integrating stools and mucosa samples")
+
+## Find the otus that are equivalent between datasets
+library("dplyr")
+comb <- expand.grid(rownames(otus_tax_i), rownames(otus_tax_s))
+colnames(comb) <- c("intestinal", "stools")
+
+eq <- apply(comb, 1, function(x){
+  y <- x[2]
+  x <- x[1]
+  # If there is any NA then they are nor precise enough to say they are the same
+  all(otus_tax_i[x, ] == otus_tax_s[y, ]) 
+})
+
+eqOTUS <- comb[eq & !is.na(eq), ]
+
+subVariables2 <- subVariables
+subVariables2$color <- "black"
+library("plyr")
+# mapvalues()
+
+# ggplot(subVariables, aes(comp1, comp2), color = Origin) +
+#   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.1, npoints = 100)) +
+#   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.2, npoints = 100)) +
+#   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.3, npoints = 100)) +
+#   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.4, npoints = 100)) +
+#   geom_text(aes(color = Origin, label = var)) +
+#   geom_vline(xintercept = 0) +
+#   geom_hline(yintercept = 0) +
+#   coord_cartesian(xlim=c(-0.25 , 0.25), ylim = c(-0.25, 0.25)) + 
+#   ggtitle("Variables important for the first two components", 
+#           subtitle = "Integrating stools and mucosa samples")
