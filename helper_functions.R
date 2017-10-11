@@ -3,8 +3,12 @@
 library("ggplot2")
 library("RGCCA")
 
-# Circle
-circleFun <- function(center = c(-1,1),diameter = 1, npoints = 100){
+#' Create a circle
+#' @param center The position where the center of the circle is
+#' @param diameter Arbitrary units of diameter of the circle
+#' @param npoints Number of points of the circle (aka: definition of the circle)
+#' @return A data.frame with the position of the points
+circleFun <- function(center = c(-1,1), diameter = 1, npoints = 100){
   r = diameter / 2
   tt <- seq(0,2*pi,length.out = npoints)
   xx <- center[1] + r * cos(tt)
@@ -14,8 +18,18 @@ circleFun <- function(center = c(-1,1),diameter = 1, npoints = 100){
 
 circle <- circleFun(c(0, 0), 2, npoints = 100)
 
-# I can't test if this is the McKeon homogeneity measure
+# I can't test if this is the McKeon homogeneity measure (no paper/reference)
 # This shouldn't be calculated with a metablock
+#' Calculates McKeon Homeogenity
+#' 
+#' Looks how much each blocks is related to the others blocks. This shouldn't 
+#' be used with the metablock data (it is not a real block)
+#' 
+#' @param B The list of blocks
+#' @param C The design matrix 
+#' @return A matrix of the same dimensions as the list and design matrix with 
+#' the "correlations" between blocks. 
+#' @references There are no references other than the vignette of RGCCA
 McKeonHomeogenity <- function(B, C) {
   if (!all(length(B) == ncol(C) & ncol(C) == nrow(C))) {
     stop("Number of blocks and design matrix are not coherent")
@@ -53,4 +67,63 @@ McKeonHomeogenity <- function(B, C) {
   }
   dimnames(M) <- list(names(B), names(B))
   M
+}
+
+#' Subsitute in a symmetric matrix
+#' 
+#' @param m The symmetric matrix
+#' @param x Row position
+#' @param y Column position
+#' @param val Value to insert in the given position
+#' @return The symmetric matrix with the value inserted in the right positions
+subSymm <- function(m, x, y, val){
+  if (!isSymmetric(m)) {
+    stop("m should be a symmetric matrix.")
+  }
+  m[x, y] <- val
+  m[y, x] <- val
+  m
+}
+
+
+#' Clean and prepare the data from IMNGS
+#' 
+#' Divides the taxonomy into a new matrix for each otu
+#' 
+#' @param taxonomy Last column of files a string ; separated with domain, 
+#' phylum, vlass, order, family, genus and species.
+#' @param otus The name of the rows
+#' 
+#' @return 
+#' A matrix with the taxonomic information ready for the package phylo
+taxonomy <- function(taxonomy, otus){
+  taxonomy <- sapply(taxonomy, strsplit, split = ";")
+  names(taxonomy) <- otus
+  otus_tax <- t(sapply(taxonomy, '[', seq(max(sapply(taxonomy, length)))))
+  colnames(otus_tax) <- c("Domain", "Phylum", "Class", "Order", 
+                          "Family", "Genus", "Species")
+  # Remove spaces
+  otus_tax <- apply(otus_tax, 1:2, sub, pattern = "\\s", replacement = "")
+  otus_tax[otus_tax == ""] <- NA # Remove empty cells
+  otus_tax
+}
+
+
+# Check the taxonomy
+# https://stackoverflow.com/q/7943695/2886003
+#' Check if a vector is in the matrix
+#' @param x The matrix to check if it is in the matrix
+#' @param matrix The matrix where x is looked up.
+#' 
+#' @return A logical vector saying if the vector is in the matrix
+fastercheck <- function(x, matrix){
+  nc <- ncol(matrix)
+  rec.check <- function(r, i, id){
+    id[id] <- matrix[id, i] %in% r[i]
+    if (i < nc & any(id)) 
+      rec.check(r, i+1, id) 
+    else 
+      any(id)
+  }
+  apply(x, 1, rec.check, 1, rep(TRUE, nrow(matrix)))
 }
