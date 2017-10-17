@@ -1,5 +1,6 @@
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
+rna <- "intestinal_RNAseq"
 source("helper_functions.R")
 
 # Read the intestinal otus table
@@ -13,6 +14,7 @@ otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 otus_tax_i <- apply(otus_tax_i, 2, gsub, 
                     pattern = "^([a-z]__).*", replacement = "")
+write.csv(otus_tax_i, file = file.path(intestinal, "taxonomy.csv"))
 
 # Read the stools OTUs
 otus_table_s <- read.delim(file.path(stool, "OTUs-Table-refined-stools.tab"), 
@@ -25,22 +27,28 @@ otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 otus_tax_s <- taxonomy(tax_s, rownames(otus_table_s))
 otus_tax_s <- apply(otus_tax_s, 2, gsub, 
                     pattern = "^([a-z]__)", replacement = "")
+write.csv(otus_tax_s, file = file.path(stool, "taxonomy.csv"))
 
 
 # Read the metadata for each type of sample
-files_s <- list.files(path = stool, pattern = ".txt", full.names = TRUE)
-meta_s <- read.delim(files_s[1], check.names = FALSE, row.names = 1, 
+file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
+meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1, 
+                     stringsAsFactors = FALSE)
+file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
+meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
                   stringsAsFactors = FALSE)
-files_i <- list.files(path = intestinal, pattern = ".txt", full.names = TRUE)
-meta_i <- read.delim(files_i[2], row.names = 1, check.names = FALSE,
-                  stringsAsFactors = FALSE)
+file_meta_r <- file.path(rna, "metadata.csv")
+meta_r <- read.csv(file_meta_r, row.names = 1, check.names = FALSE,
+                     stringsAsFactors = FALSE)
 
 # Reorder by patient and time
 meta_s <- meta_s[order(meta_s$Patient_ID, meta_s$Time), ]
 meta_i <- meta_i[order(meta_i$Patient_ID, meta_i$Time), ]
+meta_r <- meta_r[order(meta_r$Patient_ID, meta_r$Time), ]
 
 # Find common patients
 comPatient <- intersect(meta_i$Patient_ID, meta_s$Patient_ID)
+comPatient <- intersect(comPatient, meta_r$Patient_ID)
 comTime <- intersect(meta_i$Time, meta_s$Time)
 
 # Keep only the common patients and times
