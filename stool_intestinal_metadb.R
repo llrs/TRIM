@@ -16,18 +16,35 @@ tax_s <- read.csv(file = "stools_16S/taxonomy.csv",
 # Prepare the metadata for the RGCCA package
  
 # see https://stackoverflow.com/a/16200415/2886003
-design <- model.matrix(~ . + 0, data=meta[, sapply(meta, is.factor)], 
-             contrasts.arg = lapply(meta[, sapply(meta, is.factor)], contrasts, contrasts=FALSE))
-stop("Continue here")
+keepCol <- sapply(meta, is.factor)
+keepCol[c("Birth_date", "Sample_Code")] <- FALSE
+meta$Active_area[meta$Active_area == ""] <- NA
+meta$Active_area <- droplevels(meta$Active_area)
+
+nas <- getOption("na.action")
+options(na.action = "na.pass")
+design <- model.matrix(~ . + 0, data = meta[, keepCol, drop = FALSE], 
+                       contrasts.arg = lapply(meta[, keepCol, drop = FALSE], 
+                                              contrasts, contrasts = FALSE))
+options(na.action = nas)
+# For those without information we say they are not in any group
+design[is.na(design)] <- 0 
+
+metadb <- cbind(design, Age = meta$Age)
 # Prepare input for the sgcca function
-A <- list(stools = otus_s, intestinal = otus_i, metadata = meta)
+A <- list(stools = otus_s, intestinal = otus_i, metadata = metadb)
 # The design
-C <- matrix(0, ncol = 2, nrow = 2, dimnames = list(names(A), names(A)))
+C <- matrix(0, ncol = length(A), nrow = length(A), 
+            dimnames = list(names(A), names(A)))
 C <- subSymm(C, "metadata", "stools", 1)
 C <- subSymm(C, "metadata", "intestinal", 1)
 
+
 # Shrinkage 
 (shrinkage <- sapply(A, tau.estimate))
+(max_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
+# Don't let the shrinkage go below the thershold allowed
+shrinkage <- ifelse(shrinkage < max_shrinkage, max_shrinkage, shrinkage)
 
 ncomp <- 2
 ncomp <- rep(ncomp, length(A))
@@ -36,7 +53,7 @@ sgcca.centroid <-  sgcca(A, C, c1 = shrinkage,
                          ncomp = ncomp,
                          scheme = "centroid",
                          scale = TRUE,
-                         verbose = FALSE)
+                         verbose = TRUE)
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
@@ -61,3 +78,96 @@ names(sgcca.horst$astar) <- names(A)
 
 # Graphical explorations
 theme_set(theme_bw())
+
+
+samples <- data.frame(Stools = sgcca.centroid$Y[[1]][, 2],
+                      Intestinal = sgcca.centroid$Y[[2]][, 2])
+
+samples <- cbind(samples, meta)
+subSamples <- samples[samples$Time == "T106", ]
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color =  Patient_ID, shape = Treatment, label = Sample_Code)) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("Samples integration", 
+          subtitle = "Showing all samples after two years") + 
+  xlab("Stools (component 2)") +
+  ylab("Mucosa (component 2)")
+# coord_cartesian(ylim=c(-0.5, 0.5))
+# xlim(c(-0.25, 0.25)) + 
+# ylim(c(-0.5, 0.25))
+
+variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
+                                              function(x){x[, 1]})),
+                        comp2 = unlist(sapply(sgcca.centroid$a, 
+                                              function(x){x[, 2]})),
+                        Origin = rep(names(A), sapply(A, ncol)))
+variables$var <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
+# Remove the variables that in both components are 0
+keepComp1 <- abs(variables$comp1) > mean(abs(variables$comp1))
+keepComp2 <- abs(variables$comp2) > mean(abs(variables$comp2))
+subVariables <- variables[keepComp1 & keepComp2, ]
+
+ggplot(subVariables, aes(comp1, comp2), color = Origin) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.1, npoints = 100)) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.2, npoints = 100)) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.3, npoints = 100)) +
+  geom_path(aes(x, y), data = circleFun(c(0, 0), 0.4, npoints = 100)) +
+  geom_text(aes(color = Origin, label = var)) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  coord_cartesian(xlim=c(-0.25 , 0.25), ylim = c(-0.25, 0.25)) + 
+  ggtitle("Variables important for the first two components", 
+          subtitle = "Integrating stools and mucosa samples")
+
+## Find the otus that are equivalent between datasets
+comb <- expand.grid(rownames(tax_i), rownames(tax_s), stringsAsFactors = FALSE)
+colnames(comb) <- c("intestinal", "stools")
+
+eq <- apply(comb, 1, function(z){
+  y <- z[2]
+  x <- z[1]
+  # If there is any NA then they are nor precise enough to say they are the same
+  # OTU
+  all(tax_i[x, ] == tax_s[y, ]) 
+})
+
+eqOTUS <- comb[eq & !is.na(eq), ]
+eqOTUS <- droplevels(eqOTUS)
+rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
+write.csv(eqOTUS, "equivalent_otus.csv")
+
+subVariables2 <- subVariables
+subVariables2$color <- "black"
+library("plyr")
+# mapvalues()
+
+# Plot for the same component the variables of each block
+comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
+comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
+rownames(comp1) <- seq_len(nrow(comp1))
+
+library("reshape2")
+comp1 <- melt(comp1)[2:3]
+colnames(comp1) <- c("Origin", "Loadings")
+ggplot(comp1) +
+  geom_histogram(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
+  ggtitle("Importance of each block variable", 
+          subtitle = "First component") +
+  ylab("Scaled density")
+
+# Second component
+comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
+comp2 <- sapply(comp2, '[', seq(max(sapply(comp2, length))))
+rownames(comp2) <- seq_len(nrow(comp2))
+
+comp2 <- melt(comp2)[2:3]
+colnames(comp2) <- c("Origin", "Loadings")
+ggplot(comp2) +
+  geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
+  ggtitle("Importance of each block variable", 
+          subtitle = "Second component") +
+  ylab("Scaled density")
+
+saveRDS(ls(), file = "stool_intestinal_meta.RDS")
