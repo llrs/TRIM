@@ -12,13 +12,18 @@ tax_s <- read.csv(file = "stools_16S/taxonomy.csv",
                   row.names = 1, stringsAsFactors = FALSE)
 
 A <- list(stools = otus_s, intestinal = otus_i)
-C <- matrix(0, ncol = 2, nrow = 2, dimnames = list(names(A), names(A)))
+C <- matrix(0, ncol = length(A), nrow = length(A), 
+            dimnames = list(names(A), names(A)))
 
 C <- subSymm(C, "intestinal", "stools", 1)
 
 theme_set(theme_bw())
 
-(shrinkage <- sapply(A, tau.estimate))
+# (shrinkage <- sapply(A, tau.estimate))
+# (max_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
+# # Don't let the shrinkage go below the thershold allowed
+# shrinkage <- ifelse(shrinkage < max_shrinkage, max_shrinkage, shrinkage)
+shrinkage <- rep(1, length(A))
 
 ncomp <- c(2, 2)
 
@@ -26,7 +31,7 @@ sgcca.centroid <-  sgcca(A, C, c1 = shrinkage,
                      ncomp = ncomp,
                      scheme = "centroid",
                      scale = TRUE,
-                     verbose = FALSE)
+                     verbose = TRUE)
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
@@ -53,18 +58,18 @@ names(sgcca.horst$astar) <- names(A)
      # sgcca.factorial = sgcca.factorial)
 
 
-samples <- data.frame(Stools = sgcca.horst$Y[[1]][, 1],
-                 Intestinal = sgcca.horst$Y[[2]][, 1])
+samples <- data.frame(Stools = sgcca.centroid$Y[[1]][, 1],
+                 Intestinal = sgcca.centroid$Y[[2]][, 1])
 
 samples <- cbind(samples, meta)
-subSamples <- samples[samples$Time == "T106", ]
+subSamples <- samples[samples$Time == "T52", ]
 
 ggplot(subSamples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  Patient_ID, shape = Treatment, label = Sample_Code)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("Samples integration", 
-          subtitle = "Showing all samples after two years") + 
+          subtitle = "Showing all samples after one year") + 
   xlab("Stools (component 1)") +
   ylab("Mucosa (component 1)")
   # coord_cartesian(ylim=c(-0.5, 0.5))
