@@ -127,3 +127,28 @@ fastercheck <- function(x, matrix){
   }
   apply(x, 1, rec.check, 1, rep(TRUE, nrow(matrix)))
 }
+
+tol21rainbow <-  c("#771155", "#AA4488", "#CC99BB", 
+                   "#114477", "#4477AA", "#77AADD", 
+                   "#117777", "#44AAAA", "#77CCCC", 
+                   "#117744", "#44AA77", "#88CCAA", 
+                   "#777711", "#AAAA44", "#DDDD77", 
+                   "#774411", "#AA7744", "#DDAA77", 
+                   "#771122", "#AA4455", "#DD7788")
+
+colors <- c("#a692d2", "#6de14d", "#5a3bcb", "#b2e145", "#b844dd", "#50a93e",
+            "#c640b6", "#6de697", "#472383", "#ddce3e", "#8766d6", "#8a9a37",
+            "#517cd1", "#e24428", "#7dddcf", "#da425f", "#56ad7b", "#df4e98",
+            "#c9e393", "#6a2d6d", "#de8d2f", "#3d3b76", "#d9ba73", "#d57ed2",
+            "#3a682c", "#93295e", "#8f9c73", "#3c2032", "#d5d0bf", "#782e27",
+            "#7ab4d5", "#ba5132", "#4d847e", "#de8f7d", "#2c3a29", "#d6abca",
+            "#615325", "#ab6583", "#a47735", "#506280", "#89685f")
+
+#' Calculates the angle between to slopes
+#' 
+#' @param x,y Slope of the lines
+#' @note The default compares the first slope with the slope 1
+#' @return The smaller angle between the slopes in degrees
+angle <- function(x, y = 1){
+  atan(abs((x-y)/(1+y*x)))*180/pi
+}
