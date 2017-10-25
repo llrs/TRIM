@@ -48,7 +48,8 @@ meta_r <- meta_r[order(meta_r$Patient_ID, meta_r$Time), ]
 
 # Find common patients
 comPatient <- intersect(meta_i$Patient_ID, meta_s$Patient_ID)
-comPatient <- intersect(comPatient, meta_r$Patient_ID)
+# Controls with same name but they are different people
+comPatient <- comPatient[!grepl("^C", comPatient)] 
 comTime <- intersect(meta_i$Time, meta_s$Time)
 
 # Keep only the common patients and times
