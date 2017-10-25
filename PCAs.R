@@ -16,7 +16,7 @@ otus_table_s <- read.delim(file.path(stool, "OTUs-Table-refined-stools.tab"),
                            check.names = FALSE)
 otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 
-
+theme_set(theme_bw())
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
 meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1, 
