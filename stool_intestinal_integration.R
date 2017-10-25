@@ -10,8 +10,8 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
                   row.names = 1, stringsAsFactors = FALSE)
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
-
-A <- list(stools = otus_s, intestinal = otus_i)
+keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
+A <- list(stools = otus_s[, keep], intestinal = otus_i[,keep])
 C <- matrix(0, ncol = length(A), nrow = length(A), 
             dimnames = list(names(A), names(A)))
 
@@ -19,11 +19,11 @@ C <- subSymm(C, "intestinal", "stools", 1)
 
 theme_set(theme_bw())
 
-# (shrinkage <- sapply(A, tau.estimate))
-# (max_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
+(shrinkage <- sapply(A, tau.estimate))
+(max_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
 # # Don't let the shrinkage go below the thershold allowed
-# shrinkage <- ifelse(shrinkage < max_shrinkage, max_shrinkage, shrinkage)
-shrinkage <- rep(1, length(A))
+shrinkage <- ifelse(shrinkage < max_shrinkage, max_shrinkage, shrinkage)
+# shrinkage <- rep(1, length(A))
 
 ncomp <- c(2, 2)
 
@@ -61,20 +61,54 @@ names(sgcca.horst$astar) <- names(A)
 samples <- data.frame(Stools = sgcca.centroid$Y[[1]][, 1],
                  Intestinal = sgcca.centroid$Y[[2]][, 1])
 
+names(colors) <- unique(meta$Patient_ID)
 samples <- cbind(samples, meta)
-subSamples <- samples[samples$Time == "T52", ]
+
+samples$Patient_ID <- as.factor(samples$Patient_ID)
+time <- "T52"
+subSamples <- samples[samples$Time == time, ]
+# That sample is relabed as 33
+subSamples <- subSamples[!(subSamples$Patient_ID == "15" & subSamples$Time == "T52"), ]
+
+label <- strsplit(as.character(subSamples$Sample_Code), split = "_")
+labels <- sapply(label, function(x){
+  if (length(x) == 5){
+    paste(x[1], x[5], sep = "_")
+    # x[5]
+  }
+  else if (length(x) != 5) {
+    paste(x[1], x[4], sep = "_")
+    # x[4]
+  }
+})
 
 ggplot(subSamples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, shape = Treatment, label = Sample_Code)) + 
+  geom_text(aes(color =  Patient_ID, label = labels)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
-  ggtitle("Samples integration", 
-          subtitle = "Showing all samples after one year") + 
+  ggtitle(paste0("Samples at time (", time, ")")) + 
   xlab("Stools (component 1)") +
-  ylab("Mucosa (component 1)")
-  # coord_cartesian(ylim=c(-0.5, 0.5))
-  # xlim(c(-0.25, 0.25)) + 
-  # ylim(c(-0.5, 0.25))
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title="Patient ID")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  # ylim(range(samples[, "Intestinal"])) + 
+  # xlim(range(samples[, "Stools"])) + 
+  scale_color_manual(values = colors)
+
+ggplot(as.data.frame(sgcca.centroid$Y[[1]])[!duplicated(sgcca.centroid$Y[[1]]),]) + 
+  geom_point(aes(comp1, comp2, shape = meta$Time[!duplicated(sgcca.centroid$Y[[1]])], 
+                color = meta$Patient_ID[!duplicated(sgcca.centroid$Y[[1]])])) +
+  guides(col = guide_legend(title = "Patient ID"), 
+         shape = guide_legend(title = "Time")) + 
+  ggtitle("First two dimensions of fecal samples", subtitle = "Via CCA")  +
+  guides(col = guide_legend(title="Patient ID")) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(as.data.frame(sgcca.centroid$Y[[2]])) + 
+  geom_text(aes(comp1, comp2, label = labels, 
+                color = meta$Patient_ID)) +
+  guides(col = guide_legend(title="Patient ID")) + 
+  ggtitle("First two dimensions of mucosa samples", subtitle = "Via CCA")
 
 variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 1]})),
@@ -130,10 +164,15 @@ library("reshape2")
 comp1 <- melt(comp1)[2:3]
 colnames(comp1) <- c("Origin", "Loadings")
 ggplot(comp1) +
-  geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of each block variable", 
-          subtitle = "First component") +
-  ylab("Scaled density")
+  geom_density(aes(x = Loadings, 
+                   y = ..scaled..,
+                   fill = Origin), alpha = 0.5) +
+  ggtitle("Importance of the otus of each data set") +
+  ylab("Scaled density") +
+  xlab("OTUs weight") +
+  facet_grid(~Origin) + 
+  guides(fill = FALSE) +
+  theme(plot.title = element_text(hjust = 0.5))
 
 # Second component
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
@@ -147,6 +186,9 @@ ggplot(comp2) +
   geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
   ggtitle("Importance of each block variable", 
           subtitle = "Second component") +
-  ylab("Scaled density")
+  ylab("Scaled density") +
+  xlab("OTUs weight") +
+  facet_grid(~Origin) + 
+  guides(fill = FALSE) 
 
-saveRDS(ls(), file = "stool_intestinal_integration.RDS")
+save.image(file = "stool_intestinal_integration.RData")
