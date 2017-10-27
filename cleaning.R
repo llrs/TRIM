@@ -132,6 +132,8 @@ otus_i_f <- t(otus_i)[,apply(t(otus_i), 2, sd) != 0]
 # Clean the metadata
 meta <- com_meta_i[colnames(otus_i),]
 meta$HSCT_responder[meta$HSCT_responder == "C"] <- NA
+meta$Active_area[meta$Active_area == ""] <- NA
+
 # Remove non informative variables
 meta <- meta[, apply(meta, 2, function(x){length(unique(x)) != 1})]
 
@@ -141,4 +143,3 @@ write.csv(otus_s_f, row.names = FALSE,
 write.csv(otus_i_f, row.names = FALSE, 
           file = "intestinal_16S//otus_coherent.csv")
 write.csv(meta, file = "meta_coherent.csv")
-
