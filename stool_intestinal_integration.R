@@ -1,5 +1,4 @@
-library("RGCCA")
-library("ggplot2")
+# Load the helper file
 source("helper_functions.R")
 
 # Read files
@@ -15,9 +14,10 @@ A <- list(stools = otus_s[, keep], intestinal = otus_i[,keep])
 C <- matrix(0, ncol = length(A), nrow = length(A), 
             dimnames = list(names(A), names(A)))
 
-C <- subSymm(C, "intestinal", "stools", 1)
+# Move to its own folder
+setwd("stool_intestinal_integration")
 
-theme_set(theme_bw())
+C <- subSymm(C, "intestinal", "stools", 1)
 
 (shrinkage <- sapply(A, tau.estimate))
 (min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
@@ -81,11 +81,7 @@ ggplot(samples) +
   geom_point(aes(Patient_ID, log10(dist), col = Involved_Healthy)) + 
   facet_grid(~ Time)
 
-time <- "T0"
-subSamples <- samples[samples$Time == time, ]
-# That sample is relabed as 33
-subSamples <- subSamples[!(subSamples$Patient_ID == "15" & subSamples$Time == "T52"), ]
-
+# Labels of the samples
 label <- strsplit(as.character(samples$Sample_Code), split = "_")
 labels <- sapply(label, function(x){
   if (length(x) == 5){
@@ -102,30 +98,39 @@ ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  Patient_ID, label = labels)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
-  ggtitle(paste0("Samples at time (", time, ")")) + 
+  ggtitle(paste0("Samples by time")) + 
   xlab("Stools (component 1)") +
   ylab("Mucosa (component 1)") +
   guides(col = guide_legend(title="Patient ID")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  # ylim(range(samples[, "Intestinal"])) + 
-  # xlim(range(samples[, "Stools"])) + 
+  scale_color_manual(values = colors) + 
+  geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
+  facet_grid(~Time, scales = "free")
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle(paste0("Samples by time")) + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title="Patient ID")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = colors) + 
+  geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
+  facet_grid(~Time)
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title="Patient ID")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = colors) + 
   geom_abline(intercept = 0, slope = d[1], linetype = 2)
-
-ggplot(as.data.frame(sgcca.centroid$Y[[1]])[!duplicated(sgcca.centroid$Y[[1]]),]) + 
-  geom_point(aes(comp1, comp2, shape = meta$Time[!duplicated(sgcca.centroid$Y[[1]])], 
-                color = meta$Patient_ID[!duplicated(sgcca.centroid$Y[[1]])])) +
-  guides(col = guide_legend(title = "Patient ID"), 
-         shape = guide_legend(title = "Time")) + 
-  ggtitle("First two dimensions of fecal samples", subtitle = "Via CCA")  +
-  guides(col = guide_legend(title="Patient ID")) + 
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(as.data.frame(sgcca.centroid$Y[[2]])) + 
-  geom_text(aes(comp1, comp2, label = labels, 
-                color = meta$Patient_ID)) +
-  guides(col = guide_legend(title="Patient ID")) + 
-  ggtitle("First two dimensions of mucosa samples", subtitle = "Via CCA")
 
 variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 1]})),
@@ -167,8 +172,6 @@ eqOTUS <- droplevels(eqOTUS)
 rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
 write.csv(eqOTUS, "equivalent_otus.csv")
 
-subVariables2 <- subVariables
-subVariables2$color <- "black"
 library("plyr")
 # mapvalues()
 
@@ -181,6 +184,8 @@ selectedVar <- sapply(comp1, function(x){
     names(x)[(x < q["25%"] | x > q["75%"]) &  !is.na(x)]
   } else if (q["25%"] > q["75%"] ) {
     names(x)[(x > q["25%"] | x < q["75%"]) &  !is.na(x)]
+  } else if (q["25%"] == q["75%"] ) {
+    names(x)[x != 0]
   }
 })
 
@@ -234,25 +239,29 @@ ggplot(comp2) +
 
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
-nb_boot = 50 # number of bootstrap samples
-J = length(A)
-STAB = list()
-c1 = shrinkage
-B = lapply(A, cbind)
+nb_boot <- 50 # number of bootstrap samples
+J <- length(A)
+STAB <- list()
+B <- lapply(A, cbind)
 
 for (j in 1:J) {
-  STAB[[j]] = matrix(0, nb_boot, NCOL(A[[j]]))
-  colnames(STAB[[j]]) = colnames(B[[j]])
+  STAB[[j]]<- matrix(0, nb_boot, NCOL(A[[j]]))
+  colnames(STAB[[j]])<- colnames(B[[j]])
 }
 names(STAB) <- names(B)
 
 # Bootstrap the data
 for (i in 1:nb_boot){
-  ind = sample(NROW(B[[1]]), replace = TRUE)
-  Bscr = lapply(B, function(x) x[ind, ])
-  res = sgcca(Bscr, C, c1 = c1, ncomp = c(rep(1, length(B))),
-              scheme = "factorial", scale = TRUE)
-  for (j in 1:J) STAB[[j]][i, ] = res$a[[j]]
+  ind  <- sample(NROW(B[[1]]), replace = TRUE)
+  Bscr <- lapply(B, function(x) x[ind, ])
+  res <- sgcca(Bscr, C, c1 = shrinkage, 
+              ncomp = c(rep(1, length(B))),
+              scheme = "centroid", 
+              scale = TRUE)
+
+  for (j in 1:J) {
+    STAB[[j]][i, ] <- res$a[[j]]
+  }
 }
 
 # Calculate the mean and the standard error for each variable
@@ -275,15 +284,7 @@ for (i in seq_along(se)) {
     ggtitle(names(se)[i])
   print(p)
 }
-# i <- 2
-# a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
-# a <- as.data.frame(a)
-# a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
-# 
-# ggplot(a) + 
-#   geom_pointrange(aes(x = 1:nrow(a), y = mean, 
-#                       ymin = mean - SE, ymax = mean + SE)) + 
-#   ggtitle(names(se)[i])
+
 
 dev.off()
 save.image(file = paste0(today, "_stool_intestinal_integration.RData"))
