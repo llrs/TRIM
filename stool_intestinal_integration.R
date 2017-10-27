@@ -20,9 +20,9 @@ C <- subSymm(C, "intestinal", "stools", 1)
 theme_set(theme_bw())
 
 (shrinkage <- sapply(A, tau.estimate))
-(max_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
+(min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
 # # Don't let the shrinkage go below the thershold allowed
-shrinkage <- ifelse(shrinkage < max_shrinkage, max_shrinkage, shrinkage)
+shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # shrinkage <- rep(1, length(A))
 
 ncomp <- c(2, 2)
@@ -60,20 +60,34 @@ names(sgcca.horst$astar) <- names(A)
 
 samples <- data.frame(Stools = sgcca.centroid$Y[[1]][, 1],
                  Intestinal = sgcca.centroid$Y[[2]][, 1])
+lmt <- lm(Intestinal ~ Stools, data = samples)
+
+if (lmt$coefficients[2] > 0) {
+  d <- c(1, 1)
+} else if (lmt$coefficients[2] < 0) {
+  d <-  c(-1, -1)
+}
+
+dist <- apply(samples, 1, dist2d, d = d)
 
 names(colors) <- unique(meta$Patient_ID)
-samples <- cbind(samples, meta)
-
+samples <- cbind(samples, meta, "dist" = dist)
 samples$Patient_ID <- as.factor(samples$Patient_ID)
-time <- "T52"
+
+# Plot if the coherence between samples has a specific pattern
+ggplot(samples) + 
+  geom_point(aes(Patient_ID, log10(dist), col = Involved_Healthy)) + 
+  facet_grid(~ Time)
+
+time <- "T0"
 subSamples <- samples[samples$Time == time, ]
 # That sample is relabed as 33
 subSamples <- subSamples[!(subSamples$Patient_ID == "15" & subSamples$Time == "T52"), ]
 
-label <- strsplit(as.character(subSamples$Sample_Code), split = "_")
+label <- strsplit(as.character(samples$Sample_Code), split = "_")
 labels <- sapply(label, function(x){
   if (length(x) == 5){
-    paste(x[1], x[5], sep = "_")
+    paste(x[1], x[2], x[5], sep = "_")
     # x[5]
   }
   else if (length(x) != 5) {
@@ -82,7 +96,8 @@ labels <- sapply(label, function(x){
   }
 })
 
-ggplot(subSamples, aes(Stools, Intestinal)) +
+pdf(paste0(today, "_plots.pdf"))
+ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  Patient_ID, label = labels)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
@@ -93,7 +108,8 @@ ggplot(subSamples, aes(Stools, Intestinal)) +
   theme(plot.title = element_text(hjust = 0.5)) +
   # ylim(range(samples[, "Intestinal"])) + 
   # xlim(range(samples[, "Stools"])) + 
-  scale_color_manual(values = colors)
+  scale_color_manual(values = colors) + 
+  geom_abline(intercept = 0, slope = d[1], linetype = 2)
 
 ggplot(as.data.frame(sgcca.centroid$Y[[1]])[!duplicated(sgcca.centroid$Y[[1]]),]) + 
   geom_point(aes(comp1, comp2, shape = meta$Time[!duplicated(sgcca.centroid$Y[[1]])], 
@@ -157,9 +173,25 @@ library("plyr")
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
+# Select the most important variables
+selectedVar <- sapply(comp1, function(x){
+  q <- quantile(x, na.rm = TRUE)
+  if (q["25%"] < q["75%"] ) {
+    names(x)[(x < q["25%"] | x > q["75%"]) &  !is.na(x)]
+  } else if (q["25%"] > q["75%"] ) {
+    names(x)[(x > q["25%"] | x < q["75%"]) &  !is.na(x)]
+  }
+})
+
+# Find the organisms most important and shared between stools and intestinal
+tax_s_s <- tax_s[selectedVar[["stools"]], ]
+tax_i_s <- tax_i[selectedVar[["intestinal"]], ]
+com <- unique(tax_s_s)[fastercheck(unique(tax_s_s), unique(tax_i_s)), ]
+write.csv(com, file = "important_common_microrg.csv", row.names = FALSE)
+
 comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
 rownames(comp1) <- seq_len(nrow(comp1))
-
+# Plot the densities of the loadings
 library("reshape2")
 comp1 <- melt(comp1)[2:3]
 colnames(comp1) <- c("Origin", "Loadings")
@@ -191,4 +223,55 @@ ggplot(comp2) +
   facet_grid(~Origin) + 
   guides(fill = FALSE) 
 
-save.image(file = "stool_intestinal_integration.RData")
+# To calculate the conficence interval on selecting the variable
+# this interval should reduce as we fit a better model/relationship
+nb_boot = 50 # number of bootstrap samples
+J = length(A)
+STAB = list()
+c1 = shrinkage
+B = lapply(A, cbind)
+
+for (j in 1:J) {
+  STAB[[j]] = matrix(0, nb_boot, NCOL(A[[j]]))
+  colnames(STAB[[j]]) = colnames(B[[j]])
+}
+names(STAB) <- names(B)
+
+# Bootstrap the data
+for (i in 1:nb_boot){
+  ind = sample(NROW(B[[1]]), replace = TRUE)
+  Bscr = lapply(B, function(x) x[ind, ])
+  res = sgcca(Bscr, C, c1 = c1, ncomp = c(rep(1, length(B))),
+              scheme = "factorial", scale = TRUE)
+  for (j in 1:J) STAB[[j]][i, ] = res$a[[j]]
+}
+
+# Calculate the mean and the standard error for each variable
+colMe <- sapply(STAB, colMeans)
+se <- sapply(STAB, function(x){
+  apply(x, 2, sd)/sqrt(nrow(x))
+  }
+)
+# Select the block we want to plot the variables for
+i <- 1
+a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
+a <- as.data.frame(a)
+a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
+
+ggplot(a) + 
+  geom_pointrange(aes(x = 1:nrow(a), y = mean, 
+                      ymin = mean - SE, ymax = mean + SE)) + 
+  ggtitle(names(se)[i])
+
+i <- 2
+a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
+a <- as.data.frame(a)
+a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
+
+ggplot(a) + 
+  geom_pointrange(aes(x = 1:nrow(a), y = mean, 
+                      ymin = mean - SE, ymax = mean + SE)) + 
+  ggtitle(names(se)[i])
+
+dev.off()
+save.image(file = paste0(today, "stool_intestinal_integration.RData"))
