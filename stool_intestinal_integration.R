@@ -31,7 +31,7 @@ sgcca.centroid <-  sgcca(A, C, c1 = shrinkage,
                      ncomp = ncomp,
                      scheme = "centroid",
                      scale = TRUE,
-                     verbose = TRUE)
+                     verbose = FALSE)
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
@@ -74,6 +74,8 @@ names(colors) <- unique(meta$Patient_ID)
 samples <- cbind(samples, meta, "dist" = dist)
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 
+pdf(paste0("Figures/", today, "_plots.pdf"))
+
 # Plot if the coherence between samples has a specific pattern
 ggplot(samples) + 
   geom_point(aes(Patient_ID, log10(dist), col = Involved_Healthy)) + 
@@ -96,7 +98,6 @@ labels <- sapply(label, function(x){
   }
 })
 
-pdf(paste0(today, "_plots.pdf"))
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  Patient_ID, label = labels)) + 
   geom_vline(xintercept = 0) +
@@ -252,26 +253,29 @@ se <- sapply(STAB, function(x){
   apply(x, 2, sd)/sqrt(nrow(x))
   }
 )
+names(se) <- names(STAB)
+names(colMe) <- names(STAB)
 # Select the block we want to plot the variables for
-i <- 1
-a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
-a <- as.data.frame(a)
-a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
-
-ggplot(a) + 
-  geom_pointrange(aes(x = 1:nrow(a), y = mean, 
-                      ymin = mean - SE, ymax = mean + SE)) + 
-  ggtitle(names(se)[i])
-
-i <- 2
-a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
-a <- as.data.frame(a)
-a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
-
-ggplot(a) + 
-  geom_pointrange(aes(x = 1:nrow(a), y = mean, 
-                      ymin = mean - SE, ymax = mean + SE)) + 
-  ggtitle(names(se)[i])
+for (i in seq_along(se)) {
+  a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
+  a <- as.data.frame(a)
+  a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
+  
+  p <- ggplot(a) + 
+    geom_pointrange(aes(x = 1:nrow(a), y = mean, 
+                        ymin = mean - SE, ymax = mean + SE)) + 
+    ggtitle(names(se)[i])
+  print(p)
+}
+# i <- 2
+# a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
+# a <- as.data.frame(a)
+# a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
+# 
+# ggplot(a) + 
+#   geom_pointrange(aes(x = 1:nrow(a), y = mean, 
+#                       ymin = mean - SE, ymax = mean + SE)) + 
+#   ggtitle(names(se)[i])
 
 dev.off()
-save.image(file = paste0(today, "stool_intestinal_integration.RData"))
+save.image(file = paste0(today, "_stool_intestinal_integration.RData"))
