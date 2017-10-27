@@ -1,13 +1,18 @@
 R_OPTS=--vanilla
 
-cleaning.R: stools_16S/OTUs_Table-refined-stools.tab stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt intestinal_16S/OTUs-Table-new-biopsies.csv
+all: cleaning stool_intestinal_integration
+
+# Clean the input and prepare it
+cleaning:
 	R CMD BATCH $(R_OPTS) cleaning.R
-	
-intestinal_16S/otus_coherent.csv stools_16S/otus_coherent.csv: cleaning.R
-	R CMD BATCH $(R_OPTS) cleaning.R
-	
-stool_intestinal_integration.R: intestinal_16S/otus_coherent.csv stools_16S/otus_coherent.csv helper_functions.R meta_coherent.csv stools_16S/taxonomy.csv intestinal_16S/taxonomy.csv
+
+# Code to integrate stools 16S and biopsies 16S
+stool_intestinal_integration: cleaning
 	R CMD BATCH $(R_OPTS) stool_intestinal_integration.R
 
-stool_intestinal_metadb.R: intestinal_16S/otus_coherent.csv stools_16S/otus_coherent.csv helper_functions.R meta_coherent.csv stools_16S/taxonomy.csv intestinal_16S/taxonomy.csv
+# Code to integrate biopsies, biopsies 16S and stools 16S
+stool_intestinal_metadb: cleaning
 	R CMD BATCH $(R_OPTS) stool_intestinal_metadb.R
+ 	
+clean:
+	rm *.Rout
