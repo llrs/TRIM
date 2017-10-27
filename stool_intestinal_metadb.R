@@ -1,8 +1,5 @@
-# Load libraries and files
-library("RGCCA")
-library("ggplot2")
+# Load the helper file
 source("helper_functions.R")
-
 
 # Read files
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
@@ -13,14 +10,27 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
 
+# Move to its own folder
+setwd("stool_intestinal_metadb")
+
 # Prepare the metadata for the RGCCA package
  
-# see https://stackoverflow.com/a/16200415/2886003
-keepCol <- sapply(meta, is.factor)
-keepCol[c("Birth_date", "Sample_Code")] <- FALSE
+# Prepare the metadata
 meta$Active_area[meta$Active_area == ""] <- NA
 meta$Active_area <- droplevels(meta$Active_area)
+meta$ID <- meta$Patient_ID
+meta$ID[meta$Patient_ID %in% c("15", "23")] <- "A"
+meta$ID[meta$Patient_ID %in% c("33", "36")] <- "B"
+meta$ID[meta$Patient_ID %in% c("29", "35")] <- "C"
+meta$ID <- as.factor(meta$ID)
+keepCol <- sapply(meta, is.factor)
+postTreatment <- c("Birth_date", "Sample_Code", 
+                   "HSCT_responder", "Endoscopic_Activity", "Patient_ID", 
+                   "ID")
+keepCol[postTreatment] <- FALSE
 
+
+# see https://stackoverflow.com/a/16200415/2886003
 nas <- getOption("na.action")
 options(na.action = "na.pass")
 design <- model.matrix(~ . + 0, data = meta[, keepCol, drop = FALSE], 
@@ -29,8 +39,9 @@ design <- model.matrix(~ . + 0, data = meta[, keepCol, drop = FALSE],
 options(na.action = nas)
 # For those without information we say they are not in any group
 design[is.na(design)] <- 0 
+attributes(design) <- attributes(design)[-4]
 
-metadb <- cbind(design, Age = meta$Age)
+metadb <- cbind(design, Age = meta$Age, ID = meta$ID)
 # Prepare input for the sgcca function
 A <- list(stools = otus_s, intestinal = otus_i, metadata = metadb)
 # The design
@@ -42,9 +53,11 @@ C <- subSymm(C, "metadata", "intestinal", 1)
 
 # Shrinkage 
 (shrinkage <- sapply(A, tau.estimate))
-(max_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
+(min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
 # Don't let the shrinkage go below the thershold allowed
-shrinkage <- ifelse(shrinkage < max_shrinkage, max_shrinkage, shrinkage)
+shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
+# We want to keep the covariance of the metadata, hence forcing the 1:
+shrinkage[length(shrinkage)] <- 1
 
 ncomp <- 2
 ncomp <- rep(ncomp, length(A))
@@ -53,57 +66,76 @@ sgcca.centroid <-  sgcca(A, C, c1 = shrinkage,
                          ncomp = ncomp,
                          scheme = "centroid",
                          scale = TRUE,
-                         verbose = TRUE)
+                         verbose = FALSE)
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
 
-sgcca.factorial <-  sgcca(A, C, c1 = shrinkage,
-                          ncomp = ncomp,
-                          scheme = "factorial",
-                          scale = TRUE,
-                          verbose = FALSE)
-names(sgcca.factorial$Y) <- names(A)
-names(sgcca.factorial$a) <- names(A)
-names(sgcca.factorial$astar) <- names(A)
+McKeonHomeogenity(A, C)
 
-sgcca.horst <-  sgcca(A, C, c1 = shrinkage,
-                      ncomp = ncomp,
-                      scheme = "horst",
-                      scale = TRUE,
-                      verbose = FALSE)
-names(sgcca.horst$Y) <- names(A)
-names(sgcca.horst$a) <- names(A)
-names(sgcca.horst$astar) <- names(A)
+samples <- data.frame(Stools = sgcca.centroid$Y[[1]][, 1],
+                      Intestinal = sgcca.centroid$Y[[2]][, 1])
 
-# Graphical explorations
-theme_set(theme_bw())
-
-
-samples <- data.frame(Stools = sgcca.centroid$Y[[1]][, 2],
-                      Intestinal = sgcca.centroid$Y[[2]][, 2])
-
+names(colors) <- unique(meta$Patient_ID)
 samples <- cbind(samples, meta)
-subSamples <- samples[samples$Time == "T106", ]
+samples$Patient_ID <- as.factor(samples$Patient_ID)
+
+pdf(paste0("Figures/", today, "_plots.pdf"))
+
+# Labels of the samples
+label <- strsplit(as.character(samples$Sample_Code), split = "_")
+labels <- sapply(label, function(x){
+  if (length(x) == 5){
+    paste(x[1], x[2], x[5], sep = "_")
+    # x[5]
+  }
+  else if (length(x) != 5) {
+    paste(x[1], x[4], sep = "_")
+    # x[4]
+  }
+})
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, shape = Treatment, label = Sample_Code)) + 
+  geom_text(aes(color =  Patient_ID, label = labels)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
-  ggtitle("Samples integration", 
-          subtitle = "Showing all samples after two years") + 
-  xlab("Stools (component 2)") +
-  ylab("Mucosa (component 2)")
-# coord_cartesian(ylim=c(-0.5, 0.5))
-# xlim(c(-0.25, 0.25)) + 
-# ylim(c(-0.5, 0.25))
+  ggtitle(paste0("Samples by time")) + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title="Patient ID")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = colors) + 
+  facet_grid(~Time, scales = "free")
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle(paste0("Samples by time")) + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title="Patient ID")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = colors) + 
+  facet_wrap(~ID, ncol = 3, scale = "free")
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title="Patient ID")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = colors)
 
 variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 1]})),
                         comp2 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 2]})),
                         Origin = rep(names(A), sapply(A, ncol)))
-variables$var <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
+variables$var <- gsub("^.*\\.(.*)$", "\\1", rownames(variables))
 # Remove the variables that in both components are 0
 keepComp1 <- abs(variables$comp1) > mean(abs(variables$comp1))
 keepComp2 <- abs(variables$comp2) > mean(abs(variables$comp2))
@@ -120,54 +152,3 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   coord_cartesian(xlim=c(-0.25 , 0.25), ylim = c(-0.25, 0.25)) + 
   ggtitle("Variables important for the first two components", 
           subtitle = "Integrating stools and mucosa samples")
-
-## Find the otus that are equivalent between datasets
-comb <- expand.grid(rownames(tax_i), rownames(tax_s), stringsAsFactors = FALSE)
-colnames(comb) <- c("intestinal", "stools")
-
-eq <- apply(comb, 1, function(z){
-  y <- z[2]
-  x <- z[1]
-  # If there is any NA then they are nor precise enough to say they are the same
-  # OTU
-  all(tax_i[x, ] == tax_s[y, ]) 
-})
-
-eqOTUS <- comb[eq & !is.na(eq), ]
-eqOTUS <- droplevels(eqOTUS)
-rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
-write.csv(eqOTUS, "equivalent_otus.csv")
-
-subVariables2 <- subVariables
-subVariables2$color <- "black"
-library("plyr")
-# mapvalues()
-
-# Plot for the same component the variables of each block
-comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
-rownames(comp1) <- seq_len(nrow(comp1))
-
-library("reshape2")
-comp1 <- melt(comp1)[2:3]
-colnames(comp1) <- c("Origin", "Loadings")
-ggplot(comp1) +
-  geom_histogram(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of each block variable", 
-          subtitle = "First component") +
-  ylab("Scaled density")
-
-# Second component
-comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
-comp2 <- sapply(comp2, '[', seq(max(sapply(comp2, length))))
-rownames(comp2) <- seq_len(nrow(comp2))
-
-comp2 <- melt(comp2)[2:3]
-colnames(comp2) <- c("Origin", "Loadings")
-ggplot(comp2) +
-  geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of each block variable", 
-          subtitle = "Second component") +
-  ylab("Scaled density")
-
-saveRDS(ls(), file = "stool_intestinal_meta.RDS")
