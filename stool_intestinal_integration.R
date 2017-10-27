@@ -187,8 +187,16 @@ selectedVar <- sapply(comp1, function(x){
 # Find the organisms most important and shared between stools and intestinal
 tax_s_s <- tax_s[selectedVar[["stools"]], ]
 tax_i_s <- tax_i[selectedVar[["intestinal"]], ]
-com <- unique(tax_s_s)[fastercheck(unique(tax_s_s), unique(tax_i_s)), ]
-write.csv(com, file = "important_common_microrg.csv", row.names = FALSE)
+s_in_i <- fastercheck(unique(tax_s_s), unique(tax_i_s))
+com <- unique(tax_i_s)[s_in_i, ]
+i <- unique(tax_i_s[!s_in_i,])
+s <- unique(tax_s_s)[!fastercheck(unique(tax_i_s), unique(tax_s_s)), ]
+write.csv(com, file = "important_common_microrg.csv", 
+          row.names = FALSE, na = "")
+write.csv(i, file = "important_intestinal_microrg.csv", 
+          row.names = FALSE, na = "")
+write.csv(s, file = "important_stools_microrg.csv", 
+          row.names = FALSE, na = "")
 
 comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
 rownames(comp1) <- seq_len(nrow(comp1))
