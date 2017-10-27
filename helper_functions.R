@@ -1,4 +1,4 @@
-# Helper functions
+# Helper functions and variables
 
 library("ggplot2")
 library("RGCCA")
@@ -17,7 +17,7 @@ circleFun <- function(center = c(-1,1), diameter = 1, npoints = 100){
 }
 
 circle <- circleFun(c(0, 0), 2, npoints = 100)
-
+#
 # I can't test if this is the McKeon homogeneity measure (no paper/reference)
 # This shouldn't be calculated with a metablock
 #' Calculates McKeon Homeogenity
@@ -152,3 +152,19 @@ colors <- c("#a692d2", "#6de14d", "#5a3bcb", "#b2e145", "#b844dd", "#50a93e",
 angle <- function(x, y = 1){
   atan(abs((x-y)/(1+y*x)))*180/pi
 }
+
+#' Calculate the distance between a line and a point
+#' 
+#' The line is defined by points b and d.
+#' @param p Point c(x, y)
+#' @param b,d Points c(x, y) defining the line to calculate the distance with.
+#' @return The units of distance between the point and the line
+#' @note Change the d point to change the direction of the diagnoal
+dist2d <- function(p, b = c(0, 0), d = c(1, 1)) {
+  v1 <- b - d
+  v2 <- p - b
+  m <- cbind(v1, v2)
+  abs(det(m))/sqrt(sum(v1*v1))
+}
+
+today <- format(Sys.time(), "%Y%m%d")
