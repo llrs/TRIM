@@ -17,7 +17,7 @@ circleFun <- function(center = c(-1,1), diameter = 1, npoints = 100){
 }
 
 circle <- circleFun(c(0, 0), 2, npoints = 100)
-#
+
 # I can't test if this is the McKeon homogeneity measure (no paper/reference)
 # This shouldn't be calculated with a metablock
 #' Calculates McKeon Homeogenity
@@ -45,24 +45,27 @@ McKeonHomeogenity <- function(B, C) {
   }
   
   sgcca <- sgcca(B, C,
-                 c1 = rep(1, length(B)), # It affects quite a lot from correlation c == 0 to covariation c == 1
+                 # It affects quite a lot between
+                 # correlation c = 0 to covariation c = 1
+                 c1 = rep(1, length(B)), 
                  ncomp = c(rep(2, (length(B)-1)),1),
-                 scheme = "horst", # It doesn't seem to affect much (just the sign)
+                 # It doesn't seem to affect much (just the sign)
+                 scheme = "horst", 
                  scale = TRUE,
                  verbose = FALSE)
   
   # Not sure of this simplification
-  A = sapply(seq_len(length(A)), function(x){
-    B[[x]][, unique(which(sgcca$a[[x]]!=0, arr.ind = TRUE)[, 1])]
+  A <- sapply(seq_along(B), function(x){
+    B[[x]][, unique(which(sgcca$a[[x]] != 0, arr.ind = TRUE)[, 1])]
   })
   
-  J = length(A)
-  M = matrix(0, J, J)
-  colnames(M) = rownames(M) = names(A)
+  J <- length(A)
+  M <- matrix(0, J, J)
+  colnames(M) <- rownames(M) = names(A)
   for (i in 1:J){
     for (j in seq_len(i)){
-      M[i, j] = rI(A[c(i, j)])
-      M[j, i] = M[i, j]
+      M[i, j] <- rI(A[c(i, j)])
+      M[j, i] <- M[i, j]
     }
   }
   dimnames(M) <- list(names(B), names(B))
@@ -168,3 +171,5 @@ dist2d <- function(p, b = c(0, 0), d = c(1, 1)) {
 }
 
 today <- format(Sys.time(), "%Y%m%d")
+
+theme_set(theme_bw())
