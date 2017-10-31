@@ -175,3 +175,67 @@ dist2d <- function(p, b = c(0, 0), d = c(1, 1)) {
 today <- format(Sys.time(), "%Y%m%d")
 
 theme_set(theme_bw())
+
+
+#' Compares the taxonomy of the otus
+#' 
+#' Given two taxonomy tables find which one is in which one
+#' @param taxa_1, taxa_2 taxonomic table as described in taxonomy
+#' @return A matrix of nrow(taxa_1) * nrow(taxa_2)
+contingency_taxa <- function(taxa_1, taxa_2) {
+  
+  # Check if the input is factor or character
+  txc1 <- apply(taxa_1, 2, is.character)
+  txc2 <- apply(taxa_2, 2, is.character)
+  txf1 <- apply(taxa_1, 2, is.factor)
+  txf2 <- apply(taxa_2, 2, is.factor)
+  
+  if (!all(txc1 | txf1) | !all(txc2 | txf2)){
+    stop("Taxa should be factors or characters (NAs allowed) ")
+  }
+  l <- sapply(rownames(taxa_2), function(x){
+    nas <- sum(is.na(taxa_2[x, ]))
+    (colSums(apply(taxa_1, 1,  `==`, taxa_2[x, ]), na.rm = TRUE)+nas)/7
+  })
+  l
+}
+
+#' Z-score to p-value
+#' 
+#' Calculates the p-value of a z-score
+#' @param z the normalized value
+#' @param one.sided Either NULL, - or +
+#' @return The p-value 
+convert.z.score <- function(z, one.sided = NULL) {
+  # https://www.biostars.org/p/17227/#136907
+  if (!is.null(one.sided) & !one.sided %in% c("+", "-")) {
+    stop("one.sided should be NULL or + or -")
+  }
+  
+  if (!is.numeric(z)) {
+    stop("z should be numeric")
+  }
+  
+  if(is.null(one.sided)) {
+    pval <- pnorm(-abs(z))
+    pval <- 2 * pval
+  } else if(one.sided == "-") {
+    pval <- pnorm(z)
+  } else if (one.sided == "+") {
+    pval <- pnorm(-z)
+  }
+  return(pval);
+}
+
+#' Calculates the z-score of two correlations
+#' 
+#' @param r1,r2 The correlation coefficients
+#' @param n1,n2 The number of samples used to calculate the correlations
+#' @return The z score of the comparison of the coefficients.
+compare.correlations <- function(r1, r2, n1, n2) {
+  r.norm <- function(r){log(abs((1+r)/(1-r)))/2}
+  r1n <- r.norm(r1)
+  r2n <- r.norm(r2)
+  (r1n-r2n)/sqrt(1/(n1-3)+1/(n2-3))
+}
+
