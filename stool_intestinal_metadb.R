@@ -19,9 +19,9 @@ setwd("stool_intestinal_metadb")
 meta$Active_area[meta$Active_area == ""] <- NA
 meta$Active_area <- droplevels(meta$Active_area)
 meta$ID <- meta$Patient_ID
-meta$ID[meta$Patient_ID %in% c("15", "23")] <- "A"
-meta$ID[meta$Patient_ID %in% c("33", "36")] <- "B"
-meta$ID[meta$Patient_ID %in% c("29", "35")] <- "C"
+meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15_23"
+meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33_36"
+meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29_35"
 meta$ID <- as.factor(meta$ID)
 keepCol <- sapply(meta, is.factor)
 postTreatment <- c("Birth_date", "Sample_Code", 
@@ -62,7 +62,7 @@ shrinkage[length(shrinkage)] <- 1
 ncomp <- 2
 ncomp <- rep(ncomp, length(A))
 
-sgcca.centroid <-  sgcca(A, C, c1 = shrinkage,
+sgcca.centroid <-  sgcca(A, C, c1 = c(1, 1,1),
                          ncomp = ncomp,
                          scheme = "centroid",
                          scale = TRUE,
@@ -71,12 +71,33 @@ names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
 
+
+
+sgcca.factorial <-  sgcca(A, C, c1 = shrinkage,
+                          ncomp = ncomp,
+                          scheme = "factorial",
+                          scale = TRUE,
+                          verbose = FALSE)
+names(sgcca.factorial$Y) <- names(A)
+names(sgcca.factorial$a) <- names(A)
+names(sgcca.factorial$astar) <- names(A)
+
+sgcca.horst <-  sgcca(A, C, c1 = shrinkage,
+                      ncomp = ncomp,
+                      scheme = "horst",
+                      scale = TRUE,
+                      verbose = FALSE)
+names(sgcca.horst$Y) <- names(A)
+names(sgcca.horst$a) <- names(A)
+names(sgcca.horst$astar) <- names(A)
+
+
 McKeonHomeogenity(A, C)
 
 samples <- data.frame(Stools = sgcca.centroid$Y[[1]][, 1],
                       Intestinal = sgcca.centroid$Y[[2]][, 1])
 
-names(colors) <- unique(meta$Patient_ID)
+names(colors) <- unique(meta$ID)
 samples <- cbind(samples, meta)
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 
@@ -96,7 +117,7 @@ labels <- sapply(label, function(x){
 })
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_text(aes(color =  ID, label = labels)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle(paste0("Samples by time")) + 
@@ -108,7 +129,7 @@ ggplot(samples, aes(Stools, Intestinal)) +
   facet_grid(~Time, scales = "free")
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_text(aes(color =  ID, label = labels)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle(paste0("Samples by time")) + 
@@ -120,7 +141,7 @@ ggplot(samples, aes(Stools, Intestinal)) +
   facet_wrap(~ID, ncol = 3, scale = "free")
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_text(aes(color =  ID, label = labels)) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -136,6 +157,7 @@ variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a,
                                               function(x){x[, 2]})),
                         Origin = rep(names(A), sapply(A, ncol)))
 variables$var <- gsub("^.*\\.(.*)$", "\\1", rownames(variables))
+
 # Remove the variables that in both components are 0
 keepComp1 <- abs(variables$comp1) > mean(abs(variables$comp1))
 keepComp2 <- abs(variables$comp2) > mean(abs(variables$comp2))
@@ -152,3 +174,5 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   coord_cartesian(xlim=c(-0.25 , 0.25), ylim = c(-0.25, 0.25)) + 
   ggtitle("Variables important for the first two components", 
           subtitle = "Integrating stools and mucosa samples")
+
+save.image(file = paste0(today, "_stool_intestinal_metadb.RData"))
