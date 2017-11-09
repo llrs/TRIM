@@ -23,25 +23,30 @@ meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15_23"
 meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33_36"
 meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29_35"
 meta$ID <- as.factor(meta$ID)
+meta2 <- meta
 keepCol <- sapply(meta, is.factor)
-postTreatment <- c("Birth_date", "Sample_Code", 
-                   "HSCT_responder", "Endoscopic_Activity", "Patient_ID", 
-                   "ID")
+postTreatment <- c("Birth_date", "Sample_Code", "Patient_ID")
 keepCol[postTreatment] <- FALSE
-
+for (col in names(keepCol)[keepCol]){
+  levels(meta2[, col]) <- seq_along(levels(meta2[, col]))
+}
 
 # see https://stackoverflow.com/a/16200415/2886003
-nas <- getOption("na.action")
-options(na.action = "na.pass")
-design <- model.matrix(~ . + 0, data = meta[, keepCol, drop = FALSE], 
-                       contrasts.arg = lapply(meta[, keepCol, drop = FALSE], 
-                                              contrasts, contrasts = FALSE))
-options(na.action = nas)
-# For those without information we say they are not in any group
-design[is.na(design)] <- 0 
-attributes(design) <- attributes(design)[-4]
+# nas <- getOption("na.action")
+# options(na.action = "na.pass")
+# design <- model.matrix(~ . + 0, data = meta[, keepCol, drop = FALSE], 
+#                        contrasts.arg = lapply(meta[, keepCol, drop = FALSE], 
+#                                               contrasts, contrasts = FALSE))
+# options(na.action = nas)
 
-metadb <- cbind(design, Age = meta$Age, ID = meta$ID)
+# For those without information we say they are not in any group
+# design[is.na(design)] <- 0 
+# attributes(design) <- attributes(design)[-4]
+
+# Set metadb with a sigle variable with several options
+metadb <- cbind(meta2[, keepCol])
+metadb <- apply(metadb, 1:2, as.numeric)
+metadb[is.na(metadb)] <- 0
 # Prepare input for the sgcca function
 A <- list(stools = otus_s, intestinal = otus_i, metadata = metadb)
 # The design
@@ -138,7 +143,7 @@ ggplot(samples, aes(Stools, Intestinal)) +
   guides(col = guide_legend(title="Patient ID")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = colors) + 
-  facet_wrap(~ID, ncol = 3, scale = "free")
+  facet_wrap(~ID, ncol = 3, scales = "free")
 
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  ID, label = labels)) + 
