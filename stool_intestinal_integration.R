@@ -10,6 +10,8 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
 keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
+
+##### RGCCA #####
 A <- list(stools = otus_s[, keep], intestinal = otus_i[,keep])
 C <- matrix(0, ncol = length(A), nrow = length(A), 
             dimnames = list(names(A), names(A)))
@@ -74,7 +76,7 @@ names(colors) <- unique(meta$Patient_ID)
 samples <- cbind(samples, meta, "dist" = dist)
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 
-pdf(paste0("Figures/", today, "_plots.pdf"))
+pdf(paste0("Figures/", today, "_RGCCA_plots.pdf"))
 
 # Plot if the coherence between samples has a specific pattern
 ggplot(samples) + 
@@ -138,6 +140,7 @@ variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a,
                                               function(x){x[, 2]})),
                         Origin = rep(names(A), sapply(A, ncol)))
 variables$var <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
+
 # Remove the variables that in both components are 0
 keepComp1 <- abs(variables$comp1) > mean(abs(variables$comp1))
 keepComp2 <- abs(variables$comp2) > mean(abs(variables$comp2))
@@ -172,9 +175,6 @@ eqOTUS <- droplevels(eqOTUS)
 rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
 write.csv(eqOTUS, "equivalent_otus.csv")
 
-library("plyr")
-# mapvalues()
-
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
 # Select the most important variables
@@ -205,8 +205,8 @@ write.csv(s, file = "important_stools_microrg.csv",
 
 comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
 rownames(comp1) <- seq_len(nrow(comp1))
+
 # Plot the densities of the loadings
-library("reshape2")
 comp1 <- melt(comp1)[2:3]
 colnames(comp1) <- c("Origin", "Loadings")
 ggplot(comp1) +
@@ -225,7 +225,6 @@ comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
 comp2 <- sapply(comp2, '[', seq(max(sapply(comp2, length))))
 rownames(comp2) <- seq_len(nrow(comp2))
 
-library("reshape2")
 comp2 <- melt(comp2)[2:3]
 colnames(comp2) <- c("Origin", "Loadings")
 ggplot(comp2) +
@@ -285,6 +284,53 @@ for (i in seq_along(se)) {
   print(p)
 }
 
-
 dev.off()
+
+##### STATegRa #####
+
+keepColon <- meta$CD_Aftected_area == "COLON"
+keepT0 <- meta$Time == "T106"
+keep <- keepColon & keepT0
+
+# Create ExpressionSet objects
+eS_i <- createOmicsExpressionSet(as.matrix(t(otus_i))[, keep], 
+                                 pData = meta[keep, ])
+# eS_i <- ExpressionSet(assayData = as.matrix(otus_i))
+eS_s <- createOmicsExpressionSet(as.matrix(t(otus_s))[, keep], 
+                                 pData = meta[keep, ])
+# eS_s <- ExpressionSet(assayData = as.matrix(otus_s))
+
+pdf(paste0("Figures/", today, "_STATegRa_plots.pdf"))
+
+# Selecting components
+cc <- selectCommonComps(t(otus_i[keep, ]), t(otus_s[keep, ]), Rmax = 3)
+PCA.selection(t(otus_i[keep, ]), fac.sel = "single%", varthreshold = 0.03)$numComps
+PCA.selection(t(otus_s[keep, ]), fac.sel = "single%", varthreshold = 0.03)$numComps
+(ms <- modelSelection(list(eS_i, eS_s), Rmax = 7, fac.sel = "single%",
+               varthreshold = 0.03))
+
+plot(cc$pssq)
+plot(cc$pratios)
+# Omics Integration
+discoRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
+                  Names = c("Intestinal", "Stools"),
+                  method = "DISCOSCA",
+                  Rcommon = ms$common,
+                  Rspecific = ms$dist,
+                  center = TRUE, scale = TRUE)
+plotVAF(discoRes)
+
+jiveRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
+                             Names = c("Intestinal", "Stools"),
+                             method = "JIVE",
+                             Rcommon = ms$common,
+                             Rspecific = ms$dist,
+                             center=TRUE, scale=TRUE)
+o2plsRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
+                              Names = c("Intestinal", "Stools"),
+                              method="O2PLS", 
+                              Rcommon = ms$common,
+                              Rspecific = ms$dist,
+                              center=TRUE, scale=TRUE, weight=TRUE)
+dev.off() 
 save.image(file = paste0(today, "_stool_intestinal_integration.RData"))
