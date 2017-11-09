@@ -67,7 +67,6 @@ moreS <- tab_i > tab_s & tab_s != 0
 QmoreS <- tab_i - tab_s
 
 # Extract the ids of the data we need to add or remove
-library("reshape2")
 meltQ <- melt(QmoreS, varnames = c("Patient_ID", "Time"))
 meltL <- melt(moreS, varnames = c("Patient_ID", "Time"))
 remove_s <- meltQ[meltQ$value < 0, ]
