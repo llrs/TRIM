@@ -2,6 +2,8 @@
 
 library("ggplot2")
 library("RGCCA")
+library("STATegRa")
+library("reshape2")
 
 #' Create a circle
 #' @param center The position where the center of the circle is
@@ -61,7 +63,8 @@ McKeonHomeogenity <- function(B, C) {
   
   J <- length(A)
   M <- matrix(0, J, J)
-  colnames(M) <- rownames(M) = names(A)
+  rownames(M) <-  names(A)
+  colnames(M) <- names(A)
   for (i in 1:J){
     for (j in seq_len(i)){
       M[i, j] <- rI(A[c(i, j)])
@@ -194,8 +197,10 @@ contingency_taxa <- function(taxa_1, taxa_2) {
     stop("Taxa should be factors or characters (NAs allowed) ")
   }
   l <- sapply(rownames(taxa_2), function(x){
-    nas <- sum(is.na(taxa_2[x, ]))
-    (colSums(apply(taxa_1, 1,  `==`, taxa_2[x, ]), na.rm = TRUE)+nas)/7
+    nas_1 <- sum(is.na(taxa_1[x, ]))
+    nas_2 <- sum(is.na(taxa_2[x, ]))
+    (colSums(apply(taxa_1, 1,  `==`, taxa_2[x, ]), na.rm = TRUE) + 
+        min(nas_2, nas_1))/7
   })
   l
 }
@@ -239,3 +244,28 @@ compare.correlations <- function(r1, r2, n1, n2) {
   (r1n-r2n)/sqrt(1/(n1-3)+1/(n2-3))
 }
 
+#' Logical vectors of meta data
+#' 
+#' Given the names of the columns of the data calculates the logical vectors of 
+#' each subset of the data
+#' @param ... names of the columns to be used
+#' @data data.frame with factors
+#' @return a list with the logical values of each combination of the levels of 
+#' the columns given for the data. 
+function(..., data){
+  if (!is.data.frame(data)) {
+    stop("data should be a data.frame")
+  }
+  data <- data[, ...]
+  
+  lvl <- sapply(data, levels)
+  
+  comb <- expand.grid(sapply(lvl, as.factor))
+  comb2 <- apply(comb, 1, paste0, collapse = "_")
+  for (r in seq_along(nrow(comb2))) {
+    for (c in seq_along(ncol(data))) {
+      data[, colnames(data)[c]] == comb2[r, c]
+      stop("Continue here")
+    }
+  }
+}
