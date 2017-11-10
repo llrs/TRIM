@@ -262,7 +262,7 @@ allComb <- function(data, columns){
     stop("columns should be a character")
   }
   
-  if (length(columns) >= 2) {
+  if (!length(columns) >= 2) {
     stop("Several columns should be used")
   }
   

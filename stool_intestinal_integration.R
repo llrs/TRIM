@@ -9,10 +9,12 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
                   row.names = 1, stringsAsFactors = FALSE)
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
+
 keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
+meta <- meta[keep, ]
 
 ##### RGCCA #####
-A <- list(stools = otus_s[, keep], intestinal = otus_i[,keep])
+A <- list(stools = otus_s[keep, ], intestinal = otus_i[keep, ])
 C <- matrix(0, ncol = length(A), nrow = length(A), 
             dimnames = list(names(A), names(A)))
 
@@ -170,10 +172,34 @@ eq <- apply(comb, 1, function(z){
   all(tax_i[x, ] == tax_s[y, ]) 
 })
 
-eqOTUS <- comb[eq & !is.na(eq), ]
-eqOTUS <- droplevels(eqOTUS)
-rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
-write.csv(eqOTUS, "equivalent_otus.csv")
+# Create a matrix with TRUE or FALSE when two otus are equivalent
+dim(eq) <- c(nrow(tax_i), nrow(tax_s))
+eq[is.na(eq)] <- FALSE
+
+### Compare the equivalent otus in different settings
+time_area <- allComb(meta, c("Time", "CD_Aftected_area"))
+subCors <- sapply(as.data.frame(time_area), function(x){
+  subCor <- cor(otus_i[x, ], otus_s[x, ], use = "pairwise.complete.obs", 
+                method = "spearman")
+  y <- subCor[eq]
+  y[!is.na(y)]
+}, simplify = FALSE)
+
+# subCors <- subCors[colSums(time_area) >= 4]
+corEqOtus <- melt(subCors)
+name <- strsplit(corEqOtus$L1, "_|_")
+corEqOtus$Time <- sapply(name, function(x){x[1]})
+corEqOtus$Site <- sapply(name, function(x){x[3]})
+# Set the factors of Time in the order we want
+corEqOtus$Time <- factor(corEqOtus$Time, 
+                         levels = c("T0", "TM36", "TM48", "T26", "T52", "T106"))
+
+ggplot(corEqOtus) +
+  geom_boxplot(aes(Site, value)) + 
+  facet_grid(~Time) +
+  ylab("Correlation with stools") +
+  ggtitle("Comparison with stools")
+
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
@@ -238,9 +264,8 @@ ggplot(comp2) +
 
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
-nb_boot <- 50 # number of bootstrap samples
-J <- length(A)
-STAB <- list()
+nb_boot <- 535 # number of bootstrap samples
+J <- length(A)STAB <- list()
 B <- lapply(A, cbind)
 
 for (j in 1:J) {
@@ -280,7 +305,9 @@ for (i in seq_along(se)) {
   p <- ggplot(a) + 
     geom_pointrange(aes(x = 1:nrow(a), y = mean, 
                         ymin = mean - SE, ymax = mean + SE)) + 
-    ggtitle(names(se)[i])
+    ggtitle(names(se)[i]) + 
+    xlab("Features") +
+    ylab("Weight")
   print(p)
 }
 
