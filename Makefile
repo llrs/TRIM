@@ -20,12 +20,13 @@ $(out_files): $(pre_files) cleaning.R
 stool_intestinal_integration: $(out_files) stool_intestinal_integration.R
 	@echo "Integrating stools and intestinal data"
 	R CMD BATCH $(R_OPTS) stool_intestinal_integration.R
+	mv stool_intestinal_integration.Rout stool_intestinal_integration
 
 # Code to integrate biopsies, biopsies 16S and stools 16S
 stool_intestinal_metadb: $(out_files) stool_intestinal_metadb.R
 	@echo "Integrating stools and intestinal data \
 	taking into account the metadata"
 	R CMD BATCH $(R_OPTS) stool_intestinal_metadb.R
- 	
+ 	mv stool_intestinal_metadb.Rout stool_intestinal_metadb
 clean:
 	rm *.Rout
