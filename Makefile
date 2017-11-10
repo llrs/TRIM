@@ -7,7 +7,8 @@ out_files=meta_coherent.csv \
 					stools_16S/otus_coherent.csv \
 					stools_16S/taxonomy.csv \
 					intestinal_16S/otus_coherent.csv \
-					intestinal_16S/taxonomy.csv
+					intestinal_16S/taxonomy.csv \
+					equivalent_otus.csv
 
 all: stool_intestinal_integration stool_intestinal_metadb
 
@@ -17,16 +18,19 @@ $(out_files): $(pre_files) cleaning.R
 	R CMD BATCH $(R_OPTS) cleaning.R
 	
 # Code to integrate stools 16S and biopsies 16S
-stool_intestinal_integration: $(out_files) stool_intestinal_integration.R
-	@echo "Integrating stools and intestinal data"
-	R CMD BATCH $(R_OPTS) stool_intestinal_integration.R
-	mv stool_intestinal_integration.Rout stool_intestinal_integration
+stool_intestinal_integration: stool_intestinal_integration.R $(out_files)
+	@echo "Integrating stools and intestinal data" 
+	R CMD BATCH $(R_OPTS) $(<F) stool_intestinal_integration/stool_intestinal_integration.Rout 
 
 # Code to integrate biopsies, biopsies 16S and stools 16S
-stool_intestinal_metadb: $(out_files) stool_intestinal_metadb.R
+stool_intestinal_metadb: stool_intestinal_metadb.R $(out_files) 
 	@echo "Integrating stools and intestinal data \
 	taking into account the metadata"
-	R CMD BATCH $(R_OPTS) stool_intestinal_metadb.R
- 	mv stool_intestinal_metadb.Rout stool_intestinal_metadb
+	R CMD BATCH $(R_OPTS) $(<F) stool_intestinal_metadb/stool_intestinal_metadb.Rout 
+ 	
+ileum_integration: ileum_integration.R $(out_files) 
+	@echo "Integrating stools and intestinal data from ileum"
+	R CMD BATCH $(R_OPTS) $(<F) ileum_integration/ileum_integration.Rout 
+
 clean:
 	rm *.Rout
