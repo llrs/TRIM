@@ -265,7 +265,8 @@ ggplot(comp2) +
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 nb_boot <- 535 # number of bootstrap samples
-J <- length(A)STAB <- list()
+J <- length(A)
+STAB <- list()
 B <- lapply(A, cbind)
 
 for (j in 1:J) {
