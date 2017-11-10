@@ -131,6 +131,24 @@ meta$Active_area[meta$Active_area == ""] <- NA
 # Remove non informative variables
 meta <- meta[, apply(meta, 2, function(x){length(unique(x)) != 1})]
 
+
+## Find the otus that are equivalent between datasets
+comb <- expand.grid(rownames(otus_tax_i[keep_otus_i, ]), 
+                    rownames(otus_tax_s[keep_otus_s, ]), stringsAsFactors = FALSE)
+colnames(comb) <- c("intestinal", "stools")
+
+eq <- apply(comb, 1, function(z){
+  y <- z[2]
+  x <- z[1]
+  # If there is any NA then they are nor precise enough to say they are the same
+  # OTU
+  all(otus_tax_i[keep_otus_i, ][x, ] == otus_tax_s[keep_otus_s, ][y, ]) 
+})
+
+eqOTUS <- comb[eq & !is.na(eq), ]
+eqOTUS <- droplevels(eqOTUS)
+rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
+
 # Write the files
 write.csv(otus_s_f, row.names = FALSE, 
           file = "stools_16S/otus_coherent.csv")
@@ -141,3 +159,4 @@ write.csv(otus_tax_i[keep_otus_i, ],
           file = file.path(intestinal, "taxonomy.csv"), row.names = TRUE)
 write.csv(otus_tax_s[keep_otus_s, ], 
           file = file.path(stool, "taxonomy.csv"), row.names = TRUE)
+write.csv(eqOTUS, "equivalent_otus.csv", row.names = FALSE)
