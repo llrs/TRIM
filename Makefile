@@ -32,5 +32,9 @@ ileum_integration: ileum_integration.R $(out_files)
 	@echo "Integrating stools and intestinal data from ileum"
 	R CMD BATCH $(R_OPTS) $(<F) ileum_integration/ileum_integration.Rout 
 
+colon_integration: colon_integration.R $(out_files) 
+	@echo "Integrating stools and intestinal data from colon"
+	R CMD BATCH $(R_OPTS) $(<F) colon_integration/colon_integration.Rout 
+	
 clean:
 	rm *.Rout
