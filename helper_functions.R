@@ -248,24 +248,47 @@ compare.correlations <- function(r1, r2, n1, n2) {
 #' 
 #' Given the names of the columns of the data calculates the logical vectors of 
 #' each subset of the data
-#' @param ... names of the columns to be used
-#' @data data.frame with factors
-#' @return a list with the logical values of each combination of the levels of 
-#' the columns given for the data. 
-function(..., data){
-  if (!is.data.frame(data)) {
-    stop("data should be a data.frame")
+#' @param columns names of the columns to be used
+#' @param data.frame with factors
+#' @return a matrix with the logical values of each combination of the levels of 
+#' the columns given for the data in each column. 
+#' @note If some rows are all FALSE it means some values are NA.
+allComb <- function(data, columns){
+  if (is.null(dim(data))) {
+    stop("data should be a data.frame or a matrix")
   }
-  data <- data[, ...]
+  
+  if (!is.character(columns)) {
+    stop("columns should be a character")
+  }
+  
+  if (length(columns) >= 2) {
+    stop("Several columns should be used")
+  }
+  
+  keep <- columns %in% colnames(data)
+  if (sum(keep) == 0) {
+    stop("Names of columns not present on data")
+  } else if (sum(keep) != length(keep)) {
+    warning("Columns:", paste(columns[!keep]), "are not present on data")
+  }
+  
+  data <- data[, columns[keep]]
   
   lvl <- sapply(data, levels)
   
   comb <- expand.grid(sapply(lvl, as.factor))
-  comb2 <- apply(comb, 1, paste0, collapse = "_")
-  for (r in seq_along(nrow(comb2))) {
-    for (c in seq_along(ncol(data))) {
-      data[, colnames(data)[c]] == comb2[r, c]
-      stop("Continue here")
-    }
-  }
+  comb2 <- apply(comb, 1, paste0, collapse = "_|_")
+  out <- apply(comb, 1, function(x, data) {
+    # Repeat the terms as much as the data
+    combT <- sapply(x, function(y){rep(y, nrow(data))})
+    # Compare the data with the levels
+    check <- rowSums(data == combT)
+    # Convert to logical by performing an &
+    o <- check == 2
+    o[is.na(o)] <- FALSE
+    o
+  }, data = data)
+  colnames(out) <- comb2
+  out
 }
