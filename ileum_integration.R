@@ -198,13 +198,18 @@ eq[is.na(eq)] <- FALSE
 ### Compare the equivalent otus in different settings
 time_area <- allComb(meta, c("Time", "Active_area"))
 subCors <- sapply(as.data.frame(time_area), function(x){
-  subCor <- cor(otus_i[x, ], otus_s[x, ], use = "pairwise.complete.obs", 
+  if (sum(x) == 0) {
+    return()
+  }
+  i <- otus_i[x, ]
+  s <- otus_s[x, ]
+  subCor <- cor(i, s, use = "pairwise.complete.obs", 
                 method = "spearman")
   y <- subCor[eq]
   y[!is.na(y)]
 }, simplify = FALSE)
 
-# subCors <- subCors[colSums(time_area) >= 4]
+subCors <- subCors[colSums(time_area) >= 4]
 corEqOtus <- melt(subCors)
 name <- strsplit(corEqOtus$L1, "_|_")
 corEqOtus$Time <- sapply(name, function(x){x[1]})
@@ -283,8 +288,9 @@ ggplot(comp2) +
 
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
-nb_boot <- 535 # number of bootstrap samples
-J <- length(A)STAB <- list()
+nb_boot <- max(ncol(otus_i), ncol(otus_s)) # number of bootstrap samples
+J <- length(A)
+STAB <- list()
 B <- lapply(A, cbind)
 
 for (j in 1:J) {
@@ -311,8 +317,7 @@ for (i in 1:nb_boot){
 colMe <- sapply(STAB, colMeans)
 se <- sapply(STAB, function(x){
   apply(x, 2, sd)/sqrt(nrow(x))
-}
-)
+})
 names(se) <- names(STAB)
 names(colMe) <- names(STAB)
 # Select the block we want to plot the variables for
@@ -338,11 +343,15 @@ keepT0 <- meta$Time == "T106"
 keep <- keepT0
 
 # Create ExpressionSet objects
-eS_i <- createOmicsExpressionSet(as.matrix(t(otus_i))[, keep], 
-                                 pData = meta[keep, ])
+expr <- as.matrix(t(otus_i))[, keep]
+colnames(expr) <- rownames(meta[keep, ])
+
+eS_i <- createOmicsExpressionSet(expr, pData = meta[keep, ])
 # eS_i <- ExpressionSet(assayData = as.matrix(otus_i))
-eS_s <- createOmicsExpressionSet(as.matrix(t(otus_s))[, keep], 
-                                 pData = meta[keep, ])
+expr <- as.matrix(t(otus_s))[, keep]
+colnames(expr) <- rownames(meta[keep, ])
+
+eS_s <- createOmicsExpressionSet(expr, pData = meta[keep, ])
 # eS_s <- ExpressionSet(assayData = as.matrix(otus_s))
 
 pdf(paste0("Figures/", today, "ILEUM_STATegRa_plots.pdf"))
