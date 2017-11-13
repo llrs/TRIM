@@ -9,12 +9,15 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
                   row.names = 1, stringsAsFactors = FALSE)
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
+eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 
 keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
 meta <- meta[keep, ]
+otus_s <- otus_s[keep, ]
+otus_i <- otus_i[keep, ]
 
 ##### RGCCA #####
-A <- list(stools = otus_s[keep, ], intestinal = otus_i[keep, ])
+A <- list(stools = otus_s, intestinal = otus_i)
 C <- matrix(0, ncol = length(A), nrow = length(A), 
             dimnames = list(names(A), names(A)))
 
@@ -89,7 +92,7 @@ ggplot(samples) +
 label <- strsplit(as.character(samples$Sample_Code), split = "_")
 labels <- sapply(label, function(x){
   if (length(x) == 5){
-    paste(x[1], x[2], x[5], sep = "_")
+    paste(x[2], x[5], sep = "_")
     # x[5]
   }
   else if (length(x) != 5) {
@@ -98,31 +101,22 @@ labels <- sapply(label, function(x){
   }
 })
 
-ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, label = labels)) + 
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle(paste0("Samples by time")) + 
-  xlab("Stools (component 1)") +
-  ylab("Mucosa (component 1)") +
-  guides(col = guide_legend(title="Patient ID")) + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors) + 
-  geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
-  facet_grid(~Time, scales = "free")
-
-ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, label = labels)) + 
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle(paste0("Samples by time")) + 
-  xlab("Stools (component 1)") +
-  ylab("Mucosa (component 1)") +
-  guides(col = guide_legend(title="Patient ID")) + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors) + 
-  geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
-  facet_grid(~Time)
+samples$Time <- factor(samples$Time, levels(samples$Time)[c(1, 5, 6, 3, 4, 2)])
+for (p in seq_along(levels(samples$Time))){
+  a <- ggplot(samples, aes(Stools, Intestinal)) +
+    geom_text(aes(color =  Patient_ID, label = labels)) + 
+    geom_vline(xintercept = 0) +
+    geom_hline(yintercept = 0) +
+    ggtitle(paste0("Samples by time")) + 
+    xlab("Stools (component 1)") +
+    ylab("Mucosa (component 1)") +
+    guides(col = guide_legend(title="Patient ID")) + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_color_manual(values = colors) + 
+    geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
+    facet_wrap_paginate(~Time, ncol = 1, nrow = 1, page = p)
+  print(a)
+}
 
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  Patient_ID, label = labels)) + 
@@ -156,37 +150,55 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   geom_text(aes(color = Origin, label = var)) +
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
-  coord_cartesian(xlim=c(-0.25 , 0.25), ylim = c(-0.25, 0.25)) + 
+  coord_cartesian() + 
   ggtitle("Variables important for the first two components", 
           subtitle = "Integrating stools and mucosa samples")
 
-## Find the otus that are equivalent between datasets
-comb <- expand.grid(rownames(tax_i), rownames(tax_s), stringsAsFactors = FALSE)
-colnames(comb) <- c("intestinal", "stools")
+## Use the previously calculated table of equivalent OTUs
+u_i <- unique(eqOTUS$intestinal)
+u_s <- unique(eqOTUS$stools)
 
-eq <- apply(comb, 1, function(z){
-  y <- z[2]
-  x <- z[1]
-  # If there is any NA then they are nor precise enough to say they are the same
-  # OTU
-  all(tax_i[x, ] == tax_s[y, ]) 
+### Compare the equivalent otus in different settings
+time_area <- allComb(meta, c("CD_Aftected_area"))
+subCors <- sapply(as.data.frame(time_area), function(x){
+  cor(otus_i[x, u_i], otus_s[x, u_s], use = "pairwise.complete.obs", 
+      method = "spearman")
+}, simplify = FALSE)
+
+# Tranform the data for the plot
+cors <- sapply(subCors, function(x){
+  x <- x[upper.tri(x)]
+  x[!is.na(x)]
 })
 
-# Create a matrix with TRUE or FALSE when two otus are equivalent
-dim(eq) <- c(nrow(tax_i), nrow(tax_s))
-eq[is.na(eq)] <- FALSE
+cors <- cors[colSums(time_area) >= 4]
+corEqOtus <- melt(cors)
+
+# Set the factors of Time in the order we want
+ggplot(corEqOtus) +
+  geom_boxplot(aes(L1, value)) + 
+  ylab("Correlation with stools") +
+  ggtitle("Comparison with stools") + 
+  xlab("CD afected area")
+
 
 ### Compare the equivalent otus in different settings
 time_area <- allComb(meta, c("Time", "CD_Aftected_area"))
 subCors <- sapply(as.data.frame(time_area), function(x){
-  subCor <- cor(otus_i[x, ], otus_s[x, ], use = "pairwise.complete.obs", 
-                method = "spearman")
-  y <- subCor[eq]
-  y[!is.na(y)]
+  cor(otus_i[x, u_i], otus_s[x, u_s], use = "pairwise.complete.obs", 
+      method = "spearman")
 }, simplify = FALSE)
 
-# subCors <- subCors[colSums(time_area) >= 4]
-corEqOtus <- melt(subCors)
+
+# Tranform the data for the plot
+cors <- sapply(subCors, function(x){
+  x <- x[upper.tri(x)]
+  x[!is.na(x)]
+})
+
+cors <- cors[colSums(time_area) >= 4]
+corEqOtus <- melt(cors)
+
 name <- strsplit(corEqOtus$L1, "_|_")
 corEqOtus$Time <- sapply(name, function(x){x[1]})
 corEqOtus$Site <- sapply(name, function(x){x[3]})
@@ -200,34 +212,13 @@ ggplot(corEqOtus) +
   ylab("Correlation with stools") +
   ggtitle("Comparison with stools")
 
+allComb(eqOTUS, c("intestinal", "stools"))
+# Do the mean of those correlations that correspond to the same microorganism
+# before doing the boxplots
+
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-# Select the most important variables
-selectedVar <- sapply(comp1, function(x){
-  q <- quantile(x, na.rm = TRUE)
-  if (q["25%"] < q["75%"] ) {
-    names(x)[(x < q["25%"] | x > q["75%"]) &  !is.na(x)]
-  } else if (q["25%"] > q["75%"] ) {
-    names(x)[(x > q["25%"] | x < q["75%"]) &  !is.na(x)]
-  } else if (q["25%"] == q["75%"] ) {
-    names(x)[x != 0]
-  }
-})
-
-# Find the organisms most important and shared between stools and intestinal
-tax_s_s <- tax_s[selectedVar[["stools"]], ]
-tax_i_s <- tax_i[selectedVar[["intestinal"]], ]
-s_in_i <- fastercheck(unique(tax_s_s), unique(tax_i_s))
-com <- unique(tax_i_s)[s_in_i, ]
-i <- unique(tax_i_s[!s_in_i,])
-s <- unique(tax_s_s)[!fastercheck(unique(tax_i_s), unique(tax_s_s)), ]
-write.csv(com, file = "important_common_microrg.csv", 
-          row.names = FALSE, na = "")
-write.csv(i, file = "important_intestinal_microrg.csv", 
-          row.names = FALSE, na = "")
-write.csv(s, file = "important_stools_microrg.csv", 
-          row.names = FALSE, na = "")
 
 comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
 rownames(comp1) <- seq_len(nrow(comp1))
@@ -297,6 +288,33 @@ se <- sapply(STAB, function(x){
 )
 names(se) <- names(STAB)
 names(colMe) <- names(STAB)
+
+# Select the most important variables of the bootstrap
+selectedVar <- sapply(colMe, function(x){
+  q <- quantile(x, na.rm = TRUE)
+  if (q["25%"] < q["75%"] ) {
+    names(x)[(x < q["25%"] | x > q["75%"]) &  !is.na(x)]
+  } else if (q["25%"] > q["75%"] ) {
+    names(x)[(x > q["25%"] | x < q["75%"]) &  !is.na(x)]
+  } else if (q["25%"] == q["75%"] ) {
+    names(x)[x != 0]
+  }
+})
+
+# Find the organisms most important and shared between stools and intestinal
+tax_s_s <- unique(tax_s[selectedVar[["stools"]], ])
+tax_i_s <- unique(tax_i[selectedVar[["intestinal"]], ])
+s_in_i <- fastercheck(tax_s_s, tax_i_s)
+com <- tax_i_s[s_in_i, ]
+i <- tax_i_s[!s_in_i,]
+s <- tax_s_s[!fastercheck(tax_i_s, tax_s_s), ]
+write.csv(com, file = "important_common_microrg.csv", 
+          row.names = FALSE, na = "")
+write.csv(i, file = "important_intestinal_microrg.csv", 
+          row.names = FALSE, na = "")
+write.csv(s, file = "important_stools_microrg.csv", 
+          row.names = FALSE, na = "")
+
 # Select the block we want to plot the variables for
 for (i in seq_along(se)) {
   a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
@@ -321,12 +339,15 @@ keepT0 <- meta$Time == "T106"
 keep <- keepColon & keepT0
 
 # Create ExpressionSet objects
-eS_i <- createOmicsExpressionSet(as.matrix(t(otus_i))[, keep], 
-                                 pData = meta[keep, ])
-# eS_i <- ExpressionSet(assayData = as.matrix(otus_i))
-eS_s <- createOmicsExpressionSet(as.matrix(t(otus_s))[, keep], 
-                                 pData = meta[keep, ])
-# eS_s <- ExpressionSet(assayData = as.matrix(otus_s))
+expr <- as.matrix(t(otus_i))[, keep]
+colnames(expr) <- rownames(meta[keep, ])
+
+eS_i <- createOmicsExpressionSet(expr, pData = meta[keep, ])
+
+expr <- as.matrix(t(otus_s))[, keep]
+colnames(expr) <- rownames(meta[keep, ])
+
+eS_s <- createOmicsExpressionSet(expr, pData = meta[keep, ])
 
 pdf(paste0("Figures/", today, "_STATegRa_plots.pdf"))
 
