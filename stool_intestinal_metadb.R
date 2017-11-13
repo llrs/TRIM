@@ -9,6 +9,7 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
                   row.names = 1, stringsAsFactors = FALSE)
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
+eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 
 # Move to its own folder
 setwd("stool_intestinal_metadb")
@@ -112,7 +113,7 @@ pdf(paste0("Figures/", today, "_plots.pdf"))
 label <- strsplit(as.character(samples$Sample_Code), split = "_")
 labels <- sapply(label, function(x){
   if (length(x) == 5){
-    paste(x[1], x[2], x[5], sep = "_")
+    paste(x[2], x[5], sep = "_")
     # x[5]
   }
   else if (length(x) != 5) {
@@ -121,30 +122,22 @@ labels <- sapply(label, function(x){
   }
 })
 
-ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  ID, label = labels)) + 
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle(paste0("Samples by time")) + 
-  xlab("Stools (component 1)") +
-  ylab("Mucosa (component 1)") +
-  guides(col = guide_legend(title="Patient ID")) + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors) + 
-  facet_grid(~Time, scales = "free")
-
-ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  ID, label = labels)) + 
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle(paste0("Samples by time")) + 
-  xlab("Stools (component 1)") +
-  ylab("Mucosa (component 1)") +
-  guides(col = guide_legend(title="Patient ID")) + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors) + 
-  facet_wrap(~ID, ncol = 3, scales = "free")
-
+samples$Time <- factor(samples$Time, levels(samples$Time)[c(1, 5, 6, 3, 4, 2)])
+for (p in seq_along(levels(samples$Time))){
+  a <- ggplot(samples, aes(Stools, Intestinal)) +
+    geom_text(aes(color =  Patient_ID, label = labels)) + 
+    geom_vline(xintercept = 0) +
+    geom_hline(yintercept = 0) +
+    ggtitle(paste0("Samples by time")) + 
+    xlab("Stools (component 1)") +
+    ylab("Mucosa (component 1)") +
+    guides(col = guide_legend(title="Patient ID")) + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_color_manual(values = colors) + 
+    geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
+    facet_wrap_paginate(~Time, ncol = 1, nrow = 1, page = p)
+  print(a)
+}
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  ID, label = labels)) + 
   geom_vline(xintercept = 0) +
@@ -179,5 +172,68 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   coord_cartesian(xlim=c(-0.25 , 0.25), ylim = c(-0.25, 0.25)) + 
   ggtitle("Variables important for the first two components", 
           subtitle = "Integrating stools and mucosa samples")
+
+
+# To calculate the conficence interval on selecting the variable
+# this interval should reduce as we fit a better model/relationship
+nb_boot <- 535 # number of bootstrap samples
+J <- length(A)
+STAB <- list()
+B <- lapply(A, cbind)
+
+for (j in 1:J) {
+  STAB[[j]]<- matrix(0, nb_boot, NCOL(A[[j]]))
+  colnames(STAB[[j]])<- colnames(B[[j]])
+}
+names(STAB) <- names(B)
+
+# Bootstrap the data
+for (i in 1:nb_boot){
+  ind  <- sample(NROW(B[[1]]), replace = TRUE)
+  Bscr <- lapply(B, function(x) x[ind, ])
+  res <- sgcca(Bscr, C, c1 = shrinkage, 
+               ncomp = c(rep(1, length(B))),
+               scheme = "centroid", 
+               scale = TRUE)
+  
+  for (j in 1:J) {
+    STAB[[j]][i, ] <- res$a[[j]]
+  }
+}
+
+# Calculate the mean and the standard error for each variable
+colMe <- sapply(STAB, colMeans)
+se <- sapply(STAB, function(x){
+  apply(x, 2, sd)/sqrt(nrow(x))
+}
+)
+names(se) <- names(STAB)
+names(colMe) <- names(STAB)
+
+# Select the most important variables of the bootstrap
+selectedVar <- sapply(colMe, function(x){
+  q <- quantile(x, na.rm = TRUE)
+  if (q["25%"] < q["75%"] ) {
+    names(x)[(x < q["25%"] | x > q["75%"]) &  !is.na(x)]
+  } else if (q["25%"] > q["75%"] ) {
+    names(x)[(x > q["25%"] | x < q["75%"]) &  !is.na(x)]
+  } else if (q["25%"] == q["75%"] ) {
+    names(x)[x != 0]
+  }
+})
+
+# Find the organisms most important and shared between stools and intestinal
+tax_s_s <- unique(tax_s[selectedVar[["stools"]], ])
+tax_i_s <- unique(tax_i[selectedVar[["intestinal"]], ])
+s_in_i <- fastercheck(tax_s_s, tax_i_s)
+com <- tax_i_s[s_in_i, ]
+i <- tax_i_s[!s_in_i,]
+s <- tax_s_s[!fastercheck(tax_i_s, tax_s_s), ]
+write.csv(com, file = "important_common_microrg.csv", 
+          row.names = FALSE, na = "")
+write.csv(i, file = "important_intestinal_microrg.csv", 
+          row.names = FALSE, na = "")
+write.csv(s, file = "important_stools_microrg.csv", 
+          row.names = FALSE, na = "")
 
 save.image(file = paste0(today, "_stool_intestinal_metadb.RData"))
