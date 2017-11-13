@@ -117,11 +117,13 @@ otus_s <- com_otus_table_s[, o]
 otus_i <- com_otus_table_i
 
 # We transpose the data because it requires the data in column for variable, row
-# for sample and we remove thosw which are all empty
+# for sample and we remove those which are all empty
 keep_otus_s <- apply(t(otus_s), 2, sd) != 0
 keep_otus_i <- apply(t(otus_i), 2, sd) != 0
 otus_s_f <- t(otus_s)[, keep_otus_s]
 otus_i_f <- t(otus_i)[, keep_otus_i]
+tax_i <- otus_tax_i[keep_otus_i, ]
+tax_s <- otus_tax_s[keep_otus_s, ]
 
 # Clean the metadata
 meta <- com_meta_i[colnames(otus_i),]
@@ -130,7 +132,6 @@ meta$Active_area[meta$Active_area == ""] <- NA
 
 # Remove non informative variables
 meta <- meta[, apply(meta, 2, function(x){length(unique(x)) != 1})]
-
 
 ## Find the otus that are equivalent between datasets
 comb <- expand.grid(rownames(otus_tax_i[keep_otus_i, ]), 
@@ -155,8 +156,6 @@ write.csv(otus_s_f, row.names = FALSE,
 write.csv(otus_i_f, row.names = FALSE, 
           file = "intestinal_16S//otus_coherent.csv")
 write.csv(meta, file = "meta_coherent.csv")
-write.csv(otus_tax_i[keep_otus_i, ], 
-          file = file.path(intestinal, "taxonomy.csv"), row.names = TRUE)
-write.csv(otus_tax_s[keep_otus_s, ], 
-          file = file.path(stool, "taxonomy.csv"), row.names = TRUE)
+write.csv(tax_i, file = file.path(intestinal, "taxonomy.csv"), row.names = TRUE)
+write.csv(tax_s, file = file.path(stool, "taxonomy.csv"), row.names = TRUE)
 write.csv(eqOTUS, "equivalent_otus.csv", row.names = FALSE)
