@@ -4,6 +4,7 @@ library("ggplot2")
 library("RGCCA")
 library("STATegRa")
 library("reshape2")
+library("ggforce")
 
 #' Create a circle
 #' @param center The position where the center of the circle is
@@ -262,9 +263,9 @@ allComb <- function(data, columns){
     stop("columns should be a character")
   }
   
-  if (!length(columns) >= 2) {
-    stop("Several columns should be used")
-  }
+  # if (!length(columns) >= 2) {
+  #   stop("Several columns should be used")
+  # }
   
   keep <- columns %in% colnames(data)
   if (sum(keep) == 0) {
@@ -275,20 +276,24 @@ allComb <- function(data, columns){
   
   data <- data[, columns[keep]]
   
-  lvl <- sapply(data, levels)
-  
-  comb <- expand.grid(sapply(lvl, as.factor))
-  comb2 <- apply(comb, 1, paste0, collapse = "_|_")
-  out <- apply(comb, 1, function(x, data) {
-    # Repeat the terms as much as the data
-    combT <- sapply(x, function(y){rep(y, nrow(data))})
-    # Compare the data with the levels
-    check <- rowSums(data == combT)
-    # Convert to logical by performing an &
-    o <- check == 2
-    o[is.na(o)] <- FALSE
-    o
-  }, data = data)
-  colnames(out) <- comb2
+  if (is.null(dim(data))) {
+    out <- sapply(levels(data), function(x){data == x})
+  } else {
+    lvl <- sapply(data, levels)
+    
+    comb <- expand.grid(sapply(lvl, as.factor))
+    comb2 <- apply(comb, 1, paste0, collapse = "_|_")
+    out <- apply(comb, 1, function(x, data) {
+      # Repeat the terms as much as the data
+      combT <- sapply(x, function(y){rep(y, nrow(data))})
+      # Compare the data with the levels
+      check <- rowSums(data == combT)
+      # Convert to logical by performing an &
+      o <- check == 2
+      o[is.na(o)] <- FALSE
+      o
+    }, data = data)
+    colnames(out) <- comb2
+  }
   out
 }
