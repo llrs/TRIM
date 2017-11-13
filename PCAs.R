@@ -1,7 +1,6 @@
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 
-library("ggplot2")
 source("helper_functions.R")
 
 # Read the intestinal otus table
@@ -83,6 +82,7 @@ labels <- sapply(label, function(x){
     # x[4]
   }
 })
+
 ggplot(pca_i_x) +
   geom_text(aes(PC1, PC2, col = meta_i$Patient_ID[keep_i], 
                 label = labels)) + 
@@ -92,24 +92,3 @@ ggplot(pca_i_x) +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylim(range(pca_i_x[, 2])) + 
   xlim(range(pca_i_x[, 1]))
-
-
-
-# Count with a cutofff of 00.5 in the relative abundance!!!
-meta_ii <- meta_i[!meta_i$Patient_ID %in% c("40", "41", "38") 
-                  & grepl("INVOLVED", meta_i$Involved_Healthy) 
-                  & meta_i$Time %in% c("T0", "T26", "T52") |
-                    grepl("^C", meta_i$Patient_ID), ]
-lacto <- lacto[, !meta_i$Patient_ID %in% c("40", "41", "38") 
-              & grepl("INVOLVED", meta_i$Involved_Healthy) 
-              & meta_i$Time %in% c("T0", "T26", "T52") |
-                grepl("^C", meta_i$Patient_ID)]
-sum(colSums(lacto[, meta_ii$Time == "C" & 
-                    # meta_ii$HSCT_responder == "YES" &
-                    # meta_ii$ == "INVOLVED" & 
-                    grepl("COLON", meta_ii$CD_Aftected_area)]) != 0)
-
-# sum(colSums(lacto[, meta_i$Time == "T52" & 
-                    meta_i$HSCT_responder == "YES" & 
-                    meta_i$Involved_Healthy == "INVOLVED" & 
-                    grepl("COLON", meta_i$CD_Aftected_area)]) != 0)
