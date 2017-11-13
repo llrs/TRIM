@@ -36,5 +36,9 @@ colon_integration: colon_integration.R $(out_files)
 	@echo "Integrating stools and intestinal data from colon"
 	R CMD BATCH $(R_OPTS) $(<F) colon_integration/colon_integration.Rout 
 	
+PCA: PCAs.R $(pre_files)
+	@echo "PCAs of the data"
+	R CMD BATCH $(R_OPTS) $(<F)
+
 clean:
 	rm *.Rout
