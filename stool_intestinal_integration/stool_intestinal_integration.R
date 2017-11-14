@@ -80,6 +80,7 @@ dist <- apply(samples, 1, dist2d, d = d)
 names(colors) <- unique(meta$Patient_ID)
 samples <- cbind(samples, meta, "dist" = dist)
 samples$Patient_ID <- as.factor(samples$Patient_ID)
+samples$Sample_Code <- as.character(samples$Sample_Code)
 
 pdf(paste0("Figures/", today, "_RGCCA_plots.pdf"))
 
@@ -92,15 +93,14 @@ ggplot(samples) +
 label <- strsplit(as.character(samples$Sample_Code), split = "_")
 labels <- sapply(label, function(x){
   if (length(x) == 5){
-    paste(x[2], x[5], sep = "_")
-    # x[5]
+    x[5]
   }
   else if (length(x) != 5) {
-    paste(x[1], x[4], sep = "_")
-    # x[4]
+    x[4]
   }
 })
 
+samples <- cbind(samples, labels)
 samples$Time <- factor(samples$Time, levels(samples$Time)[c(1, 5, 6, 3, 4, 2)])
 for (p in seq_along(levels(samples$Time))){
   a <- ggplot(samples, aes(Stools, Intestinal)) +
@@ -119,7 +119,7 @@ for (p in seq_along(levels(samples$Time))){
 }
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, label = labels)) + 
+  geom_text(aes(color =  Patient_ID, label = paste(Time, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -154,72 +154,8 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   ggtitle("Variables important for the first two components", 
           subtitle = "Integrating stools and mucosa samples")
 
-## Use the previously calculated table of equivalent OTUs
-u_i <- unique(eqOTUS$intestinal)
-u_s <- unique(eqOTUS$stools)
-
-### Compare the equivalent otus in different settings
-time_area <- allComb(meta, c("CD_Aftected_area"))
-subCors <- sapply(as.data.frame(time_area), function(x){
-  cor(otus_i[x, u_i], otus_s[x, u_s], use = "pairwise.complete.obs", 
-      method = "spearman")
-}, simplify = FALSE)
-
-# Tranform the data for the plot
-cors <- sapply(subCors, function(x){
-  x <- x[upper.tri(x)]
-  x[!is.na(x)]
-})
-
-cors <- cors[colSums(time_area) >= 4]
-corEqOtus <- melt(cors)
-
-# Set the factors of Time in the order we want
-ggplot(corEqOtus) +
-  geom_boxplot(aes(L1, value)) + 
-  ylab("Correlation with stools") +
-  ggtitle("Comparison with stools") + 
-  xlab("CD afected area")
-
-
-### Compare the equivalent otus in different settings
-time_area <- allComb(meta, c("Time", "CD_Aftected_area"))
-subCors <- sapply(as.data.frame(time_area), function(x){
-  cor(otus_i[x, u_i], otus_s[x, u_s], use = "pairwise.complete.obs", 
-      method = "spearman")
-}, simplify = FALSE)
-
-
-# Tranform the data for the plot
-cors <- sapply(subCors, function(x){
-  x <- x[upper.tri(x)]
-  x[!is.na(x)]
-})
-
-cors <- cors[colSums(time_area) >= 4]
-corEqOtus <- melt(cors)
-
-name <- strsplit(corEqOtus$L1, "_|_")
-corEqOtus$Time <- sapply(name, function(x){x[1]})
-corEqOtus$Site <- sapply(name, function(x){x[3]})
-# Set the factors of Time in the order we want
-corEqOtus$Time <- factor(corEqOtus$Time, 
-                         levels = c("T0", "TM36", "TM48", "T26", "T52", "T106"))
-
-ggplot(corEqOtus) +
-  geom_boxplot(aes(Site, value)) + 
-  facet_grid(~Time) +
-  ylab("Correlation with stools") +
-  ggtitle("Comparison with stools")
-
-allComb(eqOTUS, c("intestinal", "stools"))
-# Do the mean of those correlations that correspond to the same microorganism
-# before doing the boxplots
-
-
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-
 comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
 rownames(comp1) <- seq_len(nrow(comp1))
 
@@ -305,9 +241,9 @@ selectedVar <- sapply(colMe, function(x){
 tax_s_s <- unique(tax_s[selectedVar[["stools"]], ])
 tax_i_s <- unique(tax_i[selectedVar[["intestinal"]], ])
 s_in_i <- fastercheck(tax_s_s, tax_i_s)
-com <- tax_i_s[s_in_i, ]
-i <- tax_i_s[!s_in_i,]
-s <- tax_s_s[!fastercheck(tax_i_s, tax_s_s), ]
+com <- tax_s_s[s_in_i, ]
+s <- tax_s_s[!s_in_i,]
+i <- tax_i_s[!fastercheck(tax_i_s, tax_s_s), ]
 write.csv(com, file = "important_common_microrg.csv", 
           row.names = FALSE, na = "")
 write.csv(i, file = "important_intestinal_microrg.csv", 
