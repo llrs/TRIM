@@ -10,31 +10,35 @@ out_files=meta_coherent.csv \
 					intestinal_16S/taxonomy.csv \
 					equivalent_otus.csv
 
-all: stool_intestinal_integration stool_intestinal_metadb
+all: eqOTUs stool_intestinal_integration stool_intestinal_metadb
 
 # Clean the input and prepare it
-$(out_files): $(pre_files) cleaning.R
+$(out_files): cleaning.R $(pre_files) 
 	@echo "Preparing input data"
-	R CMD BATCH $(R_OPTS) cleaning.R
+	R CMD BATCH $(R_OPTS) $(<F)
 	
 # Code to integrate stools 16S and biopsies 16S
 stool_intestinal_integration: stool_intestinal_integration.R $(out_files)
 	@echo "Integrating stools and intestinal data" 
-	R CMD BATCH $(R_OPTS) $(<F) stool_intestinal_integration/stool_intestinal_integration.Rout 
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	
+eqOTUs: stool_intestinal/stool_intestinal.R equivalent_otus.csv
+	@echo "Analyse the microorganisms in common between stools and biopsies"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Code to integrate biopsies, biopsies 16S and stools 16S
-stool_intestinal_metadb: stool_intestinal_metadb.R $(out_files) 
+stool_intestinal_metadb: stool_intestinal_metadb/stool_intestinal_metadb.R $(out_files) 
 	@echo "Integrating stools and intestinal data \
 	taking into account the metadata"
-	R CMD BATCH $(R_OPTS) $(<F) stool_intestinal_metadb/stool_intestinal_metadb.Rout 
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
  	
-ileum_integration: ileum_integration.R $(out_files) 
+ileum_integration: ileum_integration/ileum_integration.R $(out_files) 
 	@echo "Integrating stools and intestinal data from ileum"
-	R CMD BATCH $(R_OPTS) $(<F) ileum_integration/ileum_integration.Rout 
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
-colon_integration: colon_integration.R $(out_files) 
+colon_integration: colon_integration/colon_integration.R $(out_files) 
 	@echo "Integrating stools and intestinal data from colon"
-	R CMD BATCH $(R_OPTS) $(<F) colon_integration/colon_integration.Rout 
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 	
 PCA: PCAs.R $(pre_files)
 	@echo "PCAs of the data"
