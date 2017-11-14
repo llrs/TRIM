@@ -214,15 +214,17 @@ contingency_taxa <- function(taxa_1, taxa_2) {
 #' @return The p-value 
 convert.z.score <- function(z, one.sided = NULL) {
   # https://www.biostars.org/p/17227/#136907
-  if (!is.null(one.sided) & !one.sided %in% c("+", "-")) {
-    stop("one.sided should be NULL or + or -")
+  if (!is.null(one.sided)) {
+    if (!one.sided %in% c("+", "-")){
+      stop("one.sided should be NULL or + or -")
+    }
   }
   
   if (!is.numeric(z)) {
     stop("z should be numeric")
   }
   
-  if(is.null(one.sided)) {
+  if (is.null(one.sided)) {
     pval <- pnorm(-abs(z))
     pval <- 2 * pval
   } else if(one.sided == "-") {
@@ -239,7 +241,9 @@ convert.z.score <- function(z, one.sided = NULL) {
 #' @param n1,n2 The number of samples used to calculate the correlations
 #' @return The z score of the comparison of the coefficients.
 compare.correlations <- function(r1, r2, n1, n2) {
-  r.norm <- function(r){log(abs((1+r)/(1-r)))/2}
+  r.norm <- function(r){
+    log(abs((1+r)/(1-r)))/2
+    }
   r1n <- r.norm(r1)
   r2n <- r.norm(r2)
   (r1n-r2n)/sqrt(1/(n1-3)+1/(n2-3))
@@ -296,4 +300,41 @@ allComb <- function(data, columns){
     colnames(out) <- comb2
   }
   out
+}
+
+#' Make a rectangle at those cells
+#' 
+#' @param tfMat matrix to take the dimensions from and with TRUE at the cells 
+#' to be higlighted
+#' @param border Type of border
+#' @return A side effect of the adding a rectangle to the heatmap
+#' @references 
+#' https://stackoverflow.com/a/45891116/2886003
+#' https://stackoverflow.com/a/7980349/2886003
+makeRects <- function(tfMat, border){
+  nx <- nrow(tfMat)
+  ny <- ncol(tfMat)
+  cAbove <- expand.grid(seq_len(nx), seq_len(ny))[tfMat, ]
+  cA_1 <- table(cAbove[, 1])
+  
+  # In case all the positions are consecutive 
+  # draw a big rectangle by keeping the x positions
+  if (all(names(cA_1) %in% seq_len(max(cA_1)))) {
+    xl <- rep(min(as.numeric(names(cA_1))) - 0.49, max(cA_1)*length(cA_1))
+    xr <- rep(max(as.numeric(names(cA_1))) + 0.49, max(cA_1)*length(cA_1))
+  } else {
+    xl <- cAbove[, 1] - 0.49
+    xr <- cAbove[, 1] + 0.49
+  }
+  # In case all the positions are consecutive 
+  # draw a big rectangle by keeping the y positions
+  cA_2 <- table(cAbove[, 2])
+  if (all(names(cA_2) %in% seq_len(max(cA_2)))) {
+    yb <- rep(min(as.numeric(names(cA_2))) - 0.49, max(cA_2)*length(cA_2))
+    yt <- rep(max(as.numeric(names(cA_2))) + 0.49, max(cA_2)*length(cA_2))
+  } else {
+    yb <- cAbove[, 2] - 0.49
+    yt <- cAbove[, 2] + 0.49
+  }
+  rect(xl, yb, xr, yt, border = border, lwd = 3)
 }
