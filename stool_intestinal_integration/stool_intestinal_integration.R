@@ -1,6 +1,7 @@
+cd <- setwd("..")
+
 # Load the helper file
 source("helper_functions.R")
-
 # Read files
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
 otus_s <- read.csv(file = "stools_16S/otus_coherent.csv")
@@ -10,7 +11,7 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
 eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
-
+setwd(cd)
 keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
 meta <- meta[keep, ]
 otus_s <- otus_s[keep, ]
