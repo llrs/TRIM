@@ -12,6 +12,8 @@ tax_s <- read.csv(file = "stools_16S/taxonomy.csv",
                   row.names = 1, stringsAsFactors = FALSE)
 eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 setwd(cd)
+
+
 keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
 meta <- meta[keep, ]
 otus_s <- otus_s[keep, ]
@@ -23,7 +25,6 @@ C <- matrix(0, ncol = length(A), nrow = length(A),
             dimnames = list(names(A), names(A)))
 
 # Move to its own folder
-setwd("stool_intestinal_integration")
 
 C <- subSymm(C, "intestinal", "stools", 1)
 
@@ -77,8 +78,9 @@ if (lmt$coefficients[2] > 0) {
 }
 
 dist <- apply(samples, 1, dist2d, d = d)
+# Colors for the plots
+names(colors) <- unique(meta$ID)
 
-names(colors) <- unique(meta$Patient_ID)
 samples <- cbind(samples, meta, "dist" = dist)
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 samples$Sample_Code <- as.character(samples$Sample_Code)
@@ -111,7 +113,7 @@ for (p in seq_along(levels(samples$Time))){
     ggtitle(paste0("Samples by time")) + 
     xlab("Stools (component 1)") +
     ylab("Mucosa (component 1)") +
-    guides(col = guide_legend(title="Patient ID")) + 
+    guides(col = guide_legend(title="Patient")) + 
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_manual(values = colors) + 
     geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
@@ -119,14 +121,29 @@ for (p in seq_along(levels(samples$Time))){
   print(a)
 }
 
+for (p in seq_along(levels(samples$ID))){
+  a <- ggplot(samples, aes(Stools, Intestinal)) +
+    geom_text(aes(color =  ID, label = labels)) + 
+    geom_vline(xintercept = 0) +
+    geom_hline(yintercept = 0) +
+    ggtitle(paste0("Samples by patient")) + 
+    xlab("Stools (component 1)") +
+    ylab("Mucosa (component 1)") +
+    guides(col = guide_legend(title="Patient")) + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_color_manual(values = colors) + 
+    geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
+    facet_wrap_paginate(~ID, ncol = 1, nrow = 1, page = p)
+  print(a)
+}
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  Patient_ID, label = paste(Time, labels, sep = "_"))) + 
+  geom_text(aes(color =  ID, label = paste(Time, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
   xlab("Stools (component 1)") +
   ylab("Mucosa (component 1)") +
-  guides(col = guide_legend(title="Patient ID")) + 
+  guides(col = guide_legend(title="Patient")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = colors) + 
   geom_abline(intercept = 0, slope = d[1], linetype = 2)
@@ -268,55 +285,4 @@ for (i in seq_along(se)) {
 }
 
 dev.off()
-
-##### STATegRa #####
-
-keepColon <- meta$CD_Aftected_area == "COLON"
-keepT0 <- meta$Time == "T106"
-keep <- keepColon & keepT0
-
-# Create ExpressionSet objects
-expr <- as.matrix(t(otus_i))[, keep]
-colnames(expr) <- rownames(meta[keep, ])
-
-eS_i <- createOmicsExpressionSet(expr, pData = meta[keep, ])
-
-expr <- as.matrix(t(otus_s))[, keep]
-colnames(expr) <- rownames(meta[keep, ])
-
-eS_s <- createOmicsExpressionSet(expr, pData = meta[keep, ])
-
-pdf(paste0("Figures/", today, "_STATegRa_plots.pdf"))
-
-# Selecting components
-cc <- selectCommonComps(t(otus_i[keep, ]), t(otus_s[keep, ]), Rmax = 3)
-PCA.selection(t(otus_i[keep, ]), fac.sel = "single%", varthreshold = 0.03)$numComps
-PCA.selection(t(otus_s[keep, ]), fac.sel = "single%", varthreshold = 0.03)$numComps
-(ms <- modelSelection(list(eS_i, eS_s), Rmax = 7, fac.sel = "single%",
-               varthreshold = 0.03))
-
-plot(cc$pssq)
-plot(cc$pratios)
-# Omics Integration
-discoRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
-                  Names = c("Intestinal", "Stools"),
-                  method = "DISCOSCA",
-                  Rcommon = ms$common,
-                  Rspecific = ms$dist,
-                  center = TRUE, scale = TRUE)
-plotVAF(discoRes)
-
-jiveRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
-                             Names = c("Intestinal", "Stools"),
-                             method = "JIVE",
-                             Rcommon = ms$common,
-                             Rspecific = ms$dist,
-                             center=TRUE, scale=TRUE)
-o2plsRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
-                              Names = c("Intestinal", "Stools"),
-                              method="O2PLS", 
-                              Rcommon = ms$common,
-                              Rspecific = ms$dist,
-                              center=TRUE, scale=TRUE, weight=TRUE)
-dev.off() 
 save.image(file = paste0(today, "_stool_intestinal_integration.RData"))

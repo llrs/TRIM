@@ -1,0 +1,71 @@
+cd <- setwd("..")
+
+# Load the helper file
+source("helper_functions.R")
+# Read files
+otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
+otus_s <- read.csv(file = "stools_16S/otus_coherent.csv")
+meta <- read.csv(file = "meta_coherent.csv", row.names = 1)
+tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv", 
+                  row.names = 1, stringsAsFactors = FALSE)
+tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
+                  row.names = 1, stringsAsFactors = FALSE)
+eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
+setwd(cd)
+
+
+keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
+meta <- meta[keep, ]
+otus_s <- otus_s[keep, ]
+otus_i <- otus_i[keep, ]
+
+##### STATegRa #####
+
+keepColon <- meta$CD_Aftected_area == "COLON"
+keepT0 <- meta$Time == "T106"
+keep <- keepColon & keepT0
+
+# Create ExpressionSet objects
+expr <- as.matrix(t(otus_i))[, keep]
+colnames(expr) <- rownames(meta[keep, ])
+
+eS_i <- createOmicsExpressionSet(expr, pData = meta[keep, ])
+
+expr <- as.matrix(t(otus_s))[, keep]
+colnames(expr) <- rownames(meta[keep, ])
+
+eS_s <- createOmicsExpressionSet(expr, pData = meta[keep, ])
+
+pdf(paste0("Figures/", today, "_STATegRa_plots.pdf"))
+
+# Selecting components
+cc <- selectCommonComps(t(otus_i[keep, ]), t(otus_s[keep, ]), Rmax = 3)
+PCA.selection(t(otus_i[keep, ]), fac.sel = "single%", varthreshold = 0.03)$numComps
+PCA.selection(t(otus_s[keep, ]), fac.sel = "single%", varthreshold = 0.03)$numComps
+(ms <- modelSelection(list(eS_i, eS_s), Rmax = 7, fac.sel = "single%",
+                      varthreshold = 0.03))
+
+plot(cc$pssq)
+plot(cc$pratios)
+# Omics Integration
+discoRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
+                              Names = c("Intestinal", "Stools"),
+                              method = "DISCOSCA",
+                              Rcommon = ms$common,
+                              Rspecific = ms$dist,
+                              center = TRUE, scale = TRUE)
+plotVAF(discoRes)
+
+jiveRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
+                             Names = c("Intestinal", "Stools"),
+                             method = "JIVE",
+                             Rcommon = ms$common,
+                             Rspecific = ms$dist,
+                             center=TRUE, scale=TRUE)
+o2plsRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
+                              Names = c("Intestinal", "Stools"),
+                              method="O2PLS", 
+                              Rcommon = ms$common,
+                              Rspecific = ms$dist,
+                              center=TRUE, scale=TRUE, weight=TRUE)
+dev.off() 
