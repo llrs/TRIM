@@ -107,7 +107,7 @@ samples <- cbind(samples, labels)
 samples$Time <- factor(samples$Time, levels(samples$Time)[c(1, 5, 6, 3, 4, 2)])
 for (p in seq_along(levels(samples$Time))){
   a <- ggplot(samples, aes(Stools, Intestinal)) +
-    geom_text(aes(color =  Patient_ID, label = labels)) + 
+    geom_text(aes(color =  ID, label = labels)) + 
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by time")) + 
