@@ -92,6 +92,14 @@ cors2Org <- sapply(rownames(unique(tax_s[eqOTUS$stools,])), function(y){
   })
   test
 })
+
+ggplot(melt(t(cors2Org)), aes(Var2, y = value)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  # geom_point(position = position_jitter()) +
+  xlab("Samples") + 
+  guides(col = FALSE)
+
 corsOrg <- cbind(corsOrg, t(cors2Org))
 ggplot(melt(corsOrg), aes(variable, y = value)) + 
   # geom_violin() + 
@@ -143,6 +151,54 @@ ggplot(melt(corsOrg), aes(variable, y = value)) +
   xlab("Samples") + 
   guides(col = FALSE)
 
+ggplot(melt(t(cors2Org)), aes(Var2, y = value)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  # geom_point(position = position_jitter()) +
+  xlab("Samples") + 
+  guides(col = FALSE)
+time <- allComb(meta, "HSCT_responder")
+subCors <- sapply(as.data.frame(time), function(x){
+  cor(otus_i[x, u_i], otus_s[x, u_s], use = "pairwise.complete.obs", 
+      method = "spearman")
+}, simplify = FALSE)
+
+cors2Org <- sapply(rownames(unique(tax_s[eqOTUS$stools,])), function(y){
+  
+  # Find all the OTUs in the intestinal
+  o_i <- eqOTUS$intestinal[eqOTUS$stools == y]
+  # Find all the otus of stools for the same org. 
+  o_s <- lapply(o_i, function(x){eqOTUS$stools[eqOTUS$intestinal == x]})
+  o_s <- unique(unlist(o_s))
+  
+  if (!y %in% o_s) {
+    stop(y, " should be on the list of otus ", paste(o_i, collapse = ", "))
+  }
+  
+  ta <- paste(tax_s[y, c("Genus", "Species")], collapse = " ")
+  test <- sapply(seq_along(subCors), function(xy) {
+    mOTUs <- mean(subCors[[xy]][o_i, o_s], na.rm = TRUE)
+    
+    names(mOTUs) <- names(subCors)[xy]
+    mOTUs
+  })
+  test
+})
+corsOrg <- cbind(corsOrg, t(cors2Org))
+ggplot(melt(corsOrg), aes(variable, y = value)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  # geom_point(position = position_jitter()) +
+  xlab("Samples") + 
+  guides(col = FALSE)
+
+ggplot(melt(t(cors2Org)), aes(Var2, y = value)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  # geom_point(position = position_jitter()) +
+  xlab("Samples") + 
+  guides(col = FALSE)
+
 ### Compare the equivalent otus in different settings
 time_area <- allComb(meta, c("Time", "CD_Aftected_area"))
 subCors <- sapply(as.data.frame(time_area), function(x){
@@ -176,6 +232,13 @@ ggplot(melt(corsOrg), aes(variable, y = value)) +
   # geom_violin() + 
   geom_boxplot() +
   geom_point(position = position_jitter()) +
+  xlab("Samples") + 
+  guides(col = FALSE)
+
+ggplot(melt(t(cors2Org)), aes(Var2, y = value)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  # geom_point(position = position_jitter()) +
   xlab("Samples") + 
   guides(col = FALSE)
 
@@ -215,6 +278,13 @@ cors2Org <- sapply(rownames(unique(tax_s[eqOTUS$stools,])), function(y){
 cors2Org <- t(cors2Org)
 keep <- apply(cors2Org, 2, function(x){all(is.na(x))})
 cors2Org <- cors2Org[, !keep]
+
+ggplot(melt(cors2Org), aes(Var2, y = value)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  # geom_point(position = position_jitter()) +
+  xlab("Samples") + 
+  guides(col = FALSE)
 
 corsOrg <- cbind(corsOrg, cors2Org)
 ggplot(melt(corsOrg), aes(variable, y = value)) + 
