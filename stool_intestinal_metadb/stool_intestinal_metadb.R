@@ -14,15 +14,7 @@ eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 setwd(cd)
 
 # Prepare the metadata for the RGCCA package
- 
-# Prepare the metadata
-meta$Active_area[meta$Active_area == ""] <- NA
-meta$Active_area <- droplevels(meta$Active_area)
-meta$ID <- meta$Patient_ID
-meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15_23"
-meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33_36"
-meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29_35"
-meta$ID <- as.factor(meta$ID)
+
 meta2 <- meta
 keepCol <- sapply(meta, is.factor)
 postTreatment <- c("Birth_date", "Sample_Code", "Patient_ID")
