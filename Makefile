@@ -18,9 +18,12 @@ $(out_files): cleaning.R $(pre_files)
 	R CMD BATCH $(R_OPTS) $(<F)
 	
 # Code to integrate stools 16S and biopsies 16S
-stool_intestinal_integration: stool_intestinal_integration.R $(out_files)
+stool_intestinal_integration: stool_intestinal_integration/stool_intestinal_integration.R stool_intestinal_integration/STATegRa.R $(out_files)
 	@echo "Integrating stools and intestinal data" 
+	@echo "\tUsing RGCCA"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	@echo "\tUsing STATegRa"
+	cd $(<D); R CMD BATCH $(R_OPTS) STATegRa.R
 	
 eqOTUs: stool_intestinal/stool_intestinal.R equivalent_otus.csv
 	@echo "Analyse the microorganisms in common between stools and biopsies"
