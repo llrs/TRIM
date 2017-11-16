@@ -134,9 +134,9 @@ meta$Active_area[meta$Active_area == ""] <- NA
 meta <- meta[, apply(meta, 2, function(x){length(unique(x)) != 1})]
 meta$Active_area[meta$Active_area == ""] <- NA
 meta$ID <- meta$Patient_ID
-meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15_23"
-meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33_36"
-meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29_35"
+meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15/23"
+meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33/36"
+meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29/35"
 meta$ID <- as.factor(meta$ID)
 
 ## Find the otus that are equivalent between datasets
