@@ -13,8 +13,8 @@ tax_s <- read.csv(file = "stools_16S/taxonomy.csv",
 eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 setwd(cd)
 
-
-keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
+# Remove outlier see PCA of biopsies in Figures/
+keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code)
 meta <- meta[keep, ]
 otus_s <- otus_s[keep, ]
 otus_i <- otus_i[keep, ]
@@ -123,7 +123,7 @@ for (p in seq_along(levels(samples$Time))){
 
 for (p in seq_along(levels(samples$ID))){
   a <- ggplot(samples, aes(Stools, Intestinal)) +
-    geom_text(aes(color =  ID, label = labels)) + 
+    geom_text(aes(color =  ID, label = paste(Time, labels, sep = "_"))) + 
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by patient")) + 
@@ -137,7 +137,8 @@ for (p in seq_along(levels(samples$ID))){
   print(a)
 }
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  ID, label = paste(Time, labels, sep = "_"))) + 
+  geom_text(aes(color =  ID, 
+                label = paste(Time, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -147,6 +148,40 @@ ggplot(samples, aes(Stools, Intestinal)) +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = colors) + 
   geom_abline(intercept = 0, slope = d[1], linetype = 2)
+
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color = HSCT_responder , 
+                label = paste(ID, labels, sep = "_"))) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title="Responders")) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color = Endoscopic_Activity , 
+                label = paste(ID, labels, sep = "_"))) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title = "Endoscopic Activity")) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color = Time , label = labels)) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title = "Time")) + 
+  theme(plot.title = element_text(hjust = 0.5))
 
 variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 1]})),
