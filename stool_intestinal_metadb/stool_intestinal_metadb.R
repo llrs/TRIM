@@ -156,7 +156,7 @@ ggplot(samples, aes(Stools, Intestinal)) +
 
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color = Endoscopic_Activity, 
-                label = label = paste(ID, labels, sep = "_"))) + 
+                label = paste(ID, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -166,7 +166,8 @@ ggplot(samples, aes(Stools, Intestinal)) +
   theme(plot.title = element_text(hjust = 0.5))
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color = Time , label = labels)) + 
+  geom_text(aes(color = Time, 
+                label = paste(ID, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -228,13 +229,28 @@ for (i in 1:nb_boot){
 }
 
 # Calculate the mean and the standard error for each variable
-colMe <- sapply(STAB, colMeans)
+colMe <- sapply(STAB, function(x){colMeans(abs(x))})
 se <- sapply(STAB, function(x){
-  apply(x, 2, sd)/sqrt(nrow(x))
-}
-)
+  apply(abs(x), 2, sd)/sqrt(nrow(x))
+})
 names(se) <- names(STAB)
 names(colMe) <- names(STAB)
+
+
+# Select the block we want to plot the variables for
+for (i in seq_along(se)) {
+  a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
+  a <- as.data.frame(a)
+  a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
+  
+  p <- ggplot(a) + 
+    geom_pointrange(aes(x = 1:nrow(a), y = mean, 
+                        ymin = mean - SE, ymax = mean + SE)) + 
+    ggtitle(names(se)[i]) + 
+    xlab("Features") +
+    ylab("Weight")
+  print(p)
+}
 
 # Select the most important variables of the bootstrap
 selectedVar <- sapply(colMe, function(x){
@@ -261,5 +277,5 @@ write.csv(i, file = "important_intestinal_microrg.csv",
           row.names = FALSE, na = "")
 write.csv(s, file = "important_stools_microrg.csv", 
           row.names = FALSE, na = "")
-
+dev.off()
 save.image(file = paste0(today, "_stool_intestinal_metadb.RData"))
