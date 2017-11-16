@@ -17,7 +17,7 @@ setwd(cd)
 
 meta2 <- meta
 keepCol <- sapply(meta, is.factor)
-postTreatment <- c("Birth_date", "Sample_Code", "Patient_ID")
+postTreatment <- c("Birth_date", "Sample_Code", "Patient_ID", "HSCT_responder")
 keepCol[postTreatment] <- FALSE
 for (col in names(keepCol)[keepCol]){
   levels(meta2[, col]) <- seq_along(levels(meta2[, col]))
@@ -104,19 +104,21 @@ pdf(paste0("Figures/", today, "_plots.pdf"))
 label <- strsplit(as.character(samples$Sample_Code), split = "_")
 labels <- sapply(label, function(x){
   if (length(x) == 5){
-    paste(x[2], x[5], sep = "_")
+    paste(x[5], sep = "_")
     # x[5]
   }
   else if (length(x) != 5) {
-    paste(x[1], x[4], sep = "_")
+    paste(x[4], sep = "_")
     # x[4]
   }
 })
-
+samples <- cbind(samples, labels)
 samples$Time <- factor(samples$Time, levels(samples$Time)[c(1, 5, 6, 3, 4, 2)])
+
 for (p in seq_along(levels(samples$Time))){
   a <- ggplot(samples, aes(Stools, Intestinal)) +
-    geom_text(aes(color =  Patient_ID, label = labels)) + 
+    geom_text(aes(color =  Patient_ID, 
+                  label = paste(ID, labels, sep = "_"))) + 
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by time")) + 
@@ -125,12 +127,12 @@ for (p in seq_along(levels(samples$Time))){
     guides(col = guide_legend(title="Patient ID")) + 
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_manual(values = colors) + 
-    geom_abline(intercept = 0, slope = d[1], linetype = 2) + 
     facet_wrap_paginate(~Time, ncol = 1, nrow = 1, page = p)
   print(a)
 }
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color =  ID, label = labels)) + 
+  geom_text(aes(color =  ID, 
+                label = paste(Time, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -139,6 +141,39 @@ ggplot(samples, aes(Stools, Intestinal)) +
   guides(col = guide_legend(title="Patient ID")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = colors)
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color = HSCT_responder , 
+                label = paste(ID, labels, sep = "_"))) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title = "Responders")) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color = Endoscopic_Activity, 
+                label = label = paste(ID, labels, sep = "_"))) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title = "Endoscopic Activity")) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(samples, aes(Stools, Intestinal)) +
+  geom_text(aes(color = Time , label = labels)) + 
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") + 
+  xlab("Stools (component 1)") +
+  ylab("Mucosa (component 1)") +
+  guides(col = guide_legend(title = "Time")) + 
+  theme(plot.title = element_text(hjust = 0.5))
 
 variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 1]})),
