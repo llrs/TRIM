@@ -270,11 +270,11 @@ for (i in 1:nb_boot){
 }
 
 # Calculate the mean and the standard error for each variable
-colMe <- sapply(STAB, colMeans)
+# We don't care the sign of the weight, if it is anti or with correlation
+colMe <- sapply(STAB, function(x){colMeans(abs(x))})
 se <- sapply(STAB, function(x){
-  apply(x, 2, sd)/sqrt(nrow(x))
-  }
-)
+  apply(abs(x), 2, sd)/sqrt(nrow(x))
+})
 names(se) <- names(STAB)
 names(colMe) <- names(STAB)
 
