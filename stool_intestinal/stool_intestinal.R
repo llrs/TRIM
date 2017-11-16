@@ -61,8 +61,9 @@ corsOrg$All <- as.numeric(levels(corsOrg$All))[corsOrg$All]
 ggplot(corsOrg, aes("All", y = All)) + 
   geom_violin() + 
   # geom_boxplot() +
-  geom_point(position = position_jitter()) +
-  xlab("Samples")
+  # geom_point(position = position_jitter()) +
+  xlab("Samples") +
+  ylab("Correlation")
   
 
 ### Compare the equivalent otus in different settings
@@ -104,15 +105,15 @@ corsOrg <- cbind(corsOrg, t(cors2Org))
 ggplot(melt(corsOrg), aes(variable, y = value)) + 
   # geom_violin() + 
   geom_boxplot() +
-  geom_point(position = position_jitter()) +
+  # geom_point(position = position_jitter()) +
   xlab("Samples") + 
   guides(col = FALSE)
 
 ggplot(corsOrg, aes("ratio", y = COLON/ILEUM)) + 
   geom_violin() + 
   # geom_boxplot() +
-  geom_point(aes(col = ta), position = position_jitter()) +
-  xlab("Samples") + 
+  # geom_point(aes(col = ta), position = position_jitter()) +
+  xlab("Samples") +
   guides(col = FALSE)
 
 ### Compare the equivalent otus in different settings
@@ -144,21 +145,17 @@ cors2Org <- sapply(rownames(unique(tax_s[eqOTUS$stools,])), function(y){
   test
 })
 corsOrg <- cbind(corsOrg, t(cors2Org))
-ggplot(melt(corsOrg), aes(variable, y = value)) + 
-  # geom_violin() + 
-  geom_boxplot() +
-  # geom_point(position = position_jitter()) +
-  xlab("Samples") + 
-  guides(col = FALSE)
 
 ggplot(melt(t(cors2Org)), aes(Var2, y = value)) + 
   # geom_violin() + 
   geom_boxplot() +
   # geom_point(position = position_jitter()) +
-  xlab("Samples") + 
+  xlab("Time") + 
+  ylab("Correlation rho") + 
   guides(col = FALSE)
-time <- allComb(meta, "HSCT_responder")
-subCors <- sapply(as.data.frame(time), function(x){
+  
+responders <- allComb(meta, "HSCT_responder")
+subCors <- sapply(as.data.frame(responders), function(x){
   cor(otus_i[x, u_i], otus_s[x, u_s], use = "pairwise.complete.obs", 
       method = "spearman")
 }, simplify = FALSE)
@@ -185,18 +182,21 @@ cors2Org <- sapply(rownames(unique(tax_s[eqOTUS$stools,])), function(y){
   test
 })
 corsOrg <- cbind(corsOrg, t(cors2Org))
-ggplot(melt(corsOrg), aes(variable, y = value)) + 
-  # geom_violin() + 
-  geom_boxplot() +
-  # geom_point(position = position_jitter()) +
-  xlab("Samples") + 
-  guides(col = FALSE)
 
 ggplot(melt(t(cors2Org)), aes(Var2, y = value)) + 
   # geom_violin() + 
   geom_boxplot() +
   # geom_point(position = position_jitter()) +
-  xlab("Samples") + 
+  xlab("Responder") + 
+  ylab("Correlation rho") +
+  guides(col = FALSE)
+
+ggplot(corsOrg, aes("Ratio responders", y = YES/NO)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  # geom_point(position = position_jitter()) +
+  xlab("Responder") + 
+  ylab("Correlation rho") +
   guides(col = FALSE)
 
 ### Compare the equivalent otus in different settings
@@ -228,18 +228,13 @@ cors2Org <- sapply(rownames(unique(tax_s[eqOTUS$stools,])), function(y){
   test
 })
 corsOrg <- cbind(corsOrg, t(cors2Org))
-ggplot(melt(corsOrg), aes(variable, y = value)) + 
-  # geom_violin() + 
-  geom_boxplot() +
-  geom_point(position = position_jitter()) +
-  xlab("Samples") + 
-  guides(col = FALSE)
 
 ggplot(melt(t(cors2Org)), aes(Var2, y = value)) + 
   # geom_violin() + 
   geom_boxplot() +
   # geom_point(position = position_jitter()) +
-  xlab("Samples") + 
+  xlab("Division by time and afected area") + 
+  ylab("Correlation rho") +
   guides(col = FALSE)
 
 ### Compare the equivalent otus in different settings
@@ -283,15 +278,70 @@ ggplot(melt(cors2Org), aes(Var2, y = value)) +
   # geom_violin() + 
   geom_boxplot() +
   # geom_point(position = position_jitter()) +
-  xlab("Samples") + 
+  xlab("Division by time and responders") + 
+  ylab("Correlation rho") + 
   guides(col = FALSE)
 
 corsOrg <- cbind(corsOrg, cors2Org)
-ggplot(melt(corsOrg), aes(variable, y = value)) + 
+
+
+## 22 more common organisms when we consider "Time", "Endoscopic_Activity", 
+## "Treatment", "CD_Aftected_area", "Involved_Healthy", "Active_area", "ID"
+
+# 
+comorg <- read.csv("../stool_intestinal_metadb/important_common_microrg.csv", 
+                   stringsAsFactors = FALSE)
+
+ta_common <- apply(comorg[comorg$Species != "", c("Genus", "Species")], 1, 
+                   paste, collapse = " ")
+corsOrg$Important <- corsOrg$ta %in% ta_common
+ggplot(melt(corsOrg[, c("Important", "All")]), aes(Important, y = value)) + 
+  geom_violin() +
+  # geom_boxplot() +
+  geom_point(position = position_dodge(width = 1)) +
+  xlab("Important species") + 
+  ylab("Correlation rho") +
+  ggtitle("Correlation in all samples") +
+  guides(col = FALSE)
+
+ggplot(melt(corsOrg[, c("Important", "COLON")]), aes("COLON", y = value)) + 
+  geom_violin() +
+  # geom_boxplot() +
+  geom_point(position = position_dodge(width = 1)) +
+  xlab("Important species") + 
+  ylab("Correlation rho") +
+  ggtitle("Correlation in all samples") +
+  facet_wrap(~Important) +
+  guides(col = FALSE)
+
+ggplot(melt(corsOrg[, c("Important", "ILEUM")]), aes("ILEUM", y = value)) + 
+  geom_violin() +
+  # geom_boxplot() +
+  geom_point(position = position_dodge(width = 1)) +
+  xlab("Important species") + 
+  ylab("Correlation rho") +
+  ggtitle("Correlation in all samples") +
+  facet_wrap(~Important) +
+  guides(col = FALSE)
+
+ggplot(melt(corsOrg[, c("Important", "YES")]), aes("Responder", y = value)) + 
   # geom_violin() + 
   geom_boxplot() +
-  geom_point(position = position_jitter()) +
-  xlab("Samples") + 
+  geom_point(position = position_dodge(width = 1)) +
+  xlab("Important species") + 
+  ylab("Correlation rho") +
+  ggtitle("Correlation in all samples") +
+  facet_wrap(~Important) +
+  guides(col = FALSE)
+
+ggplot(melt(corsOrg[, c("Important", "NO")]), aes("Non responders", y = value)) + 
+  # geom_violin() + 
+  geom_boxplot() +
+  geom_point(position = position_dodge(width = 1)) +
+  xlab("Important species") + 
+  ylab("Correlation rho") +
+  ggtitle("Correlation in all samples") +
+  facet_wrap(~Important) +
   guides(col = FALSE)
 
 dev.off() 
