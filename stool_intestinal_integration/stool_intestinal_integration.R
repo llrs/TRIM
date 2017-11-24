@@ -10,7 +10,6 @@ tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv",
                   row.names = 1, stringsAsFactors = FALSE)
 tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
                   row.names = 1, stringsAsFactors = FALSE)
-eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 setwd(cd)
 
 # Remove outlier see PCA of biopsies in Figures/
@@ -244,7 +243,7 @@ ggplot(comp2) +
 
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
-nb_boot <- 535 # number of bootstrap samples
+nb_boot <- 1000 # number of bootstrap samples
 J <- length(A)
 STAB <- list()
 B <- lapply(A, cbind)
@@ -269,55 +268,78 @@ for (i in 1:nb_boot){
   }
 }
 
+# Calculate how many are selected
+count <- lapply(STAB, function(x) {
+  apply(x, 2, function(y){
+    sum(y != 0)/nb_boot
+  })
+})
+
+# Calculate the sign when selected
+sign <- lapply(STAB, function(x){colSums(sign(x))})
+
 # Calculate the mean and the standard error for each variable
-# We don't care the sign of the weight, if it is anti or with correlation
-colMe <- sapply(STAB, function(x){colMeans(abs(x))})
-se <- sapply(STAB, function(x){
+colMeAbs <- sapply(STAB, function(x){colMeans(abs(x))})
+seAbs <- sapply(STAB, function(x){
   apply(abs(x), 2, sd)/sqrt(nrow(x))
+})
+names(seAbs) <- names(STAB)
+names(colMeAbs) <- names(STAB)
+
+# Calculate the mean and the standard error for each variable
+colMe <- sapply(STAB, function(x){colMeans(x)})
+se <- sapply(STAB, function(x){
+  apply(x, 2, sd)/sqrt(nrow(x))
 })
 names(se) <- names(STAB)
 names(colMe) <- names(STAB)
 
+# Merge the information in a table for each dataset
+var_info <- list(count, sign, colMeAbs, seAbs, colMe, se)
+consensus <- list()
+for (i in seq_along(STAB)){
+  consensus[[i]] <- simplify2array(list("freq" = count[[i]], 
+                                        "sign" = sign[[i]], 
+                                        "colMeAbs" = colMeAbs[[i]], 
+                                        "seAbs" = seAbs[[i]], 
+                                        "colMe" = colMe[[i]], 
+                                        "se" = se[[i]]))
+  consensus[[i]] <- as.data.frame(consensus[[i]])
+}
+names(consensus) <- names(STAB)
+
+# Plot the summary of the bootstrapping
+for (i in seq_len(2)){
+  p <- ggplot(consensus[[i]]) +
+    geom_point(aes(sign, freq, col = colMeAbs, size = -log10(seAbs))) +
+    ggtitle(paste("Selecting variable for", names(consensus)[i]))
+  print(p)
+  p <- ggplot(consensus[[i]]) +
+    geom_point(aes(sign, freq, col = colMe, size = -log10(se))) +
+    ggtitle(paste("Selecting variable for", names(consensus)[i]))
+  print(p)
+}
+
 # Select the most important variables of the bootstrap
-selectedVar <- sapply(colMe, function(x){
-  q <- quantile(x, na.rm = TRUE)
-  if (q["25%"] < q["75%"] ) {
-    names(x)[(x < q["25%"] | x > q["75%"]) &  !is.na(x)]
-  } else if (q["25%"] > q["75%"] ) {
-    names(x)[(x > q["25%"] | x < q["75%"]) &  !is.na(x)]
-  } else if (q["25%"] == q["75%"] ) {
-    names(x)[x != 0]
-  }
-})
+selectedVar <- sapply(consensus[1:2], selectVar)
 
 # Find the organisms most important and shared between stools and intestinal
 tax_s_s <- unique(tax_s[selectedVar[["stools"]], ])
 tax_i_s <- unique(tax_i[selectedVar[["intestinal"]], ])
+
+# Find the OTUs names
 s_in_i <- fastercheck(tax_s_s, tax_i_s)
 com <- tax_s_s[s_in_i, ]
 s <- tax_s_s[!s_in_i,]
 i <- tax_i_s[!fastercheck(tax_i_s, tax_s_s), ]
+
+dev.off()
+save.image(file = paste0(today, "_stool_intestinal_integration.RData"))
+
+# Write output
 write.csv(com, file = "important_common_microrg.csv", 
           row.names = FALSE, na = "")
 write.csv(i, file = "important_intestinal_microrg.csv", 
           row.names = FALSE, na = "")
 write.csv(s, file = "important_stools_microrg.csv", 
           row.names = FALSE, na = "")
-
-# Select the block we want to plot the variables for
-for (i in seq_along(se)) {
-  a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
-  a <- as.data.frame(a)
-  a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
-  
-  p <- ggplot(a) + 
-    geom_pointrange(aes(x = 1:nrow(a), y = mean, 
-                        ymin = mean - SE, ymax = mean + SE)) + 
-    ggtitle(names(se)[i]) + 
-    xlab("Features") +
-    ylab("Weight")
-  print(p)
-}
-
-dev.off()
-save.image(file = paste0(today, "_stool_intestinal_integration.RData"))
