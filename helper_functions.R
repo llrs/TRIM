@@ -338,3 +338,19 @@ makeRects <- function(tfMat, border){
   }
   rect(xl, yb, xr, yt, border = border, lwd = 3)
 }
+
+#' Select variable from bootstrapping
+#' 
+#' @param x List of the summary statsitics of the bootstrapping
+#' @return The names of the selected variables
+selectVar <- function(x){
+  varNames <- rownames(x)
+  x <- x[, "freq"]
+  names(x) <- varNames
+  if (length(unique(x)) == 1) {
+    names(x)
+  } else {
+    q <- quantile(x, na.rm = TRUE)
+    names(x)[x > q["75%"] &  !is.na(x)]
+  }
+}
