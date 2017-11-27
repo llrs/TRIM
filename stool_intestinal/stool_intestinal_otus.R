@@ -44,7 +44,7 @@ colStools <- sapply(colStools, function(x)x[1])
 
 # Set the same color for the microorganism for different OTUs of the different
 # datasets
-palette(rainbow(length(ta)))
+palette(rainbow(length(unique(ta))))
 color_species <- palette()
 color_species
 levels(colIntestinal) <- color_species
@@ -104,7 +104,7 @@ cors2OTUs <- function(y){
   test
 }
 
-pdf(paste0("Figures/", today, "_correlations.pdf"))
+pdf(paste0("Figures/", today, "_correlations_species.pdf"))
 cors <- corOTUS(rep(TRUE, nrow(otus_i)))
 
 # Do the mean of those correlations that correspond to the same microorganism
