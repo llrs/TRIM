@@ -149,12 +149,16 @@ eq <- apply(comb, 1, function(z){
   x <- z[1]
   # If there is any NA then they are nor precise enough to say they are the same
   # OTU
-  all(otus_tax_i[keep_otus_i, ][x, ] == otus_tax_s[keep_otus_s, ][y, ]) 
+  sum(otus_tax_i[keep_otus_i, ][x, ] == otus_tax_s[keep_otus_s, ][y, ]) 
 })
 
-eqOTUS <- comb[eq & !is.na(eq), ]
+eqOTUS <- comb[eq >= 7 & !is.na(eq), ]
 eqOTUS <- droplevels(eqOTUS)
 rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
+
+eqGenera <- comb[eq >= 6 & !is.na(eq), ]
+eqGenera <- droplevels(eqGenera)
+rownames(eqGenera) <- seq_len(nrow(eqGenera))
 
 # Write the files
 write.csv(otus_s_f, row.names = FALSE, 
@@ -165,3 +169,4 @@ write.csv(meta, file = "meta_coherent.csv")
 write.csv(tax_i, file = file.path(intestinal, "taxonomy.csv"), row.names = TRUE)
 write.csv(tax_s, file = file.path(stool, "taxonomy.csv"), row.names = TRUE)
 write.csv(eqOTUS, "equivalent_otus.csv", row.names = FALSE)
+write.csv(eqGenera, "equivalent_genus.csv", row.names = FALSE)
