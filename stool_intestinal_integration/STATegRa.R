@@ -6,11 +6,6 @@ source("helper_functions.R")
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
 otus_s <- read.csv(file = "stools_16S/otus_coherent.csv")
 meta <- read.csv(file = "meta_coherent.csv", row.names = 1)
-tax_i <- read.csv(file = "intestinal_16S/taxonomy.csv", 
-                  row.names = 1, stringsAsFactors = FALSE)
-tax_s <- read.csv(file = "stools_16S/taxonomy.csv", 
-                  row.names = 1, stringsAsFactors = FALSE)
-eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 setwd(cd)
 
 
