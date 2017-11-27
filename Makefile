@@ -8,11 +8,12 @@ out_files=meta_coherent.csv \
 					stools_16S/taxonomy.csv \
 					intestinal_16S/otus_coherent.csv \
 					intestinal_16S/taxonomy.csv \
-					equivalent_otus.csv
+					equivalent_otus.csv \
+					equivalent_genus.csv
 
-all: eqOTUs stool_intestinal_integration/important_common_microrg.csv PCA
+all: eqGenus eqSpecies stool_intestinal_integration/important_common_microrg.csv PCA
 
-# Clean the input and prepare it
+# Clean the input and prepare the output for integration
 $(out_files): cleaning.R $(pre_files) 
 	@echo "Preparing input data"
 	R CMD BATCH $(R_OPTS) $(<F)
@@ -30,7 +31,12 @@ stool_intestinal_integration/STATegRa.Rout: stool_intestinal_integration/STATegR
 	cd $(<D); R CMD BATCH $(R_OPTS) STATegRa.R
 
 # Integrates via correlations the OTUs of the same species
-eqOTUs: stool_intestinal/stool_intestinal.R equivalent_otus.csv stool_intestinal_metadb/important_common_microrg.csv helper_functions.R
+eqSpecies: stool_intestinal/stool_intestinal_otus.R equivalent_otus.csv stool_intestinal_metadb/important_common_microrg.csv helper_functions.R
+	@echo "Analyse the microorganisms in common between stools and biopsies"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	
+# Integrates via correlations the OTUs of the same genus
+eqGenus: stool_intestinal/stool_intestinal_genus.R equivalent_genus.csv stool_intestinal_metadb/important_common_microrg.csv helper_functions.R
 	@echo "Analyse the microorganisms in common between stools and biopsies"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
