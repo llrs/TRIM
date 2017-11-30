@@ -281,9 +281,11 @@ allComb <- function(data, columns){
   data <- data[, columns[keep]]
   
   if (is.null(dim(data))) {
+    data <- as.factor(data)
     out <- sapply(levels(data), function(x){data == x})
   } else {
-    lvl <- sapply(data, levels)
+    data <- sapply(data, as.factor)
+    lvl <- sapply(as.data.frame(data), levels)
     
     comb <- expand.grid(sapply(lvl, as.factor))
     comb2 <- apply(comb, 1, paste0, collapse = "_|_")
