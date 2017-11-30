@@ -1,5 +1,3 @@
-library("metagenomeSeq")
-library("phyloseq")
 library("boot")
 
 wd <- setwd("..")
@@ -21,6 +19,7 @@ meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1,
                      stringsAsFactors = FALSE)
 setwd(wd)
 
+pdf(paste0("Figures/", today, "_ratios_plots.pdf"))
 
  # Clean the metadata
 meta_s <- meta_s[, apply(meta_s, 2, function(x){length(unique(x)) != 1})]
@@ -209,52 +208,11 @@ ratio <- function(columns, data, indices, meta) {
 }
 
 # bootstrapping with 1000 replications
-results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005), 
-                statistic = ratio,
-                R = 1000, 
-                meta = meta_s[removeControls, ], columns = "Time", 
-                parallel = "multicore", ncpus = 4)
-
-# view results
-results
-plot(results)
-
-# get 95% confidence interval
-boot.ci(results, type="bca")
-
-ordSamples <- intersect(rownames(meta_s), colnames(otus_table_s))
-
-# Create the file
-MR <- newMRexperiment(otus_table_s[, ordSamples], 
-                phenoData = AnnotatedDataFrame(meta_s[ordSamples, ]),
-                featureData = AnnotatedDataFrame(as.data.frame(otus_tax_s)))
-filterData(MR, present = 10, depth = 1000)
-p <- cumNormStatFast(MR)
-MR <- cumNorm(MR, p = p)
-assayData(MR)$relative <- assayData(MR)$counts/rowSums(assayData(MR)$counts)
-assayData(MR)$prevalence <- as.matrix(assayData(MR)$counts != 0)
-
-rareFeatures <- which(rowSums(MRcounts(MR) > 0) < 10)
-MRtrim <-  MR[-rareFeatures, ]
-MRp <- cumNormStat(MRtrim, pFlag = TRUE, main = "Trimmed lung data")
-MRtrim <- cumNorm(MRtrim, p = MRp)
-assayData(MRtrim)
+# results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005), 
+#                 statistic = ratio,
+#                 R = 1000, 
+#                 meta = meta_s[removeControls, ], columns = "Time", 
+#                 parallel = "multicore", ncpus = 4)
 
 
-
-normFactor <- normFactors(MRtrim)
-assayData(MRtrim)$relative <- assayData(MRtrim)$counts/rowSums(assayData(MRtrim)$counts)
-assayData(MRtrim)$prevalence <- as.matrix(assayData(MRtrim)$counts != 0)
-
-normFactor <- log2(normFactor/median(normFactor) + 1)
-settings <- zigControl(maxit = 10, verbose = TRUE)
-mod <- model.matrix(~ 0 + Endoscopic_Activity, data = pData(MRtrim))
-mod <- cbind(mod, ID = pData(MRtrim)$ID, Time = as.numeric(as.factor(pData(MRtrim)$Time)))
-fit <- fitZig(obj = MRtrim, mod = mod, useCSSoffset = FALSE,
-              control = settings)
-
-eb <- fit$eb
-head(cbind(eb$F, eb$F.p.value))
-# From now on like with limma
-# To consider if we want to test for specific phylum or taxa 
-?metagenomeSeq::aggregateByTaxonomy
+dev.off()
