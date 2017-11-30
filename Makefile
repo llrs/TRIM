@@ -70,6 +70,19 @@ stool_metadb: stool_metadb/stool_metadb.R $(pre_files) helper_functions.R
 intestinal_metadb: intestinal_metadb/intestinal_metadb.R $(pre_files) helper_functions.R
 	@echo "PCAs controlling for clinical variables"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
-	
+
+# Handles the calculation of the prevalence in intestinal 
+intestinal_prevalence: intestinal_16S_conceptual/prevalence.R  helper_functions.R $(pre_files)
+	@echo "Intestinal prevalence"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+
+# Handles the calculation of the prevalence in stools	
+stools_prevalence: stools_16S_conceptual/prevalence.R  helper_functions.R $(pre_files)
+	@echo "Stools prevalence"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+
+# Do both prevalences
+prevalence: intestinal_prevalence stools_prevalence
+
 clean:
 	rm *.Rout
