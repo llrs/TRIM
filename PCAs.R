@@ -1,5 +1,6 @@
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
+rna <- "intestinal_RNAseq"
 
 source("helper_functions.R")
 
@@ -15,6 +16,10 @@ otus_table_s <- read.delim(file.path(stool, "OTUs-Table-refined-stools.tab"),
                            check.names = FALSE)
 otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 
+# Load the RNAseq
+load(file.path(rna, "Counts_RNAseq.RData"))
+expr <- edge
+
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
 meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1, 
@@ -22,6 +27,13 @@ meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1,
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
 meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
                      stringsAsFactors = FALSE)
+
+file_meta_r <- file.path(rna, "20171113_metadata.csv")
+meta_r <- read.table(file_meta_r, check.names = FALSE,
+                     stringsAsFactors = FALSE, sep = ";", 
+                     na.strings = c("NA", ""))
+colnames(meta_r) <- meta_r[1, ]
+meta_r <- meta_r[-1, ]
 
 # Clean the metadata
 meta_i$Active_area[meta_i$Active_area == ""] <- NA
@@ -41,17 +53,29 @@ meta_s$ID[meta_s$Patient_ID %in% c("33", "36")] <- "33/36"
 meta_s$ID[meta_s$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_s$ID <- as.factor(meta_s$ID)
 
+# Clean the metadata
+meta_r$Active_area[meta_r$Active_area == ""] <- NA
+meta_r <- meta_r[, apply(meta_r, 2, function(x){length(unique(x)) != 1})]
+meta_r$Active_area[meta_r$Active_area == ""] <- NA
+meta_r$ID <- meta_r$Patient_ID
+meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
+meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
+meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
+meta_r$ID <- as.factor(meta_r$ID)
+
 # Make PCAs
 pca_s <- prcomp(t(otus_table_s), scale. = TRUE)
 pca_s_x <- as.data.frame(pca_s$x)
-pca_s_var <- round(pca_s$sdev^2, digits = 2)
+pca_s_var <- round(summary(pca_s)$importance[2, ]*100, digits = 2)
 
 
 # Define colors
 colors_i <- colors
 colors_s <- colors
+colors_ir <- colors
 names(colors_i) <- unique(meta_i$ID)
 names(colors_s) <- unique(meta_s$ID)
+names(colors_ir) <- unique(meta_r$ID)
 
 
 pcas <- cbind(pca_s_x, meta_s)
@@ -81,7 +105,7 @@ ggplot(pcas) +
 
 pca_i <- prcomp(t(otus_table_i), scale. = TRUE)
 pca_i_x <- as.data.frame(pca_i$x)
-pca_i_var <- round(pca_i$sdev^2, digits = 2)
+pca_i_var <- round(summary(pca_i)$importance[2, ]*100, digits = 2)
 
 label <- strsplit(as.character(meta_i$Sample_Code), split = "_")
 labels <- sapply(label, function(x){
@@ -115,7 +139,7 @@ otus_table_i <- otus_table_i[, keep]
 
 pca_i <- prcomp(t(otus_table_i), scale. = TRUE)
 pca_i_x <- as.data.frame(pca_i$x)
-pca_i_var <- round(pca_i$sdev^2, digits = 2)
+pca_i_var <- round(summary(pca_i)$importance[2, ]*100, digits = 2)
 
 pcai <- cbind(pca_i_x, meta_i)
 
@@ -131,10 +155,105 @@ ggplot(pcai) +
 ggplot(pcai) +
   geom_text(aes(PC1, PC2, col = HSCT_responder, 
                 label = paste(Time, ID, sep = "_"))) +
-  ggtitle("PCA stools") + 
+  ggtitle("PCA biopsies") + 
   guides(col = guide_legend(title = "Responders")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_i_var[1], "%")) +
   ylab(paste("PC2", pca_i_var[2], "%"))
+
+
+# PCA intestinal RNAseq with Barcelona
+
+counts <- expr$counts
+counts <- counts[rowSums(counts) != 0, ]
+
+pca_ir <- prcomp(t(counts), scale. = TRUE)
+pca_ir_x <- as.data.frame(pca_ir$x)
+pca_ir_var <- round(summary(pca_ir)$importance[2, ]*100, digits = 2)
+
+pca_ir_x <- pca_ir_x[rownames(pca_ir_x) %in% meta_r$`Sample Name_RNA`, ]
+meta_r_ord <- meta_r[meta_r$`Sample Name_RNA` %in% rownames(pca_ir_x), ]
+pcair <- cbind(pca_ir_x, meta_r_ord[match(rownames(pca_ir_x), meta_r_ord$`Sample Name_RNA`), ])
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = ID, label = paste(ID, Time, sep = "_"))) + 
+  guides(col = guide_legend(title="Patient")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = colors_ir) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) + 
+  ggtitle("PCA RNAseq biopsies")
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = HSCT_responder, 
+                label = paste(Time, ID, sep = "_"))) +
+  ggtitle("PCA RNAseq biopsies") + 
+  guides(col = guide_legend(title = "Responders")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%"))
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) + 
+  guides(col = guide_legend(title="Patient")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) + 
+  ggtitle("PCA RNAseq biopsies")
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) + 
+  guides(col = guide_legend(title="Patient")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) + 
+  ggtitle("PCA RNAseq biopsies")
+
+
+# PCA TRIM (without barcelona)
+barcelona <- grepl("w", colnames(counts))
+counts_woBarcelona <- counts[, !barcelona]
+counts_woBarcelona <- counts_woBarcelona[rowSums(counts_woBarcelona) != 0, ]
+pca_ir <- prcomp(t(counts_woBarcelona), scale. = TRUE)
+pca_ir_x <- as.data.frame(pca_ir$x)
+pca_ir_var <- round(summary(pca_ir)$importance[2, ]*100, digits = 2)
+
+pca_ir_x <- pca_ir_x[rownames(pca_ir_x) %in% meta_r$`Sample Name_RNA`, ]
+meta_r_ord <- meta_r[meta_r$`Sample Name_RNA` %in% rownames(pca_ir_x), ]
+pcair <- cbind(pca_ir_x, meta_r_ord[match(rownames(pca_ir_x), meta_r_ord$`Sample Name_RNA`), ])
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = ID, label = paste(ID, Time, sep = "_"))) + 
+  guides(col = guide_legend(title="Patient")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = colors_ir) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) + 
+  ggtitle("PCA RNAseq biopsies")
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = HSCT_responder, 
+                label = paste(Time, ID, sep = "_"))) +
+  ggtitle("PCA RNAseq biopsies") + 
+  guides(col = guide_legend(title = "Responders")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%"))
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) + 
+  guides(col = guide_legend(title="Patient")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) + 
+  ggtitle("PCA RNAseq biopsies")
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) + 
+  guides(col = guide_legend(title="Patient")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) + 
+  ggtitle("PCA RNAseq biopsies")
 
 dev.off()
