@@ -334,7 +334,6 @@ s <- tax_s_s[!s_in_i,]
 i <- tax_i_s[!fastercheck(tax_i_s, tax_s_s), ]
 
 dev.off()
-save.image(file = paste0(today, "_stool_intestinal_integration.RData"))
 
 # Write output
 write.csv(com, file = "important_common_microrg.csv", 

@@ -26,7 +26,6 @@ meta_s$ID[meta_s$Patient_ID %in% c("33", "36")] <- "33/36"
 meta_s$ID[meta_s$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_s$ID <- as.factor(meta_s$ID)
 
-
 # Define colors
 colors_s <- colors
 names(colors_s) <- unique(meta_s$ID)
