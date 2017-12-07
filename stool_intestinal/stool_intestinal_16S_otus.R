@@ -13,12 +13,6 @@ tax_s <- read.csv(file = "stools_16S/taxonomy.csv",
 eqOTUS <- read.csv("equivalent_otus.csv", stringsAsFactors = FALSE)
 setwd(cd)
 
-keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
-
-meta <- meta[keep, ]
-otus_s <- otus_s[keep, ]
-otus_i <- otus_i[keep, ]
-
 # Identify the species
 ta <- unique(tax_i[eqOTUS$intestinal, c("Genus", "Species")])
 ta <- apply(ta, 1, paste, collapse = " ")
@@ -105,6 +99,12 @@ cors2OTUs <- function(y){
 }
 
 pdf(paste0("Figures/", today, "_correlations_species.pdf"))
+
+h <- cor(otus_i, otus_s)
+
+heatmap(h, scale = "none", main = "Correlations between OTUs in all samples")
+
+
 cors <- corOTUS(rep(TRUE, nrow(otus_i)))
 
 # Do the mean of those correlations that correspond to the same microorganism

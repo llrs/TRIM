@@ -13,11 +13,21 @@ tax_s <- read.csv(file = "stools_16S/taxonomy.csv",
 eqOTUS <- read.csv("equivalent_genus.csv", stringsAsFactors = FALSE)
 setwd(cd)
 
-keep <- !grepl("28_T52_T_DM_CH", meta$Sample_Code) # Remove outlier See PCA
+# Summarize to genus
+library("metagenomeSeq")
 
-meta <- meta[keep, ]
-otus_s <- otus_s[keep, ]
-otus_i <- otus_i[keep, ]
+
+# Create the objects
+MR_i <- newMRexperiment(t(otus_i), 
+                      phenoData = AnnotatedDataFrame(meta),
+                      featureData = AnnotatedDataFrame(as.data.frame(tax_i)))
+genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+
+MR_s <- newMRexperiment(t(otus_s), 
+                        phenoData = AnnotatedDataFrame(meta),
+                        featureData = AnnotatedDataFrame(as.data.frame(tax_s)))
+genus_s <- aggTax(MR_s, lvl = "Genus", out = "matrix")
+
 
 # Identify the species
 ta <- tax_i[eqOTUS$intestinal, "Genus", drop = FALSE]
@@ -106,6 +116,11 @@ cors2OTUs <- function(y){
 }
 
 pdf(paste0("Figures/", today, "_correlations_genus.pdf"))
+
+h <- cor(t(genus_i), t(genus_s))
+
+heatmap(h, scale = "none", main = "Correlations between Genus in all samples")
+
 cors <- corOTUS(rep(TRUE, nrow(otus_i)))
 
 # Do the mean of those correlations that correspond to the same microorganism
@@ -307,4 +322,3 @@ ggplot(melt(corsOrg[, c("Important", "NO")]), aes("Non responders", y = value)) 
   ylim(-1, 1)
 
 dev.off() 
-save.image(file = paste0(today, "_stool_intestinal.RData"))
