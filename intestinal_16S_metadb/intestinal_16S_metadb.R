@@ -75,11 +75,21 @@ names(sgcca.centroid$astar) <- names(A)
 PCA <- cbind(sgcca.centroid$Y[[1]], meta_i)
 pdf(paste0("Figures/", today, "_plots.pdf"))
 ggplot(PCA) + 
-  geom_point(aes(comp1, comp2, col = Treatment))
+  geom_point(aes(comp1, comp2, col = Treatment)) +
+  ggtitle("Intestinal 16S PCA-like")
 ggplot(PCA) + 
-  geom_point(aes(comp1, comp2, col = HSCT_responder))
+  geom_point(aes(comp1, comp2, col = HSCT_responder)) +
+  guides(col = guide_legend(title="Responders")) +
+  ggtitle("Intestinal 16S PCA-like")
 ggplot(PCA) + 
-  geom_point(aes(comp1, comp2, col = IBD))
+  geom_point(aes(comp1, comp2, col = IBD)) +
+  guides(col = guide_legend(title="Disease")) +
+  ggtitle("Intestinal 16S PCA-like")
 ggplot(PCA) + 
-  geom_point(aes(comp1, comp2, col = ID))
+  geom_point(aes(comp1, comp2, col = ID)) +
+  guides(col = guide_legend(title="Patient")) +
+  ggtitle("Intestinal 16S PCA-like")
+ggplot(PCA) + 
+  geom_point(aes(comp1, comp2, col = Time)) +
+  ggtitle("Intestinal 16S PCA-like")
 dev.off()
