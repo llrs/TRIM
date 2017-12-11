@@ -50,12 +50,14 @@ for (i in seq_len(ncol(keepCol))){
   if (ms$common != 0) {
     # grid.arrange(cc$pssq, cc$pratios, ncol=2)
     # Omics Integration
+    tryCatch({
     discoRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s), 
                                   Names = c("Intestinal", "Stools"),
                                   method = "DISCOSCA",
                                   Rcommon = ms$common,
                                   Rspecific = ms$dist,
-                                  center = TRUE, scale = TRUE)
+                                  center = TRUE, scale = TRUE)},
+    error = function(e){message(e)})
     if (is.null(unlist(discoRes@VAF$dist)) | 
         length(discoRes@VAF$dist$Block1) != length(1:discoRes@distComps[1])){
       warning("Malfunctioning plotVAF")
@@ -86,39 +88,55 @@ for (i in seq_len(ncol(keepCol))){
   
     tryCatch({
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "common",
-                    combined = TRUE, block = "1", color = "HSCT_responder"))
+                    combined = TRUE, block = "1", color = "HSCT_responder") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "both",
-              combined = TRUE, block = "1", color = "HSCT_responder"))
+              combined = TRUE, block = "1", color = "HSCT_responder") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "both",
-              combined = TRUE, block = "2", color = "HSCT_responder"))
+              combined = TRUE, block = "2", color = "HSCT_responder") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "common",
-                    combined = TRUE, block = "1", color = "Endoscopic_Activity"))
+                    combined = TRUE, block = "1", color = "Endoscopic_Activity") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "both",
-              combined = TRUE, block = "1", color = "Endoscopic_Activity"))
+              combined = TRUE, block = "1", color = "Endoscopic_Activity") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "both",
-              combined = TRUE, block = "2", color = "Endoscopic_Activity"))
+              combined = TRUE, block = "2", color = "Endoscopic_Activity") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "common",
-                    combined = TRUE, block = "1", color = "Involved_Healthy"))
+                    combined = TRUE, block = "1", color = "Involved_Healthy") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "both",
-              combined = TRUE, block = "1", color = "Involved_Healthy"))
+              combined = TRUE, block = "1", color = "Involved_Healthy") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "scores", type = "both",
-              combined = TRUE, block = "2", color = "Involved_Healthy"))
+              combined = TRUE, block = "2", color = "Involved_Healthy") +
+              lab(title = colnames(keepCol)[i]))
       },
       error = function(e){message(e)})
     
     tryCatch({
       print(plotRes(object = discoRes, comps = c(1, 1), what = "loadings", type = "both",
-              combined = TRUE, block = "1", color = "HSCT_responder") + ggtitle(subtitle = colnames(keepCol)[i]))
+              combined = TRUE, block = "1", color = "HSCT_responder")  +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "loadings", type = "both",
-              combined = TRUE, block = "2", color = "HSCT_responder"))
+              combined = TRUE, block = "2", color = "HSCT_responder") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "loadings", type = "both",
-              combined = TRUE, block = "1", color = "Endoscopic_Activity"))
+              combined = TRUE, block = "1", color = "Endoscopic_Activity") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "loadings", type = "both",
-              combined = TRUE, block = "2", color = "Endoscopic_Activity"))
+              combined = TRUE, block = "2", color = "Endoscopic_Activity") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "loadings", type = "both",
-              combined = TRUE, block = "1", color = "Involved_Healthy"))
+              combined = TRUE, block = "1", color = "Involved_Healthy") +
+              lab(title = colnames(keepCol)[i]))
       print(plotRes(object = discoRes, comps = c(1, 1), what = "loadings", type = "both",
-              combined = TRUE, block = "2", color = "Involved_Healthy"))},
+              combined = TRUE, block = "2", color = "Involved_Healthy") +
+              lab(title = colnames(keepCol)[i]))
+      },
       error = function(e){print("Error:")
         message(e)}, 
       warning = function(w){
