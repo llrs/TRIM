@@ -11,7 +11,7 @@ out_files=meta_coherent.csv \
 					equivalent_otus.csv \
 					equivalent_genus.csv
 
-all: eqGenus eqSpecies stool_intestinal_integration/important_common_microrg.csv PCA
+all: eqGenus eqSpecies stool_intestinal_integration/important_common_microrg.csv PCA Deconvolute
 
 # Clean the input and prepare the output for integration
 $(out_files): cleaning.R $(pre_files) 
@@ -19,16 +19,18 @@ $(out_files): cleaning.R $(pre_files)
 	R CMD BATCH $(R_OPTS) $(<F)
 	
 #	Handles the use of RGCCA in stools 16S and biopsies 16S
-stool_intestinal_integration/*.csv: stool_intestinal_integration/stool_intestinal_integration.R  $(out_files) helper_functions.R
-	@echo "Integrating stools and intestinal data" 
+stool_intestinal_16S_integration/*.csv: stool_intestinal_integration/stool_intestinal_integration.R  $(out_files) helper_functions.R
+	@echo "Integrating stools and biopsies 16S data" 
 	@echo "\tUsing RGCCA"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 	
-#	Handles the use of STATegRA in stools 16S and biopsies 16S
-stool_intestinal_integration/STATegRa.Rout: stool_intestinal_integration/STATegRa.R $(out_files) helper_functions.R
-	@echo "Integrating stools and intestinal data" 
+#	Handles the use of STATegRa in stools 16S and biopsies 16S
+stool_intestinal_16S_integration/STATegRa.Rout: stool_intestinal_integration/STATegRa.R $(out_files) helper_functions.R
+	@echo "Integrating stools and biopsies data" 
 	@echo "\tUsing STATegRa"
 	cd $(<D); R CMD BATCH $(R_OPTS) STATegRa.R
+	
+STATegRA: stool_intestinal_integration/STATegRa.Rout
 
 # Integrates via correlations the OTUs of the same species
 eqSpecies: stool_intestinal/stool_intestinal_otus.R equivalent_otus.csv stool_intestinal_metadb/important_common_microrg.csv helper_functions.R
@@ -42,18 +44,18 @@ eqGenus: stool_intestinal/stool_intestinal_genus.R equivalent_genus.csv stool_in
 
 # Code to integrate clinical variables, biopsies 16S and stools 16S
 stool_intestinal_metadb/*.csv: stool_intestinal_metadb/stool_intestinal_metadb.R $(out_files)  helper_functions.R
-	@echo "Integrating stools and intestinal data \
+	@echo "Integrating stools and biopsies 16S data \
 	taking into account the metadata"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
  	
 # Handles the integration of only the ileum between biopsies 16S and stools 16S
 ileum_integration: ileum_integration/ileum_integration.R $(out_files) helper_functions.R
-	@echo "Integrating stools and intestinal data from ileum"
+	@echo "Integrating stools and biopsies data from ileum"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the integration of only the ileum between biopsies 16S and stools 16S
 colon_integration: colon_integration/colon_integration.R $(out_files) helper_functions.R
-	@echo "Integrating stools and intestinal data from colon"
+	@echo "Integrating stools and biopsies data from colon"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the creation of PCAs	
@@ -61,19 +63,25 @@ PCA: PCAs.R $(pre_files) helper_functions.R
 	@echo "PCAs of the data"
 	R CMD BATCH $(R_OPTS) $(<F)
 
-# Handles the creation of PCA for biopsies but controlling for clinical variables
+# Handles the creation of PCA for stools but controlling for clinical variables
 stool_metadb: stool_metadb/stool_metadb.R $(pre_files) helper_functions.R
-	@echo "PCAs controlling for clinical variables"
+	@echo "PCAs controlling for clinical variables of 16S stools samples"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
-# Handles the creation of PCA for stools but controlling for clinical variables
+# Handles the creation of PCA for biopsies 16S but controlling for clinical variables
+intestinal_16S_metadb: intestinal_16S_metadb/intestinal_16S_metadb.R $(pre_files) helper_functions.R
+	@echo "PCAs controlling for clinical variables of 16S biopsies"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	
+
+# Handles the creation of PCA for biopsies RNAseq but controlling for clinical variables
 intestinal_metadb: intestinal_metadb/intestinal_metadb.R $(pre_files) helper_functions.R
-	@echo "PCAs controlling for clinical variables"
+	@echo "PCAs controlling for clinical variables of RNAseq biopsies"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the calculation of the prevalence in intestinal 
 intestinal_prevalence: intestinal_16S_conceptual/prevalence.R  helper_functions.R $(pre_files)
-	@echo "Intestinal prevalence"
+	@echo "Biopsies prevalence"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the calculation of the prevalence in stools	
@@ -83,6 +91,9 @@ stools_prevalence: stools_16S_conceptual/prevalence.R  helper_functions.R $(pre_
 
 # Do both prevalences
 prevalence: intestinal_prevalence stools_prevalence
+
+# Analyse the data with PCA taking into account the categories
+Deconvolute: stool_metadb intestinal_metadb intestinal_16S_metadb
 
 clean:
 	rm *.Rout

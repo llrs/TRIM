@@ -5,6 +5,7 @@ library("RGCCA")
 library("STATegRa")
 library("reshape2")
 library("ggforce")
+library("MultiAssayExperiment")
 
 #' Create a circle
 #' @param center The position where the center of the circle is
