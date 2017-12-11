@@ -30,10 +30,10 @@ meta_i$ID[meta_i$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_i$ID <- as.factor(meta_i$ID)
 ordSamples <- intersect(rownames(meta_i), colnames(otus_table_i))
 
-# Create the file
+# Create the object
 MR <- newMRexperiment(otus_table_i[, ordSamples], 
                       phenoData = AnnotatedDataFrame(meta_i[ordSamples, ]),
-                      featureData = AnnotatedDataFrame(as.data.frame(otus_tax_s)))
+                      featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i)))
 filterData(MR, present = 10, depth = 1000)
 p <- cumNormStatFast(MR)
 MR <- cumNorm(MR, p = p)
