@@ -69,4 +69,11 @@ ggplot(PCA) +
   geom_point(aes(comp1, comp2, col = Treatment))
 ggplot(PCA) + 
   geom_point(aes(comp1, comp2, col = ID))
+ggplot(PCA) + 
+  geom_point(aes(comp1, comp2, col = Endoscopic_Activity))
+ggplot(PCA) + 
+  geom_point(aes(comp1, comp2, col = HSCT_responder))
+ggplot(PCA) + 
+  geom_point(aes(comp1, comp2, col = Age))
+
 dev.off()
