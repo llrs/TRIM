@@ -307,4 +307,3 @@ ggplot(melt(corsOrg[, c("Important", "NO")]), aes("Non responders", y = value)) 
   ylim(-1, 1)
 
 dev.off() 
-save.image(file = paste0(today, "_stool_intestinal.RData"))

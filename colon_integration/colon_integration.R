@@ -383,4 +383,3 @@ o2plsRes <- omicsCompAnalysis(list("Intestinal" = eS_i, "Stools" = eS_s),
                               Rspecific = ms$dist,
                               center=TRUE, scale=TRUE, weight=TRUE)
 dev.off() 
-save.image(file = paste0(today, "_colon_integration.RData"))
