@@ -66,7 +66,7 @@ meta$Time <- factor(as.character(meta$Time),
                     levels = c("T0", "TM36", "TM48", "T26", "T52", "T106"))
 
 corOTUS <- function(x){
-  if (sum(x) == 0) {
+  if (sum(x, na.rm = TRUE) == 0) {
     return(NA)
   }
   o <- cor(otus_i[x, u_i], otus_s[x, u_s], use = "pairwise.complete.obs", 
@@ -79,10 +79,10 @@ corOTUS <- function(x){
   rowSide <- rownames(o2)
   colorC <- order(colStools[colSide])
   colorR <- order(colIntestinal[rowSide], decreasing = TRUE)
-  print(heatmap(o2[colorR, colorC], Rowv = NA, Colv = NA, scale = "none", 
+  heatmap(o2[colorR, colorC], Rowv = NA, Colv = NA, scale = "none", 
                 ColSideColors = as.character(colStools[colSide][colorC]),
                 RowSideColors = as.character(colIntestinal[rowSide][colorR]), 
-                xlab = "Stools OTUs", ylab = "Biopsies OTUs"))
+                xlab = "Stools OTUs", ylab = "Biopsies OTUs")
   o
 }
 
