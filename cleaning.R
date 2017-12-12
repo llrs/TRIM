@@ -2,6 +2,7 @@ intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
 source("helper_functions.R")
+library("SummarizedExperiment")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
@@ -23,6 +24,11 @@ otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 # Extract the taxonomy and format it properly
 otus_tax_s <- taxonomy(tax_s, rownames(otus_table_s))
 
+# Load the input data
+load(file.path(rna, "Counts_RNAseq.RData"))
+expr <- edge
+
+
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
 meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1, 
@@ -30,14 +36,20 @@ meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1,
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
 meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
                   stringsAsFactors = FALSE)
-file_meta_r <- file.path(rna, "metadata.csv")
-meta_r <- read.csv(file_meta_r, row.names = 1, check.names = FALSE,
-                     stringsAsFactors = FALSE)
+file_meta_r <- file.path(rna, "20171113_metadata.csv")
+meta_r <- read.table(file_meta_r, check.names = FALSE,
+                     stringsAsFactors = FALSE, sep = ";", 
+                     na.strings = c("NA", ""))
+colnames(meta_r) <- meta_r[1, ]
+meta_r <- meta_r[-1, ]
 
 # Reorder by patient and time
 meta_s <- meta_s[order(meta_s$Patient_ID, meta_s$Time), ]
 meta_i <- meta_i[order(meta_i$Patient_ID, meta_i$Time), ]
 meta_r <- meta_r[order(meta_r$Patient_ID, meta_r$Time), ]
+
+# There is a mislabeling on those tubes, we don't know which is which
+meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
 
 # Find common patients
 comPatient <- intersect(meta_i$Patient_ID, meta_s$Patient_ID)
@@ -159,6 +171,41 @@ rownames(eqOTUS) <- seq_len(nrow(eqOTUS))
 eqGenera <- comb[eq >= 6 & !is.na(eq), ]
 eqGenera <- droplevels(eqGenera)
 rownames(eqGenera) <- seq_len(nrow(eqGenera))
+
+# Create the SummarizedExperiment objects
+meta_i <- meta_i[match(colnames(otus_table_i), rownames(meta_i)), ]
+SE_i <- SummarizedExperiment(assays = SimpleList(otus = as.matrix(otus_table_i)), 
+                             colData = meta_i,
+                             rowData = otus_tax_i) 
+
+meta_s <- meta_s[match(colnames(otus_table_s), rownames(meta_s)), ]
+SE_s <- SummarizedExperiment(assays = SimpleList(otus = as.matrix(otus_table_s)), 
+                             colData = meta_s, 
+                             rowData = otus_tax_s)
+meta_r <- meta_r[match(colnames(expr$counts), meta_r$`Sample Name_RNA`), ]
+rownames(meta_r) <- NULL
+SE_expr <- SummarizedExperiment(assays = SimpleList(expr = as.matrix(expr$counts)), 
+                             colData = meta_r)
+
+# prepMultiAssay(list(SE_i, SE_s, SE_expr), meta_r, )
+
+list_SE <- list("intestinal_16S" = SE_i, 
+                "stools_16S" = SE_s, 
+                "intestinal_RNAseq" = SE_expr)
+assay <- rep(names(list_SE), sapply(list_SE, function(x){ncol(assay(x))}))
+colnames <- unlist(sapply(list_SE, function(x){colnames(assay(x))}), use.names = FALSE)
+sampleMap <- data.frame(assay = as.factor(assay), primary = NA, 
+                        colname = colnames)
+# sampleMap$primary[sampleMap$assay == sampleMap$assay[1]]
+# <- meta_r[, meta_r$`Sample Name_RNA` == sampleMap$colname]
+# 
+
+# Find the samples that we have microbiota and expression
+i_names <- rownames(meta_i)[meta_i$Sample_Code %in% meta_r$Sample_Code_uDNA]
+i_IDs <- meta_i$Sample_Code[rownames(meta_i) %in% i_names]
+e_IDs <- meta_r$`Sample Name_RNA`[meta_r$Sample_Code_uDNA %in% i_IDs]
+o_i <- otus_table_i[, i_names]
+e_i <- expr$counts[, e_IDs]
 
 # Write the files
 write.csv(otus_s_f, row.names = FALSE, 
