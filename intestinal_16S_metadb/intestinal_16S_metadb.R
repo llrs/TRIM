@@ -29,6 +29,12 @@ meta_i$ID[meta_i$Patient_ID %in% c("15", "23")] <- "15/23"
 meta_i$ID[meta_i$Patient_ID %in% c("33", "36")] <- "33/36"
 meta_i$ID[meta_i$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_i$ID <- as.factor(meta_i$ID)
+
+# Pre transplant
+meta_i$Transplant <- "Post" # 
+meta_i$Transplant[meta_i$Patient_ID %in% c("15", "33", "29")] <- "Pre"
+meta_i$Transplant[grep("^C", meta_i$Patient_ID)] <- NA
+
 # There is a mislabeling on those tubes, we don't know which is which
 meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
 
@@ -38,23 +44,19 @@ colors_i <- colors
 names(colors_i) <- unique(meta_i$ID)
 
 metadb <- meta_i
+cols <- c(3:10, 13, 14)
 # Prepare the metadata
-for (col in seq_len(ncol(metadb[, c(3:11, 13)]))){
-  metadb[, c(3:11, 13)][, col] <- as.factor(metadb[, c(3:11, 13)][, col])
+for (col in cols) {
+  metadb[, col] <- as.factor(metadb[, col])
+  levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
 }
 
-for (col in seq_len(ncol(metadb[, c(3:10, 13)]))){
-  levels(metadb[, c(3:10, 13)][, col]) <- seq_along(levels(metadb[, c(3:10, 13)][, col]))
-}
-metadb <- apply(metadb[, c(3:11, 13)], 1:2, as.numeric)
+cols <- c(cols, 11)
+metadb <- apply(metadb[, cols], 1:2, as.numeric)
 metadb[is.na(metadb)] <- 0
 
-# Select variables that explain the disease
-keepCol <- c("Time", "Age", "IBD", "Active_area", "CD_Aftected_area", 
-             "Involved_Healthy", "Endoscopic_Activity", "ID")
-
 ##### RGCCA #####
-A <- list(intestinal = t(otus_table_i), meta = metadb[, keepCol])
+A <- list(intestinal = t(otus_table_i), meta = metadb)
 C <- matrix(0, ncol = length(A), nrow = length(A), 
             dimnames = list(names(A), names(A)))
 C <- subSymm(C, "intestinal", "meta", 1)

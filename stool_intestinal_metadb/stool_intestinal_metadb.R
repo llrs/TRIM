@@ -17,6 +17,7 @@ setwd(cd)
 meta2 <- meta
 keepCol <- sapply(meta, is.factor)
 postTreatment <- c("Birth_date", "Sample_Code", "Patient_ID", "HSCT_responder")
+postTreatment["Transplant"] <- TRUE
 keepCol[postTreatment] <- FALSE
 for (col in names(keepCol)[keepCol]){
   levels(meta2[, col]) <- seq_along(levels(meta2[, col]))
@@ -35,7 +36,7 @@ for (col in names(keepCol)[keepCol]){
 # attributes(design) <- attributes(design)[-4]
 
 # Set metadb with a sigle variable with several options
-metadb <- cbind(meta2[, keepCol])
+metadb <- meta2[, keepCol]
 metadb <- apply(metadb, 1:2, as.numeric)
 metadb[is.na(metadb)] <- 0
 # Prepare input for the sgcca function
