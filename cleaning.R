@@ -151,6 +151,10 @@ meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33/36"
 meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29/35"
 meta$ID <- as.factor(meta$ID)
 
+# Pre transplant
+meta$Transplant <- "Post" # 
+meta$Transplant[meta$Patient_ID %in% c("15", "33", "29")] <- "Pre"
+
 ## Find the otus that are equivalent between datasets
 comb <- expand.grid(rownames(otus_tax_i[keep_otus_i, ]), 
                     rownames(otus_tax_s[keep_otus_s, ]), stringsAsFactors = FALSE)
