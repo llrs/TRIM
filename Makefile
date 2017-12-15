@@ -13,7 +13,7 @@ out_files=meta_coherent.csv \
 
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
-STATegRa
+STATegRa intestinal_16S_RNAseq_integration
 
 # Clean the input and prepare the output for integration
 $(out_files): cleaning.R $(pre_files) 
