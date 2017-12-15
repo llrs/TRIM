@@ -46,7 +46,7 @@ levels(colStools) <- color_species
 
 # Set the order of the levels in Time
 meta$Time <- factor(as.character(meta$Time), 
-                    levels = c("T0", "TM36", "TM48", "T26", "T52", "T106"))
+                    levels = c("T0", "T26", "T52", "T106", "TM36", "TM48"))
 
 corOTUS <- function(x){
   if (sum(x, na.rm = TRUE) == 0) {
