@@ -147,6 +147,8 @@ ggplot(samples) +
   geom_point(aes(Patient_ID, log10(dist), col = Involved_Healthy)) + 
   facet_grid(~ Time)
 
+hist(samples$dist)
+
 # Labels of the samples
 label <- strsplit(as.character(samples$`Sample Name_RNA`), split = "-")
 labels <- sapply(label, function(x){
@@ -159,7 +161,7 @@ labels <- sapply(label, function(x){
 })
 
 samples <- cbind(samples, labels)
-samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 6, 7, 8, 4, 3)])
+samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 4, 3, 6, 7, 8)])
 for (p in seq_along(levels(samples$Time))){
   a <- ggplot(samples, aes(Stools, Intestinal)) +
     geom_text(aes(color =  ID, label = labels)) + 
@@ -231,7 +233,7 @@ ggplot(samples, aes(Stools, Intestinal)) +
   geom_abline(intercept = 0, slope = d[1], linetype = 2)
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color = Time , label = labels)) + 
+  geom_text(aes(color = Time , label = paste(ID, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -247,11 +249,22 @@ variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a,
                                               function(x){x[, 2]})),
                         Origin = rep(names(A), sapply(A, ncol)))
 variables$var <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
+rownames(variables) <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
+variables$var <- gsub("^RNAseq\\.(ENSG.*)$", "\\1", rownames(variables))
+rownames(variables) <- gsub("^.*\\.(ENSG.*)$", "\\1", rownames(variables))
 
 # Remove the variables that in both components are 0
-keepComp1 <- abs(variables$comp1) > mean(abs(variables$comp1))
-keepComp2 <- abs(variables$comp2) > mean(abs(variables$comp2))
-subVariables <- variables[keepComp1 & keepComp2, ]
+keepComp1RNAseq <- mean(abs(variables$comp1)[variables$Origin == "RNAseq"])
+keepComp1_16S <- mean(abs(variables$comp1)[variables$Origin != "RNAseq"])
+
+keepComp2RNAseq <- mean(abs(variables$comp2)[variables$Origin == "RNAseq"])
+keepComp2_16S <- mean(abs(variables$comp2)[variables$Origin != "RNAseq"])
+
+keepComp1 <- c(variables$comp1[variables$Origin == "RNAseq"] > keepComp1RNAseq,
+               variables$comp1[variables$Origin != "RNAseq"] > keepComp1_16S)
+keepComp2 <- c(variables$comp2[variables$Origin == "RNAseq"] > keepComp2RNAseq,
+               variables$comp2[variables$Origin != "RNAseq"] > keepComp2_16S)
+subVariables <- variables[keepComp1 | keepComp2, ]
 
 ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.1, npoints = 100)) +
