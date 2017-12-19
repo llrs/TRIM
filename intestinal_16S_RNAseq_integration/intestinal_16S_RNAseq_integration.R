@@ -28,7 +28,7 @@ expr <- expr[rowSums(expr) != 0, ]
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
 meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
                      stringsAsFactors = FALSE)
-file_meta_r <- file.path(rna, "20171113_metadata.csv")
+file_meta_r <- file.path(rna, "111217_metadata.csv")
 meta_r <- read.table(file_meta_r, check.names = FALSE,
                      stringsAsFactors = FALSE, sep = ";",
                      na.strings = c(NA, ""), header = TRUE)
@@ -61,6 +61,17 @@ meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
 meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
 meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_r$ID <- as.factor(meta_r$ID)
+
+# There is a mislabeling on those tubes, we don't know which is which
+meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
+meta_r$CD_Aftected_area[meta_r$Sample_Code == "22_T52_T_DM_III"] <- NA
+
+# Pre transplan and baseline
+meta_r$Transplant <- "Post" # 
+meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
+meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
+meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
+
 
 # Subset expression and outs
 expr <- expr[, meta_r$`Sample Name_RNA`]
@@ -292,7 +303,7 @@ ggplot(comp1) +
                    fill = Origin), alpha = 0.5) +
   ggtitle("Importance of the otus of each data set") +
   ylab("Scaled density") +
-  xlab("OTUs weight") +
+  xlab("weight") +
   facet_grid(~Origin) + 
   guides(fill = FALSE) +
   theme(plot.title = element_text(hjust = 0.5))
@@ -309,10 +320,11 @@ ggplot(comp2) +
   ggtitle("Importance of each block variable", 
           subtitle = "Second component") +
   ylab("Scaled density") +
-  xlab("OTUs weight") +
+  xlab("weight") +
   facet_grid(~Origin) + 
   guides(fill = FALSE) 
 
+stop("Control flow")
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 nb_boot <- 1000 # number of bootstrap samples
