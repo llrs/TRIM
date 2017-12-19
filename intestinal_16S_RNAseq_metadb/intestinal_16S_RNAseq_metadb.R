@@ -280,16 +280,21 @@ variables$var <- gsub("^metadata\\.(.*)$", "\\1", rownames(variables))
 
 # Remove the variables that in both components are 0
 keepComp1RNAseq <- mean(abs(variables$comp1)[variables$Origin == "RNAseq"])
-keepComp1_16S <- mean(abs(variables$comp1)[variables$Origin != "RNAseq"])
+keepComp1_16S <- mean(abs(variables$comp1)[variables$Origin == "16S"])
+keepComp1_metadata <- mean(abs(variables$comp1)[variables$Origin == "metadata"])
 
 keepComp2RNAseq <- mean(abs(variables$comp2)[variables$Origin == "RNAseq"])
-keepComp2_16S <- mean(abs(variables$comp2)[variables$Origin != "RNAseq"])
+keepComp2_16S <- mean(abs(variables$comp2)[variables$Origin == "16S"])
+keepComp2_metadata <- mean(abs(variables$comp2)[variables$Origin == "metadata"])
 
-keepComp1 <- c(variables$comp1[variables$Origin == "RNAseq"] > keepComp1RNAseq,
-               variables$comp1[variables$Origin != "RNAseq"] > keepComp1_16S)
-keepComp2 <- c(variables$comp2[variables$Origin == "RNAseq"] > keepComp2RNAseq,
-               variables$comp2[variables$Origin != "RNAseq"] > keepComp2_16S)
-subVariables <- variables[keepComp1 | keepComp2, ]
+keepComp1 <- c(abs(variables$comp1[variables$Origin == "RNAseq"]) > keepComp1RNAseq,
+               abs(variables$comp1[variables$Origin == "16S"]) > keepComp1_16S,
+               abs(variables$comp1[variables$Origin == "metadata"]) > keepComp1_metadata)
+keepComp2 <- c(abs(variables$comp2[variables$Origin == "RNAseq"]) > keepComp2RNAseq,
+               abs(variables$comp2[variables$Origin == "16S"]) > keepComp2_16S,
+               abs(variables$comp2[variables$Origin == "metadata"]) > keepComp2_metadata)
+
+subVariables <- variables[keepComp1 & keepComp2, ]
 
 ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.1, npoints = 100)) +
@@ -305,39 +310,37 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
+Loadings <- unlist(comp1)
+comp1 <- as.data.frame(Loadings)
+comp1$Origin <- rep(names(sgcca.centroid$a), lengths(sgcca.centroid$a)/2)
 rownames(comp1) <- seq_len(nrow(comp1))
-
-# Plot the densities of the loadings
-comp1 <- melt(comp1)[2:3]
-colnames(comp1) <- c("Origin", "Loadings")
 ggplot(comp1) +
-  geom_density(aes(x = Loadings, 
+  stat_density(aes(x = Loadings, 
                    y = ..scaled..,
                    fill = Origin), alpha = 0.5) +
   ggtitle("Importance of the otus of each data set") +
   ylab("Scaled density") +
-  xlab("OTUs weight") +
+  xlab("weight") +
   facet_grid(~Origin) + 
   guides(fill = FALSE) +
   theme(plot.title = element_text(hjust = 0.5))
 
 # Second component
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
-comp2 <- sapply(comp2, '[', seq(max(sapply(comp2, length))))
+Loadings <- unlist(comp2)
+comp2 <- as.data.frame(Loadings)
+comp2$Origin <- rep(names(sgcca.centroid$a), lengths(sgcca.centroid$a)/2)
 rownames(comp2) <- seq_len(nrow(comp2))
-
-comp2 <- melt(comp2)[2:3]
-colnames(comp2) <- c("Origin", "Loadings")
 ggplot(comp2) +
-  geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
+  stat_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
   ggtitle("Importance of each block variable", 
           subtitle = "Second component") +
   ylab("Scaled density") +
-  xlab("OTUs weight") +
+  xlab("weight") +
   facet_grid(~Origin) + 
   guides(fill = FALSE) 
 
+stop("Control Flow")
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 nb_boot <- 1000 # number of bootstrap samples
