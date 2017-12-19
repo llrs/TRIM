@@ -21,17 +21,15 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 # Load the input data
 load(file.path(rna, "Counts_RNAseq.RData"))
 expr <- edge$counts
-expr <- expr[rowSums(expr) != 0, ]
-
 
 # Read the metadata for each type of sample
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
 meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
                      stringsAsFactors = FALSE)
-file_meta_r <- file.path(rna, "20171113_metadata.csv")
+file_meta_r <- file.path(rna, "111217_metadata.csv")
 meta_r <- read.table(file_meta_r, check.names = FALSE,
                      stringsAsFactors = FALSE, sep = ";",
-                     na.strings = c(NA, ""), header = TRUE)
+                     na.strings = c(NA, ""), header = TRUE, dec = c(",", "."))
 
 setwd(cd)
 
