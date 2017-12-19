@@ -208,12 +208,10 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
+Loadings <- unlist(comp1)
+comp1 <- as.data.frame(Loadings)
+comp1$Origin <- rep(names(sgcca.centroid$a), lengths(sgcca.centroid$a)/2)
 rownames(comp1) <- seq_len(nrow(comp1))
-
-# Plot the densities of the loadings
-comp1 <- melt(comp1)[2:3]
-colnames(comp1) <- c("Origin", "Loadings")
 ggplot(comp1) +
   geom_density(aes(x = Loadings, 
                    y = ..scaled..,
@@ -227,11 +225,10 @@ ggplot(comp1) +
 
 # Second component
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
-comp2 <- sapply(comp2, '[', seq(max(sapply(comp2, length))))
+Loadings <- unlist(comp2)
+comp2 <- as.data.frame(Loadings)
+comp2$Origin <- rep(names(sgcca.centroid$a), lengths(sgcca.centroid$a)/2)
 rownames(comp2) <- seq_len(nrow(comp2))
-
-comp2 <- melt(comp2)[2:3]
-colnames(comp2) <- c("Origin", "Loadings")
 ggplot(comp2) +
   geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
   ggtitle("Importance of each block variable", 
