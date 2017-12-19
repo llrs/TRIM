@@ -2,7 +2,8 @@ R_OPTS=--vanilla
 pre_files=stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt \
 					stools_16S/OTUs-Table-refined-stools.tab \
 					intestinal_16S/OTUs-Table-new-biopsies.csv \
-					intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt
+					intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt \
+					intestinal_RNAseq/111217_metadata.csv
 out_files=meta_coherent.csv \
 					stools_16S/otus_coherent.csv \
 					stools_16S/taxonomy.csv \
@@ -83,6 +84,11 @@ intestinal_RNAseq_metadb: intestinal_RNAseq_metadb/intestinal_RNAseq_metadb.R $(
 	
 # Handles the integration between the biopsies
 intestinal_16S_RNAseq_integration: intestinal_16S_RNAseq_integration/intestinal_16S_RNAseq_integration.R $(pre_files) helper_functions.R
+	@echo "Relating the RNAseq with the microbiota"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+
+# Handles the integration between the biopsies taking into account the metadata
+intestinal_16S_RNAseq_metadb: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R $(pre_files) helper_functions.R
 	@echo "Relating the RNAseq with the microbiota"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
