@@ -120,7 +120,7 @@ C <- subSymm(C, "RNAseq", "metadata", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.5, 0, 1) # We guess a 0.5
+shrinkage <- c(0.5, 0, 1) # We guess a 0.5 for the RNAseq expression
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
 # # Don't let the shrinkage go below the thershold allowed
@@ -160,8 +160,8 @@ names(sgcca.horst$astar) <- names(A)
 # sgcca.factorial = sgcca.factorial)
 
 
-samples <- data.frame("RNAseq" = sgcca.centroid$Y[[1]][, 1],
-                      "microbiota" = sgcca.centroid$Y[[2]][, 1])
+samples <- data.frame("RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
+                      "microbiota" = sgcca.centroid$Y[["16S"]][, 1])
 
 # Colors for the plots
 names(colors) <- unique(meta_r$ID)
@@ -184,10 +184,10 @@ labels <- sapply(label, function(x){
 })
 
 samples <- cbind(samples, labels)
-samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 4, 3, 6, 7, 8)])
+samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 4, 5, 3, 6, 7, 8)])
 for (p in seq_along(levels(samples$Time))){
   a <- ggplot(samples, aes(RNAseq, microbiota)) +
-    geom_text(aes(color =  ID, label = labels)) + 
+    geom_text(aes(color =  ID, label = ID)) + 
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by time")) + 
@@ -202,7 +202,9 @@ for (p in seq_along(levels(samples$Time))){
 
 for (p in seq_along(levels(samples$ID))){
   a <- ggplot(samples, aes(RNAseq, microbiota)) +
-    geom_text(aes(color =  ID, label = paste(Time, labels, sep = "_"))) + 
+    geom_text(aes(color =  ID, label = ifelse(!is.na(labels), 
+                                              paste(Time, labels, sep = "_"),
+                                              as.character(Time)))) + 
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by patient")) + 
@@ -216,7 +218,9 @@ for (p in seq_along(levels(samples$ID))){
 }
 ggplot(samples, aes(RNAseq, microbiota)) +
   geom_text(aes(color =  ID, 
-                label = paste(Time, labels, sep = "_"))) + 
+                label = ifelse(!is.na(labels), 
+                               paste(Time, labels, sep = "_"),
+                               as.character(Time)))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -228,8 +232,10 @@ ggplot(samples, aes(RNAseq, microbiota)) +
 
 
 ggplot(samples, aes(RNAseq, microbiota)) +
-  geom_text(aes(color = HSCT_responder , 
-                label = paste(ID, labels, sep = "_"))) + 
+  geom_text(aes(color = HSCT_responder, 
+                label = ifelse(!is.na(labels), 
+                               paste(Time, labels, sep = "_"),
+                               as.character(Time)))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
