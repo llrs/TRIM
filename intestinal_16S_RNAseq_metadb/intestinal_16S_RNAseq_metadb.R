@@ -74,15 +74,6 @@ otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
 # Subset if all the rows are 0 and if sd is 0
 otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ] 
 
-# Remove low expressed genes
-expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
-expr <- expr[rowMeans(expr) > quantile(expr, prob = 0.1), ]
-
-# Filter by variance
-SD <- apply(expr, 1, sd)
-CV <- sqrt(exp(SD^2) - 1)
-expr <- expr[CV > quantile(CV, probs = 0.1), ]
-
 # Select the features of metadata
 metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
@@ -107,6 +98,15 @@ metadb <- metadb[, names(keepCol)]
 metadb <- apply(metadb, 1:2, as.numeric)
 metadb[is.na(metadb)] <- 0
  
+# Remove low expressed genes
+expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
+expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
+
+# Filter by variance
+SD <- apply(expr, 1, sd)
+CV <- sqrt(exp(SD^2) - 1)
+expr <- expr[CV > quantile(CV, probs = 0.1), ]
+
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
@@ -158,7 +158,7 @@ names(sgcca.horst$astar) <- names(A)
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst, 
 # sgcca.factorial = sgcca.factorial)
-
+save(sgcca.centroid, file = "sgcca.RData")
 
 samples <- data.frame("RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
                       "microbiota" = sgcca.centroid$Y[["16S"]][, 1])
@@ -266,11 +266,11 @@ ggplot(samples, aes(RNAseq, microbiota)) +
   guides(col = guide_legend(title = "Time")) + 
   theme(plot.title = element_text(hjust = 0.5))
 
-variables <- data.frame(comp1 = unlist(sapply(sgcca.centroid$a, 
+variables <- data.frame(Origin = rep(names(A), sapply(A, ncol)),
+                        comp1 = unlist(sapply(sgcca.centroid$a, 
                                               function(x){x[, 1]})),
                         comp2 = unlist(sapply(sgcca.centroid$a, 
-                                              function(x){x[, 2]})),
-                        Origin = rep(names(A), sapply(A, ncol)))
+                                              function(x){x[, 2]})))
 variables$var <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
 rownames(variables) <- gsub("^.*\\.(OTU_.*)$", "\\1", rownames(variables))
 variables$var <- gsub("^RNAseq\\.(ENSG.*)$", "\\1", rownames(variables))
@@ -308,11 +308,29 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   ggtitle("Variables important for the first two components", 
           subtitle = "Integrating stools and mucosa samples")
 
+pr <- prcomp(t(expr[subVariables$var[subVariables$Origin == "RNAseq"],]), scale. = TRUE)
+prS <- summary(pr)
+ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
+  geom_point() +
+  xlab(paste("PC1", prS$importance[2, "PC1"]*100)) +
+  ylab(paste("PC2", prS$importance[2, "PC2"]*100)) +
+  ggtitle("RNAseq PCA from the important variables")
+
+pr <- prcomp(t(otus_table_i[subVariables$var[subVariables$Origin == "16S"],]), scale. = TRUE)
+prS <- summary(pr)
+ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
+  geom_point() +
+  xlab(paste("PC1", prS$importance[2, "PC1"]*100)) +
+  ylab(paste("PC2", prS$importance[2, "PC2"]*100)) +
+  ggtitle("16S PCA from the important variables")
+
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
 Loadings <- unlist(comp1)
 comp1 <- as.data.frame(Loadings)
-comp1$Origin <- rep(names(sgcca.centroid$a), lengths(sgcca.centroid$a)/2)
+comp1$Origin <- factor(rep(names(sgcca.centroid$a), 
+                           lengths(sgcca.centroid$a)/2), 
+                       levels = names(sgcca.centroid$a))
 rownames(comp1) <- seq_len(nrow(comp1))
 ggplot(comp1) +
   stat_density(aes(x = Loadings, 
@@ -329,7 +347,7 @@ ggplot(comp1) +
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
 Loadings <- unlist(comp2)
 comp2 <- as.data.frame(Loadings)
-comp2$Origin <- rep(names(sgcca.centroid$a), lengths(sgcca.centroid$a)/2)
+comp2$Origin <- comp1$Origin
 rownames(comp2) <- seq_len(nrow(comp2))
 ggplot(comp2) +
   stat_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
@@ -340,7 +358,7 @@ ggplot(comp2) +
   facet_grid(~Origin) + 
   guides(fill = FALSE) 
 
-stop("Control Flow")
+# stop("Control Flow")
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 nb_boot <- 1000 # number of bootstrap samples
@@ -358,15 +376,19 @@ names(STAB) <- names(B)
 for (i in 1:nb_boot){
   ind  <- sample(NROW(B[[1]]), replace = TRUE)
   Bscr <- lapply(B, function(x) x[ind, ])
-  res <- sgcca(Bscr, C, c1 = shrinkage, 
-               ncomp = c(rep(1, length(B))),
-               scheme = "centroid", 
-               scale = TRUE)
+  try(res <- sgcca(Bscr, C, c1 = shrinkage, 
+                   ncomp = c(rep(1, length(B))),
+                   scheme = "centroid", 
+                   scale = TRUE), silent = TRUE
+  )
+  
   
   for (j in 1:J) {
     STAB[[j]][i, ] <- res$a[[j]]
   }
 }
+
+save(STAB, file = "bootstrap.RData")
 
 # Calculate how many are selected
 count <- lapply(STAB, function(x) {
