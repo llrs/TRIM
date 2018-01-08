@@ -1,9 +1,13 @@
-R_OPTS=--vanilla
+#!/usr/bin/make
+
+R_OPTS=--no-site-file --no-environ --no-restore --no-save
+
 pre_files=stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt \
 					stools_16S/OTUs-Table-refined-stools.tab \
 					intestinal_16S/OTUs-Table-new-biopsies.csv \
 					intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt \
 					intestinal_RNAseq/111217_metadata.csv
+
 out_files=meta_coherent.csv \
 					stools_16S/otus_coherent.csv \
 					stools_16S/taxonomy.csv \
@@ -91,6 +95,11 @@ intestinal_16S_RNAseq_integration: intestinal_16S_RNAseq_integration/intestinal_
 intestinal_16S_RNAseq_metadb: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R $(pre_files) helper_functions.R
 	@echo "Relating the RNAseq with the microbiota"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+
+# Test which biological relation exists between the selected genes and microbiota
+intestinal_16S_RNAseq_metadb/sgcca.RData:  intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.Rout helper_functions.R intestinal_16S_RNAseq_metadb/biological_relations.R
+	@echo "Finding the meaning of these relationships"
+	cd $(<D); R CMD BATCH $(R_OPTS) biological_relations.R
 
 # Handles the calculation of the prevalence in intestinal 
 intestinal_prevalence: intestinal_16S_conceptual/prevalence.R  helper_functions.R $(pre_files)
