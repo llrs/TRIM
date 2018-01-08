@@ -247,7 +247,9 @@ ggplot(samples, aes(RNAseq, microbiota)) +
 
 ggplot(samples, aes(RNAseq, microbiota)) +
   geom_text(aes(color = Endoscopic_Activity , 
-                label = paste(ID, labels, sep = "_"))) +
+                label = ifelse(!is.na(labels), 
+                               paste(ID, labels, sep = "_"),
+                               as.character(ID)))) +
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -257,7 +259,9 @@ ggplot(samples, aes(RNAseq, microbiota)) +
   theme(plot.title = element_text(hjust = 0.5)) 
 
 ggplot(samples, aes(RNAseq, microbiota)) +
-  geom_text(aes(color = Time , label = paste(ID, labels, sep = "_"))) + 
+  geom_text(aes(color = Time , label = ifelse(!is.na(labels), 
+                                              paste(ID, labels, sep = "_"),
+                                              as.character(ID)))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
