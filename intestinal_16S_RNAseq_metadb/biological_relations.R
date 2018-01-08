@@ -42,9 +42,11 @@ load("bootstrap.RData")
 two.sided <- function(y, z) {
   stopifnot(length(y) == 1)
   stopifnot(length(z) > 2)
-  sum(abs(z) > abs(y), na.rm = TRUE)/length(z)
+  greater <- sum(abs(z) > abs(y), na.rm = TRUE)
+      (1 + greater)/(1+length(z))
 }
 
+# RNAseq ####
 b <- STAB[["RNAseq"]]
 d <- sgcca.centroid$a[["RNAseq"]][, 1]
 
@@ -58,9 +60,11 @@ for (col in seq_len(ncol(b))) {
 names(pvalue) <- colnames(b)
 fdr <- p.adjust(pvalue, "BH")
 
-# Select those genes that are significant
-significant <- names(fdr)[fdr < 0.05]
-
+# Select those genes that are significant 
+significant <- names(pvalue)[pvalue < 0.05]
+# The fdr results in none significant
+significant <- names(pvalue)[pvalue < 0.05]
+significant <- gsub("(.*)\\..*", "\\1", significant)
 
 loadings <- sgcca.centroid$a[["RNAseq"]]
 
@@ -81,9 +85,19 @@ paths2genes <- split(genes, pathways) # List of genes and the gene sets
 
 # Subset to only human pathways
 paths2genes <- paths2genes[grep("R-HSA-", names(paths2genes))]
-path2genes <- c(path2genes, "significant" = significant)
 
-# Compute the GSEA for the size effect
+## Compute the hypergeometric/enrichment analysis ####
+library("ReactomePA")
+enrich <- enrichPathway(gene = entrezID[significant], pvalueCutoff = 0.05,
+                        readable = TRUE, universe = unique(entrezID))
+write.csv(as.data.frame(enrich), file = "RNAseq_enrichment.csv")
+
+# Store the entrezid
+entrezSig <- entrezID[significant]
+entrezSig <- entrezSig[!is.na(entrezSig)]
+paths2genes[["significant"]] <-  entrezSig
+
+## Compute the GSEA for the size effect ####
 gseaSizeEffect <- fgsea(paths2genes, comp1, nperm = length(comp1))
 
 # Get the name of the pathway
@@ -96,30 +110,9 @@ gseaSizeEffect[ , namesPaths := namesPaths$PATHNAME]
 # Order the dataframe by size effect 
 data.table::setorder(gseaSizeEffect, -NES, padj, -size)
 # Store the output
-fwrite(gseaSizeEffect[padj < 0.05, ], file = "relevant_Effect_pathways.csv")
+fwrite(gseaSizeEffect[padj < 0.05, ], file = "gsea_RNAseq_pathways.csv")
 
-hist(fdr, main = "Histogram of FDR for RNAseq", xlab = "FDR")
-abline(v = 0.05, col = "red")
-
-# Compute the GSEA
-gseaFDR <- fgsea(paths2genes, fdr, nperm = 5000)
-# Get the name of the pathway
-namesPaths <- select(reactome.db, keys = gseaFDR$pathway, 
-                     keytype = "PATHID", columns = "PATHNAME")
-# Remove the homo sapiens part
-namesPaths$PATHNAME <- gsub("Homo sapiens: (.*)", "\\1", namesPaths$PATHNAME)
-# Add a column
-gseaFDR[ , namesPaths := namesPaths$PATHNAME]
-# Order the dataframe by size effect 
-data.table::setorder(gseaFDR, -NES, padj, -size)
-# Store the output
-fwrite(gseaFDR[padj < 0.05, ], file = "relevant_Related_pathways.csv")
-
-sign_size <- intersect(gseaSizeEffect$pathway[gseaSizeEffect$padj < 0.05],
-                       gseaFDR$pathway[gseaFDR$padj < 0.05])
-
-
-##
+## 16S ####
 b <- STAB[["16S"]]
 d <- sgcca.centroid$a[["16S"]][, 1]
 
@@ -128,31 +121,40 @@ b <- b[!duplicated(b[, 1:10]), ]
 
 pvalue <- numeric(ncol(b))
 for (col in seq_len(ncol(b))) {
-  pvalue[col] <- m(d[col], b[, col])
+  pvalue[col] <- two.sided(d[col], b[, col])
 }
 names(pvalue) <- names(d)
 fdr <- p.adjust(pvalue, "BH")
-hist(fdr, main = "Histogram of FDR for RNAseq", xlab = "FDR")
-abline(v = 0.05, col = "red")
-sign_otus <- data.frame(loading = as.numeric(d[fdr < 0.05]), 
-                        otus_tax_i[names(d[fdr < 0.05]), c("Genus", "Species")])
-data.table::setDT(sign_otus)
-fwrite(sign_otus, "relevant_otus.csv")
-sign_otus[, .(mean = mean(loading), sd = sd(loading)), keyby = Genus]
 
-## Names
-b <- STAB[["metadata"]]
-d <- sgcca.centroid$a[["metadata"]][, 1]
+otus <- names(pvalue)[pvalue < 0.05]
 
-# Remove duplicated if sgcca failed due to LAPACK subroutine
-b <- b[!duplicated(b[, 1:10]), ]
+## Split the taxonomy
+Taxon2Class <- as.list(as.data.frame(otus_tax_i))
 
-pvalue <- numeric(ncol(b))
-for (col in seq_len(ncol(b))) {
-  pvalue[col] <- m(d[col], b[, col])
-}
-dnames(pvalue) <- names(d)
-fdr <- p.adjust(pvalue, "BH")
-hist(fdr, main = "Histogram of FDR for metadata", xlab = "FDR")
-abline(v = 0.05, col = "red")
-fdr[fdr < 0.05]
+grouping <- split(Taxon2Class$Genus, Taxon2Class$Genus)
+grouping <- sapply(grouping, names)
+
+term2gene <- data.frame("Gene" = otus_tax_i[, "Genus"],
+                        "Term" = rownames(otus_tax_i))
+term2name <- data.frame("Name" = otus_tax_i[, "Genus"],
+                        "Term" = rownames(otus_tax_i))
+library("clusterProfiler")
+enrich <- sapply(grouping, function(x){
+  as.data.frame(enricher(gene = otus, universe = rownames(otus_tax_i), 
+                         minGSSize = 1, TERM2GENE = term2gene, 
+                         TERM2NAME = term2name))
+  })
+
+enrich <- as.data.frame(t(enrich))
+enrich <- as.data.frame(sapply(enrich, unlist, USE.NAMES = FALSE))
+enrich$pvalue <- as.numeric(enrich$pvalue)
+enrich$p.adjust <- as.numeric(enrich$p.adjust)
+enrich$Count <- as.numeric(enrich$Count)
+write.csv(enrich, file = "Otus_genus_enrichment.csv")
+
+# GSEA
+comp1 <- sgcca.centroid$a[["16S"]][, 1]
+
+gseaSizeEffect <- fgsea(grouping, comp1, nperm = 20000)
+data.table::setorder(gseaSizeEffect, -NES, padj, -size)
+fwrite(gseaSizeEffect[pval < 0.05], file = "otus_genus-gsea.csv")
