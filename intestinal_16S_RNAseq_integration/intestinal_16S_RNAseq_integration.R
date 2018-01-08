@@ -72,14 +72,21 @@ meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
 meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
 meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
 
-
-# Subset expression and outs
+# Subset expression and outs and set in the same order between them
 expr <- expr[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
 
-# Subset if sd is 0
-expr <- expr[apply(expr, 1, sd) != 0, ] 
-otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ] 
+# Remove low expressed genes
+expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
+expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
+
+# Filter genes by variance
+SD <- apply(expr, 1, sd)
+CV <- sqrt(exp(SD^2) - 1)
+expr <- expr[CV > quantile(CV, probs = 0.1), ]
+
+#' Remove otus not present in that set of samples
+otus_table_i <- otus_table_i[rowSums(otus_table_i) > 0, ]
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i))
@@ -95,8 +102,8 @@ C <- subSymm(C, "16S", "RNAseq", 1)
 shrinkage <- c(0.5, 0) # We guess a 0.5
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
-# # Don't let the shrinkage go below the thershold allowed
-shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
+# # Don't let the shrinkage go below the threshold  allowed
+(shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage))
 # shrinkage <- rep(1, length(A))
 
 ncomp <- c(2, 2)
@@ -172,10 +179,10 @@ labels <- sapply(label, function(x){
 })
 
 samples <- cbind(samples, labels)
-samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 4, 3, 6, 7, 8)])
+samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 4, 5, 3, 6, 7, 8)])
 for (p in seq_along(levels(samples$Time))){
   a <- ggplot(samples, aes(Stools, Intestinal)) +
-    geom_text(aes(color =  ID, label = labels)) + 
+    geom_text(aes(color =  ID, label = ID)) + 
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by time")) + 
@@ -191,7 +198,9 @@ for (p in seq_along(levels(samples$Time))){
 
 for (p in seq_along(levels(samples$ID))){
   a <- ggplot(samples, aes(Stools, Intestinal)) +
-    geom_text(aes(color =  ID, label = paste(Time, labels, sep = "_"))) + 
+    geom_text(aes(color =  ID, label = ifelse(!is.na(labels), 
+                                              paste(Time, labels, sep = "_"),
+                                              as.character(Time)))) + 
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by patient")) + 
@@ -206,7 +215,9 @@ for (p in seq_along(levels(samples$ID))){
 }
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color =  ID, 
-                label = paste(Time, labels, sep = "_"))) + 
+                label = ifelse(!is.na(labels), 
+                               paste(Time, labels, sep = "_"),
+                               as.character(Time)))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -220,7 +231,9 @@ ggplot(samples, aes(Stools, Intestinal)) +
 
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color = HSCT_responder , 
-                label = paste(ID, labels, sep = "_"))) + 
+                label = ifelse(!is.na(labels), 
+                               paste(ID, labels, sep = "_"),
+                               as.character(Time)))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -233,7 +246,9 @@ ggplot(samples, aes(Stools, Intestinal)) +
 
 ggplot(samples, aes(Stools, Intestinal)) +
   geom_text(aes(color = Endoscopic_Activity , 
-                label = paste(ID, labels, sep = "_"))) +
+                label = ifelse(!is.na(labels), 
+                               paste(ID, labels, sep = "_"),
+                               as.character(ID)))) +
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -244,7 +259,9 @@ ggplot(samples, aes(Stools, Intestinal)) +
   geom_abline(intercept = 0, slope = d[1], linetype = 2)
 
 ggplot(samples, aes(Stools, Intestinal)) +
-  geom_text(aes(color = Time , label = paste(ID, labels, sep = "_"))) + 
+  geom_text(aes(color = Time , label = ifelse(!is.na(labels), 
+                                              paste(ID, labels, sep = "_"),
+                                              as.character(ID)))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 
@@ -291,14 +308,14 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
+Loadings <- unlist(comp1)
+comp1 <- as.data.frame(Loadings)
+comp1$Origin <- factor(rep(names(sgcca.centroid$a), 
+                           lengths(sgcca.centroid$a)/2), 
+                       levels = names(sgcca.centroid$a))
 rownames(comp1) <- seq_len(nrow(comp1))
-
-# Plot the densities of the loadings
-comp1 <- melt(comp1)[2:3]
-colnames(comp1) <- c("Origin", "Loadings")
 ggplot(comp1) +
-  geom_density(aes(x = Loadings, 
+  stat_density(aes(x = Loadings, 
                    y = ..scaled..,
                    fill = Origin), alpha = 0.5) +
   ggtitle("Importance of the otus of each data set") +
@@ -310,19 +327,20 @@ ggplot(comp1) +
 
 # Second component
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
-comp2 <- sapply(comp2, '[', seq(max(sapply(comp2, length))))
-rownames(comp2) <- seq_len(nrow(comp2))
-
-comp2 <- melt(comp2)[2:3]
-colnames(comp2) <- c("Origin", "Loadings")
+Loadings <- unlist(comp2)
+comp2 <- as.data.frame(Loadings)
+comp2$Origin <- comp1$Origin
+rownames(comp1) <- rownames(comp1)
 ggplot(comp2) +
-  geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
+  stat_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
   ggtitle("Importance of each block variable", 
           subtitle = "Second component") +
   ylab("Scaled density") +
   xlab("weight") +
   facet_grid(~Origin) + 
   guides(fill = FALSE) 
+
+save(sgcca.centroid, file = "sgcca.RData")
 
 stop("Control flow")
 # To calculate the conficence interval on selecting the variable
@@ -351,6 +369,8 @@ for (i in 1:nb_boot){
     STAB[[j]][i, ] <- res$a[[j]]
   }
 }
+
+save(STAB, file = "bootstrap.RData")
 
 # Calculate how many are selected
 count <- lapply(STAB, function(x) {
