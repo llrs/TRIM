@@ -97,7 +97,7 @@ metadb <- metadb[, names(keepCol)]
 # Set metadb with a sigle variable with several options
 metadb <- apply(metadb, 1:2, as.numeric)
 metadb[is.na(metadb)] <- 0
- 
+
 # Remove low expressed genes
 expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
 expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
@@ -313,22 +313,27 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   ggtitle("Variables important for the first two components", 
           subtitle = "Integrating stools and mucosa samples")
 
-pr <- prcomp(t(expr[subVariables$var[subVariables$Origin == "RNAseq"],]), scale. = TRUE)
-prS <- summary(pr)
-ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
-  geom_point() +
-  xlab(paste("PC1", prS$importance[2, "PC1"]*100)) +
-  ylab(paste("PC2", prS$importance[2, "PC2"]*100)) +
-  ggtitle("RNAseq PCA from the important variables")
+rnaseq_i <- subVariables$var[subVariables$Origin == "RNAseq"]
+if (length(rnaseq_i) >= 2) {
+  pr <- prcomp(t(expr[rnaseq_i, ]), scale. = TRUE)
+  prS <- summary(pr)
+  ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
+    geom_point() +
+    xlab(paste("PC1", prS$importance[2, "PC1"]*100)) +
+    ylab(paste("PC2", prS$importance[2, "PC2"]*100)) +
+    ggtitle("RNAseq PCA from the important variables")
+}
 
-pr <- prcomp(t(otus_table_i[subVariables$var[subVariables$Origin == "16S"],]), scale. = TRUE)
-prS <- summary(pr)
-ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
-  geom_point() +
-  xlab(paste("PC1", prS$importance[2, "PC1"]*100)) +
-  ylab(paste("PC2", prS$importance[2, "PC2"]*100)) +
-  ggtitle("16S PCA from the important variables")
-
+micro_i <- subVariables$var[subVariables$Origin == "16S"]
+if (length(micro_i) >= 2) {
+  pr <- prcomp(t(otus_table_i[micro_i, ]), scale. = TRUE)
+  prS <- summary(pr)
+  ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
+    geom_point() +
+    xlab(paste("PC1", prS$importance[2, "PC1"]*100)) +
+    ylab(paste("PC2", prS$importance[2, "PC2"]*100)) +
+    ggtitle("16S PCA from the important variables")
+}
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
 Loadings <- unlist(comp1)
@@ -369,10 +374,10 @@ ggplot(comp2) +
 nb_boot <- 1000 # number of bootstrap samples
 J <- length(A)
 STAB <- list()
-B <- lapply(A, cbind)
+B <- A
 
 for (j in 1:J) {
-  STAB[[j]]<- matrix(0, nb_boot, NCOL(A[[j]]))
+  STAB[[j]]<- matrix(NA, nb_boot, NCOL(A[[j]]))
   colnames(STAB[[j]])<- colnames(B[[j]])
 }
 names(STAB) <- names(B)
@@ -381,16 +386,15 @@ names(STAB) <- names(B)
 for (i in 1:nb_boot){
   ind  <- sample(NROW(B[[1]]), replace = TRUE)
   Bscr <- lapply(B, function(x) x[ind, ])
-  try(res <- sgcca(Bscr, C, c1 = shrinkage, 
-                   ncomp = c(rep(1, length(B))),
-                   scheme = "centroid", 
-                   scale = TRUE), silent = TRUE
-  )
-  
-  
-  for (j in 1:J) {
-    STAB[[j]][i, ] <- res$a[[j]]
-  }
+  try(
+    {res <- sgcca(Bscr, C, c1 = shrinkage, 
+                  ncomp = c(rep(1, length(B))),
+                  scheme = "centroid", 
+                  scale = TRUE)
+    
+    for (j in 1:J) {
+      STAB[[j]][i, ] <- res$a[[j]]
+    }}, silent = TRUE)
 }
 
 save(STAB, file = "bootstrap.RData")
@@ -398,17 +402,17 @@ save(STAB, file = "bootstrap.RData")
 # Calculate how many are selected
 count <- lapply(STAB, function(x) {
   apply(x, 2, function(y){
-    sum(y != 0)/nb_boot
+    sum(y != 0, na.rm = TRUE)/(nb_boot - sum(is.na(STAB[[1]][, 1])))
   })
 })
 
 # Calculate the sign when selected
-sign <- lapply(STAB, function(x){colSums(sign(x))})
+sign <- lapply(STAB, function(x){colSums(sign(x), na.rm = TRUE)})
 
 # Calculate the mean and the standard error for each variable
 colMeAbs <- sapply(STAB, function(x){colMeans(abs(x))})
 seAbs <- sapply(STAB, function(x){
-  apply(abs(x), 2, sd)/sqrt(nrow(x))
+  apply(abs(x), 2, sd, na.rm = TRUE)/sqrt(nrow(x))
 })
 names(seAbs) <- names(STAB)
 names(colMeAbs) <- names(STAB)
@@ -416,7 +420,7 @@ names(colMeAbs) <- names(STAB)
 # Calculate the mean and the standard error for each variable
 colMe <- sapply(STAB, function(x){colMeans(x)})
 se <- sapply(STAB, function(x){
-  apply(x, 2, sd)/sqrt(nrow(x))
+  apply(x, 2, sd, na.rm = TRUE)/sqrt(nrow(x))
 })
 names(se) <- names(STAB)
 names(colMe) <- names(STAB)
