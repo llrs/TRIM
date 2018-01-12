@@ -357,3 +357,20 @@ selectVar <- function(x){
     names(x)[x > q["75%"] &  !is.na(x)]
   }
 }
+
+
+# Select the significant relationships ####
+#' Two sided test
+#' 
+#' Test in a vector from a permutation if there is a relationship or not. 
+#' Assumes that the distribution is symmetric around 0.
+#' @param z Vector of of the permutations
+#' @param y Value of the test
+#' @return The p-value
+two.sided <- function(y, z) {
+  stopifnot(length(y) == 1)
+  stopifnot(sum(!is.na(z)) > 2)
+  greater <- sum(abs(z) >= abs(y), na.rm = TRUE)
+  
+  (1 + greater)/(1 + sum(!is.na(z)))
+}
