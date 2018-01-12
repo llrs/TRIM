@@ -33,27 +33,14 @@ library("data.table")
 load("sgcca.RData")
 load("bootstrap.RData")
 
-# Select the significant relationships ####
-#' Two sided test
-#' 
-#' Test in a vector from a permutation if there is a relationship or not. 
-#' Assumes that the distribution is symmetric around 0.
-#' @param z Vector of of the permutations
-#' @param y Value of the test
-#' @return The p-value
-two.sided <- function(y, z) {
-  stopifnot(length(y) == 1)
-  stopifnot(length(z) > 2)
-  greater <- sum(abs(z) > abs(y), na.rm = TRUE)
-      (1 + greater)/(1+length(z))
-}
-
 # RNAseq ####
 b <- STAB[["RNAseq"]]
 d <- sgcca.centroid$a[["RNAseq"]][, 1]
 
 # Remove duplicated if sgcca failed due to LAPACK subroutine
-b <- b[!duplicated(b[, 1:10]), ]
+b <- b[!is.na(b[, 1]), ]
+
+warning(is.na(b[, 1]), " iterations failed.")
 
 pvalue <- numeric(ncol(b))
 for (col in seq_len(ncol(b))) {
@@ -126,7 +113,7 @@ b <- STAB[["16S"]]
 d <- sgcca.centroid$a[["16S"]][, 1]
 
 # Remove duplicated if sgcca failed due to LAPACK subroutine
-b <- b[!duplicated(b[, 1:10]), ]
+b <- b[!is.na(b[, 1]), ]
 
 pvalue <- numeric(ncol(b))
 for (col in seq_len(ncol(b))) {
