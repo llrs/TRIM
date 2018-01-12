@@ -342,7 +342,6 @@ ggplot(comp2) +
 
 save(sgcca.centroid, file = "sgcca.RData")
 
-stop("Control flow")
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 nb_boot <- 1000 # number of bootstrap samples
@@ -351,7 +350,7 @@ STAB <- list()
 B <- lapply(A, cbind)
 
 for (j in 1:J) {
-  STAB[[j]]<- matrix(0, nb_boot, NCOL(A[[j]]))
+  STAB[[j]]<- matrix(NA, nb_boot, NCOL(A[[j]]))
   colnames(STAB[[j]])<- colnames(B[[j]])
 }
 names(STAB) <- names(B)
@@ -360,10 +359,10 @@ names(STAB) <- names(B)
 for (i in 1:nb_boot){
   ind  <- sample(NROW(B[[1]]), replace = TRUE)
   Bscr <- lapply(B, function(x) x[ind, ])
-  res <- sgcca(Bscr, C, c1 = shrinkage, 
+  try(res <- sgcca(Bscr, C, c1 = shrinkage, 
                ncomp = c(rep(1, length(B))),
                scheme = "centroid", 
-               scale = TRUE)
+               scale = TRUE), silent = TRUE)
   
   for (j in 1:J) {
     STAB[[j]][i, ] <- res$a[[j]]
@@ -375,7 +374,7 @@ save(STAB, file = "bootstrap.RData")
 # Calculate how many are selected
 count <- lapply(STAB, function(x) {
   apply(x, 2, function(y){
-    sum(y != 0)/nb_boot
+    sum(y != 0, na.rm = TRUE)/(nb_boot - sum(is.na(STAB[[1]][, 1])))
   })
 })
 
@@ -385,7 +384,7 @@ sign <- lapply(STAB, function(x){colSums(sign(x))})
 # Calculate the mean and the standard error for each variable
 colMeAbs <- sapply(STAB, function(x){colMeans(abs(x))})
 seAbs <- sapply(STAB, function(x){
-  apply(abs(x), 2, sd)/sqrt(nrow(x))
+  apply(abs(x), 2, sd, na.rm = TRUE)/sqrt(nrow(x))
 })
 names(seAbs) <- names(STAB)
 names(colMeAbs) <- names(STAB)
@@ -393,7 +392,7 @@ names(colMeAbs) <- names(STAB)
 # Calculate the mean and the standard error for each variable
 colMe <- sapply(STAB, function(x){colMeans(x)})
 se <- sapply(STAB, function(x){
-  apply(x, 2, sd)/sqrt(nrow(x))
+  apply(x, 2, sd, na.rm = TRUE)/sqrt(nrow(x))
 })
 names(se) <- names(STAB)
 names(colMe) <- names(STAB)
