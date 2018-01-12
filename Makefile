@@ -16,9 +16,11 @@ out_files=meta_coherent.csv \
 					equivalent_otus.csv \
 					equivalent_genus.csv
 
+.PHONY: all Deconvolute prevalence
+
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
-STATegRa intestinal_16S_RNAseq_integration
+STATegRa intestinal_16S_RNAseq_integration prevalence
 
 # Clean the input and prepare the output for integration
 $(out_files): cleaning.R $(pre_files) 
@@ -79,7 +81,6 @@ stool_metadb: stool_metadb/stool_metadb.R $(pre_files) helper_functions.R
 intestinal_16S_metadb: intestinal_16S_metadb/intestinal_16S_metadb.R $(pre_files) helper_functions.R
 	@echo "PCAs controlling for clinical variables of 16S biopsies"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
-	
 
 # Handles the creation of PCA for biopsies RNAseq but controlling for clinical variables
 intestinal_RNAseq_metadb: intestinal_RNAseq_metadb/intestinal_RNAseq_metadb.R $(pre_files) helper_functions.R
@@ -92,12 +93,12 @@ intestinal_16S_RNAseq_integration: intestinal_16S_RNAseq_integration/intestinal_
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the integration between the biopsies taking into account the metadata
-intestinal_16S_RNAseq_metadb: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R $(pre_files) helper_functions.R
+intestinal_16S_RNAseq_metadb/*.RData: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R $(pre_files) helper_functions.R
 	@echo "Relating the RNAseq with the microbiota"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Test which biological relation exists between the selected genes and microbiota
-intestinal_16S_RNAseq_metadb/sgcca.RData:  intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.Rout helper_functions.R intestinal_16S_RNAseq_metadb/biological_relations.R
+intestinal_16S_RNAseq_metadb/*.csv biological_relations: helper_functions.R intestinal_16S_RNAseq_metadb/biological_relations.R intestinal_16S_RNAseq_metadb/*.RData
 	@echo "Finding the meaning of these relationships"
 	cd $(<D); R CMD BATCH $(R_OPTS) biological_relations.R
 
@@ -107,7 +108,7 @@ intestinal_prevalence: intestinal_16S_conceptual/prevalence.R  helper_functions.
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the calculation of the prevalence in stools	
-stools_prevalence: stools_16S_conceptual/prevalence.R  helper_functions.R $(pre_files)
+stools_prevalence: stools_conceptual/prevalence.R  helper_functions.R $(pre_files)
 	@echo "Stools prevalence"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
