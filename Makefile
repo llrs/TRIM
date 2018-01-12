@@ -16,7 +16,7 @@ out_files=meta_coherent.csv \
 					equivalent_otus.csv \
 					equivalent_genus.csv
 
-.PHONY: all Deconvolute prevalence
+.PHONY: all
 
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
@@ -93,12 +93,12 @@ intestinal_16S_RNAseq_integration: intestinal_16S_RNAseq_integration/intestinal_
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the integration between the biopsies taking into account the metadata
-intestinal_16S_RNAseq_metadb/*.RData: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R $(pre_files) helper_functions.R
+intestinal_16S_RNAseq_metadb/*.RData intestinal_16S_RNAseq_metadb: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R $(pre_files) helper_functions.R
 	@echo "Relating the RNAseq with the microbiota"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Test which biological relation exists between the selected genes and microbiota
-intestinal_16S_RNAseq_metadb/*.csv biological_relations: helper_functions.R intestinal_16S_RNAseq_metadb/biological_relations.R intestinal_16S_RNAseq_metadb/*.RData
+intestinal_16S_RNAseq_metadb/*.csv biological_relations: helper_functions.R intestinal_16S_RNAseq_metadb/biological_relations.R intestinal_16S_RNAseq_metadb
 	@echo "Finding the meaning of these relationships"
 	cd $(<D); R CMD BATCH $(R_OPTS) biological_relations.R
 
@@ -119,4 +119,4 @@ prevalence: intestinal_prevalence stools_prevalence
 Deconvolute: stool_metadb intestinal_RNAseq_metadb intestinal_16S_metadb
 
 clean:
-	rm *.Rout
+	find . -name "*.Rout" -type f -delete
