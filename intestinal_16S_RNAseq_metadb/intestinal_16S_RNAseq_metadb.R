@@ -110,6 +110,7 @@ expr <- expr[CV > quantile(CV, probs = 0.1), ]
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
+saveRDS(A, file = "TRIM.RDS")
 
 # The design
 C <- matrix(0, ncol = length(A), nrow = length(A), 
@@ -120,7 +121,7 @@ C <- subSymm(C, "RNAseq", "metadata", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.5, 0, 1) # We guess a 0.5 for the RNAseq expression
+shrinkage <- c(0.122747, 0, 1) # We guess a 0.5 for the RNAseq expression
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
 # # Don't let the shrinkage go below the thershold allowed
