@@ -167,10 +167,19 @@ ggplot(pcai) +
 
 # PCA intestinal RNAseq with Barcelona
 
-counts <- expr$counts
-counts <- counts[rowSums(counts) != 0, ]
+expr <- expr$counts
 
-pca_ir <- prcomp(t(counts), scale. = TRUE)
+# Remove low expressed genes
+expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
+expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
+
+# Filter by variance
+SD <- apply(expr, 1, sd)
+CV <- sqrt(exp(SD^2) - 1)
+expr <- expr[CV > quantile(CV, probs = 0.1), ]
+
+
+pca_ir <- prcomp(t(expr), scale. = TRUE)
 pca_ir_x <- as.data.frame(pca_ir$x)
 pca_ir_var <- round(summary(pca_ir)$importance[2, ]*100, digits = 2)
 
@@ -214,8 +223,8 @@ ggplot(pcair) +
 
 
 # PCA TRIM (without barcelona)
-barcelona <- grepl("w", colnames(counts))
-counts_woBarcelona <- counts[, !barcelona]
+barcelona <- grepl("w", colnames(expr))
+counts_woBarcelona <- expr[, !barcelona]
 counts_woBarcelona <- counts_woBarcelona[rowSums(counts_woBarcelona) != 0, ]
 pca_ir <- prcomp(t(counts_woBarcelona), scale. = TRUE)
 pca_ir_x <- as.data.frame(pca_ir$x)
