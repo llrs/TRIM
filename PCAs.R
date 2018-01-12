@@ -178,6 +178,8 @@ SD <- apply(expr, 1, sd)
 CV <- sqrt(exp(SD^2) - 1)
 expr <- expr[CV > quantile(CV, probs = 0.1), ]
 
+# expr <- expr[rowSums(expr) != 0, ]
+
 
 pca_ir <- prcomp(t(expr), scale. = TRUE)
 pca_ir_x <- as.data.frame(pca_ir$x)
@@ -207,7 +209,16 @@ ggplot(pcair) +
 
 ggplot(pcair) +
   geom_text(aes(PC1, PC2, col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) + 
-  guides(col = guide_legend(title="Patient")) + 
+  guides(col = guide_legend(title="Afected area")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) + 
+  ggtitle("PCA RNAseq biopsies")
+
+
+ggplot(pcair) +
+  geom_text(aes(PC1, PC2, col = Exact_location, label = paste(ID, Time, sep = "_"))) + 
+  guides(col = guide_legend(title="Region")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_ir_var[1], "%")) +
   ylab(paste("PC2", pca_ir_var[2], "%")) + 
@@ -215,7 +226,7 @@ ggplot(pcair) +
 
 ggplot(pcair) +
   geom_text(aes(PC1, PC2, col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) + 
-  guides(col = guide_legend(title="Patient")) + 
+  guides(col = guide_legend(title="Involved area")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_ir_var[1], "%")) +
   ylab(paste("PC2", pca_ir_var[2], "%")) + 
