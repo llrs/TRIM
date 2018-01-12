@@ -19,6 +19,8 @@ otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 # Extract the taxonomy and format it properly
 otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
+epithelium <- read.csv("epithelium.csv")
+epithelium <- epithelium$Epithelium
 
 setwd(wd)
 
@@ -77,6 +79,12 @@ entrezID <- mapIds(org.Hs.eg.db, keys = ensemblID, keytype = "ENSEMBL",
 comp1 <- loadings[, 1]
 names(comp1) <- entrezID
 
+epitheliumE <- mapIds(org.Hs.eg.db, keys = as.character(epithelium), 
+                      keytype = "SYMBOL", column = "ENTREZID")
+
+epitheliumE <- unlist(epitheliumE, use.names = TRUE)
+epitheliumE <- epitheliumE[!is.na(epitheliumE)]
+
 # Extract the information of the pathways
 genes2Pathways <- as.list(reactome.db::reactomeEXTID2PATHID)
 pathways <- unlist(genes2Pathways, use.names = FALSE)
@@ -96,6 +104,7 @@ write.csv(as.data.frame(enrich), file = "RNAseq_enrichment.csv")
 entrezSig <- entrezID[significant]
 entrezSig <- entrezSig[!is.na(entrezSig)]
 paths2genes[["significant"]] <-  entrezSig
+paths2genes[["Epithelium"]] <-  epitheliumE
 
 ## Compute the GSEA for the size effect ####
 gseaSizeEffect <- fgsea(paths2genes, comp1, nperm = length(comp1))
@@ -139,17 +148,10 @@ term2gene <- data.frame("Gene" = otus_tax_i[, "Genus"],
 term2name <- data.frame("Name" = otus_tax_i[, "Genus"],
                         "Term" = rownames(otus_tax_i))
 library("clusterProfiler")
-enrich <- sapply(grouping, function(x){
-  as.data.frame(enricher(gene = otus, universe = rownames(otus_tax_i), 
+enrich <- as.data.frame(enricher(gene = otus, universe = rownames(otus_tax_i), 
                          minGSSize = 1, TERM2GENE = term2gene, 
                          TERM2NAME = term2name))
-  })
 
-enrich <- as.data.frame(t(enrich))
-enrich <- as.data.frame(sapply(enrich, unlist, USE.NAMES = FALSE))
-enrich$pvalue <- as.numeric(enrich$pvalue)
-enrich$p.adjust <- as.numeric(enrich$p.adjust)
-enrich$Count <- as.numeric(enrich$Count)
 write.csv(enrich, file = "Otus_genus_enrichment.csv")
 
 # GSEA
