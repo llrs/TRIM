@@ -208,11 +208,17 @@ ratio <- function(columns, data, indices, meta) {
 }
 
 # bootstrapping with 1000 replications
-# results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005), 
-#                 statistic = ratio,
-#                 R = 1000, 
-#                 meta = meta_s[removeControls, ], columns = "Time", 
-#                 parallel = "multicore", ncpus = 4)
+results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005),
+                statistic = ratio,
+                R = 1000,
+                meta = meta_s[removeControls, ], columns = "Time",
+                parallel = "multicore", ncpus = 4)
 
+# view results
+results
+plot(results)
+
+# get 95% confidence interval
+boot.ci(results, type="bca")
 
 dev.off()
