@@ -17,8 +17,7 @@ otus_table_s <- read.delim(file.path(stool, "OTUs-Table-refined-stools.tab"),
 otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 
 # Load the RNAseq
-load(file.path(rna, "Counts_RNAseq.RData"))
-expr <- edge
+expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
@@ -166,8 +165,6 @@ ggplot(pcai) +
 
 
 # PCA intestinal RNAseq with Barcelona
-
-expr <- expr$counts
 
 # Remove low expressed genes
 expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]

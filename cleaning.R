@@ -25,8 +25,7 @@ otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 otus_tax_s <- taxonomy(tax_s, rownames(otus_table_s))
 
 # Load the input data
-load(file.path(rna, "Counts_RNAseq.RData"))
-expr <- edge
+expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 
 
 # Read the metadata for each type of sample
@@ -186,9 +185,9 @@ meta_s <- meta_s[match(colnames(otus_table_s), rownames(meta_s)), ]
 SE_s <- SummarizedExperiment(assays = SimpleList(otus = as.matrix(otus_table_s)), 
                              colData = meta_s, 
                              rowData = otus_tax_s)
-meta_r <- meta_r[match(colnames(expr$counts), meta_r$`Sample Name_RNA`), ]
+meta_r <- meta_r[match(colnames(expr), meta_r$`Sample Name_RNA`), ]
 rownames(meta_r) <- NULL
-SE_expr <- SummarizedExperiment(assays = SimpleList(expr = as.matrix(expr$counts)), 
+SE_expr <- SummarizedExperiment(assays = SimpleList(expr = as.matrix(expr)), 
                              colData = meta_r)
 
 # prepMultiAssay(list(SE_i, SE_s, SE_expr), meta_r, )
@@ -209,7 +208,7 @@ i_names <- rownames(meta_i)[meta_i$Sample_Code %in% meta_r$Sample_Code_uDNA]
 i_IDs <- meta_i$Sample_Code[rownames(meta_i) %in% i_names]
 e_IDs <- meta_r$`Sample Name_RNA`[meta_r$Sample_Code_uDNA %in% i_IDs]
 o_i <- otus_table_i[, i_names]
-e_i <- expr$counts[, e_IDs]
+e_i <- expr[, e_IDs]
 
 # Write the files
 write.csv(otus_s_f, row.names = FALSE, 

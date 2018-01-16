@@ -19,8 +19,7 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 
 # Load the input data
-load(file.path(rna, "Counts_RNAseq.RData"))
-expr <- edge$counts
+expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 expr <- expr[rowSums(expr) != 0, ]
 
 
