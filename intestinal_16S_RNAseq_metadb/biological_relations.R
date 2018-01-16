@@ -146,4 +146,4 @@ comp1 <- sgcca.centroid$a[["16S"]][, 1]
 
 gseaSizeEffect <- fgsea(grouping, comp1, nperm = 20000)
 data.table::setorder(gseaSizeEffect, -NES, padj, -size)
-fwrite(gseaSizeEffect[pval < 0.05], file = "otus_genus-gsea.csv")
+fwrite(gseaSizeEffect[pval < 0.05], file = "gsea_otus_genus.csv")
