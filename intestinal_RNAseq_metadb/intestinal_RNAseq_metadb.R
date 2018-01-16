@@ -7,12 +7,10 @@ source("helper_functions.R")
 # Read the intestinal RNAseq table
 
 # Load the input data
-load(file.path(rna, "Counts_RNAseq.RData"))
+expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 
 # Clean the RNAseq table
-expr <- edge$counts[rowSums(edge$counts) != 0, ]
-
-
+expr <- expr[rowSums(expr) != 0, ]
 
 file_meta_r <- file.path(rna, "20171113_metadata.csv")
 meta_r <- read.table(file_meta_r, check.names = FALSE,
