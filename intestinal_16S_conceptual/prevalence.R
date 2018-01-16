@@ -27,6 +27,7 @@ meta_i$ID[meta_i$Patient_ID %in% c("15", "23")] <- "15/23"
 meta_i$ID[meta_i$Patient_ID %in% c("33", "36")] <- "33/36"
 meta_i$ID[meta_i$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_i$ID <- as.factor(meta_i$ID)
+
 # There is a mislabeling on those tubes, we don't know which is which
 meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
 
@@ -51,8 +52,11 @@ d <- sapply(rownames(presence), function(i){
 })
 d[is.na(d)] <- 1
 d <- p.adjust(d, "BH")
+
+pdf(paste0("Figures/", today, "_ratios_plots.pdf"))
+
 if (any(d < 0.05)) {
-  ta <- unique(otus_tax_s[d < 0.05, c("Genus", "Species")])
+  ta <- unique(otus_tax_i[d < 0.05, c("Genus", "Species")])
   species <- unique(ta[, 2])
   species[!is.na(species)]
   
@@ -156,7 +160,7 @@ nonResponders <- sapply(rownames(presence), function(i) {
   f$p.value
 })
 
-pdf(paste0("Figures/", today, "_ratios_plots.pdf"))
+
 hist(log10(nonResponders/responders))
 
 # Bootstrapp while controlling by Time ####
@@ -211,18 +215,18 @@ ratio <- function(columns, data, indices, meta) {
   })
 }
 
-# bootstrapping with 1000 replications
-results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005),
-                statistic = ratio,
-                R = 1000,
-                meta = meta_i[removeControls, ], columns = "Time",
-                parallel = "multicore", ncpus = 4)
-
-# view results
-results
-plot(results)
-
-# get 95% confidence interval
-boot.ci(results, type="bca")
+# # bootstrapping with 1000 replications
+# results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005),
+#                 statistic = ratio,
+#                 R = 1000,
+#                 meta = meta_i[removeControls, ], columns = "Time",
+#                 parallel = "multicore", ncpus = 4)
+# 
+# # view results
+# results
+# plot(results)
+# 
+# # get 95% confidence interval
+# boot.ci(results, type="bca")
 
 dev.off()
