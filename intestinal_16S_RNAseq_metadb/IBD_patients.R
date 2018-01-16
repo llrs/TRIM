@@ -392,87 +392,13 @@ ggplot(comp2) +
   facet_grid(~Origin) + 
   guides(fill = FALSE) 
 
-# stop("Control Flow")
-# To calculate the conficence interval on selecting the variable
-# this interval should reduce as we fit a better model/relationship
-nb_boot <- 1000 # number of bootstrap samples
-J <- length(A)
-STAB <- list()
-B <- A
-
-for (j in 1:J) {
-  STAB[[j]]<- matrix(NA, nb_boot, NCOL(A[[j]]))
-  colnames(STAB[[j]])<- colnames(B[[j]])
-}
-names(STAB) <- names(B)
-
-# Bootstrap the data
-for (i in 1:nb_boot){
-  ind  <- sample(NROW(B[[1]]), replace = TRUE)
-  Bscr <- lapply(B, function(x) x[ind, ])
-  try(
-    {res <- sgcca(Bscr, C, c1 = shrinkage, 
-                  ncomp = c(rep(1, length(B))),
-                  scheme = "centroid", 
-                  scale = TRUE)
-    
-    for (j in 1:J) {
-      STAB[[j]][i, ] <- res$a[[j]]
-    }}, silent = TRUE)
-}
+# Bootstrap of sgcca 
+STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
 save(STAB, file = "bootstrap_IBD.RData")
 
-# Calculate how many are selected
-count <- lapply(STAB, function(x) {
-  apply(x, 2, function(y){
-    sum(y != 0, na.rm = TRUE)/(nb_boot - sum(is.na(STAB[[1]][, 1])))
-  })
-})
+# Evaluate the boostrap effect and plot 
+boot_evaluate(STAB)
 
-# Calculate the sign when selected
-sign <- lapply(STAB, function(x){colSums(sign(x), na.rm = TRUE)})
-
-# Calculate the mean and the standard error for each variable
-colMeAbs <- sapply(STAB, function(x){colMeans(abs(x))})
-seAbs <- sapply(STAB, function(x){
-  apply(abs(x), 2, sd, na.rm = TRUE)/sqrt(nrow(x))
-})
-names(seAbs) <- names(STAB)
-names(colMeAbs) <- names(STAB)
-
-# Calculate the mean and the standard error for each variable
-colMe <- sapply(STAB, function(x){colMeans(x)})
-se <- sapply(STAB, function(x){
-  apply(x, 2, sd, na.rm = TRUE)/sqrt(nrow(x))
-})
-names(se) <- names(STAB)
-names(colMe) <- names(STAB)
-
-# Merge the information in a table for each dataset
-var_info <- list(count, sign, colMeAbs, seAbs, colMe, se)
-consensus <- list()
-for (i in seq_along(STAB)){
-  consensus[[i]] <- simplify2array(list("freq" = count[[i]], 
-                                        "sign" = sign[[i]], 
-                                        "colMeAbs" = colMeAbs[[i]], 
-                                        "seAbs" = seAbs[[i]], 
-                                        "colMe" = colMe[[i]], 
-                                        "se" = se[[i]]))
-  consensus[[i]] <- as.data.frame(consensus[[i]])
-}
-names(consensus) <- names(STAB)
-
-# Plot the summary of the bootstrapping
-for (i in seq_len(2)){
-  p <- ggplot(consensus[[i]]) +
-    geom_point(aes(sign, freq, col = colMeAbs, size = -log10(seAbs))) +
-    ggtitle(paste("Selecting variable for", names(consensus)[i]))
-  print(p)
-  p <- ggplot(consensus[[i]]) +
-    geom_point(aes(sign, freq, col = colMe, size = -log10(se))) +
-    ggtitle(paste("Selecting variable for", names(consensus)[i]))
-  print(p)
-}
 
 dev.off()

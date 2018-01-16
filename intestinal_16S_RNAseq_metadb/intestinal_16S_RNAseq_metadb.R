@@ -2,6 +2,9 @@ cd <- setwd("..")
 
 # Load the helper file
 source("helper_functions.R")
+source("helper_RGCCA.R")
+
+library("fgsea")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -19,8 +22,7 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 
 # Load the input data
-load(file.path(rna, "Counts_RNAseq.RData"))
-expr <- edge$counts
+expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 
 # Read the metadata for each type of sample
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
@@ -74,10 +76,10 @@ otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
 # Subset if all the rows are 0 and if sd is 0
 otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ] 
 
-# Select the features of metadata
+# Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them 
 metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
-nam <- c("Time", "CD_Aftected_area", "Involved_Healthy", 
+nam <- c("CD_Aftected_area", "Involved_Healthy", 
          "Active_area", "IBD", "AGE_SAMPLE", "Transplant", "ID", 
          "Exact_location", "Endoscopic_Activity", "Treatment", "SEX")
 keepCol <- keepCol[nam]
@@ -164,6 +166,29 @@ save(sgcca.centroid, file = "sgcca.RData")
 samples <- data.frame("RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
                       "microbiota" = sgcca.centroid$Y[["16S"]][, 1])
 
+
+## Grouping of the variables ####
+RNAseq1 <- samples$RNAseq
+RNAseq2 <- sgcca.centroid$Y[["RNAseq"]][, 2]
+microbiota2 <- sgcca.centroid$Y[["16S"]][, 2]
+microbiota1 <- samples$microbiota
+
+names(RNAseq1) <- rownames(samples)
+names(microbiota1) <- rownames(samples)
+names(RNAseq2) <- rownames(samples)
+names(microbiota2) <- rownames(samples)
+groups <- split(rownames(samples), as.factor(meta_r$HSCT_responder))
+# First dimension seems to capture well the 
+fgsea(groups, RNAseq1, nperm = 1000)
+fgsea(groups, microbiota1, nperm = 1000)
+# Further dimensions 
+fgsea(groups, RNAseq2, nperm = 1000)
+fgsea(groups, microbiota2, nperm = 1000)
+
+km <- kmeans(samples[, c("RNAseq", "microbiota")], 2, nstart = 2)
+plot(samples[, c("RNAseq", "microbiota")], col = km$cluster)
+
+## Plotting ####
 # Colors for the plots
 names(colors) <- unique(meta_r$ID)
 
@@ -368,87 +393,12 @@ ggplot(comp2) +
   facet_grid(~Origin) + 
   guides(fill = FALSE) 
 
-# stop("Control Flow")
-# To calculate the conficence interval on selecting the variable
-# this interval should reduce as we fit a better model/relationship
-nb_boot <- 1000 # number of bootstrap samples
-J <- length(A)
-STAB <- list()
-B <- A
-
-for (j in 1:J) {
-  STAB[[j]]<- matrix(NA, nb_boot, NCOL(A[[j]]))
-  colnames(STAB[[j]])<- colnames(B[[j]])
-}
-names(STAB) <- names(B)
-
-# Bootstrap the data
-for (i in 1:nb_boot){
-  ind  <- sample(NROW(B[[1]]), replace = TRUE)
-  Bscr <- lapply(B, function(x) x[ind, ])
-  try(
-    {res <- sgcca(Bscr, C, c1 = shrinkage, 
-                  ncomp = c(rep(1, length(B))),
-                  scheme = "centroid", 
-                  scale = TRUE)
-    
-    for (j in 1:J) {
-      STAB[[j]][i, ] <- res$a[[j]]
-    }}, silent = TRUE)
-}
+# Bootstrap of sgcca 
+STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
 save(STAB, file = "bootstrap.RData")
 
-# Calculate how many are selected
-count <- lapply(STAB, function(x) {
-  apply(x, 2, function(y){
-    sum(y != 0, na.rm = TRUE)/(nb_boot - sum(is.na(STAB[[1]][, 1])))
-  })
-})
-
-# Calculate the sign when selected
-sign <- lapply(STAB, function(x){colSums(sign(x), na.rm = TRUE)})
-
-# Calculate the mean and the standard error for each variable
-colMeAbs <- sapply(STAB, function(x){colMeans(abs(x))})
-seAbs <- sapply(STAB, function(x){
-  apply(abs(x), 2, sd, na.rm = TRUE)/sqrt(nrow(x))
-})
-names(seAbs) <- names(STAB)
-names(colMeAbs) <- names(STAB)
-
-# Calculate the mean and the standard error for each variable
-colMe <- sapply(STAB, function(x){colMeans(x)})
-se <- sapply(STAB, function(x){
-  apply(x, 2, sd, na.rm = TRUE)/sqrt(nrow(x))
-})
-names(se) <- names(STAB)
-names(colMe) <- names(STAB)
-
-# Merge the information in a table for each dataset
-var_info <- list(count, sign, colMeAbs, seAbs, colMe, se)
-consensus <- list()
-for (i in seq_along(STAB)){
-  consensus[[i]] <- simplify2array(list("freq" = count[[i]], 
-                                        "sign" = sign[[i]], 
-                                        "colMeAbs" = colMeAbs[[i]], 
-                                        "seAbs" = seAbs[[i]], 
-                                        "colMe" = colMe[[i]], 
-                                        "se" = se[[i]]))
-  consensus[[i]] <- as.data.frame(consensus[[i]])
-}
-names(consensus) <- names(STAB)
-
-# Plot the summary of the bootstrapping
-for (i in seq_len(2)){
-  p <- ggplot(consensus[[i]]) +
-    geom_point(aes(sign, freq, col = colMeAbs, size = -log10(seAbs))) +
-    ggtitle(paste("Selecting variable for", names(consensus)[i]))
-  print(p)
-  p <- ggplot(consensus[[i]]) +
-    geom_point(aes(sign, freq, col = colMe, size = -log10(se))) +
-    ggtitle(paste("Selecting variable for", names(consensus)[i]))
-  print(p)
-}
+# Evaluate the boostrap effect and plot 
+boot_evaluate(STAB)
 
 dev.off()
