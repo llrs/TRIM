@@ -1,7 +1,11 @@
 library("boot")
+# Summarize by taxa
+library("metagenomeSeq")
 
 wd <- setwd("..")
 source("helper_functions.R")
+source("helper_prevalence.R")
+
 intestinal <- "intestinal_16S"
 # Read the intestinal otus table
 otus_table_i <- read.csv(file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
@@ -31,189 +35,121 @@ meta_i$ID <- as.factor(meta_i$ID)
 # There is a mislabeling on those tubes, we don't know which is which
 meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
 
+meta_i$HSCT_responder[(meta_i$ID %in% c("38", "40", "41"))] <- NA
+
+# Match the name of meta and rownames
+otus_table_i <- otus_table_i[, match(rownames(meta_i), colnames(otus_table_i))]
+
+MR_i <- newMRexperiment(otus_table_i, 
+                        phenoData = AnnotatedDataFrame(meta_i),
+                        featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i)))
+genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+
 
 # Test the prevalence between controls and non controls ####
-prevalence <- sweep(otus_table_i, 2, colSums(otus_table_i), `/`) > 0.005
-subSets <- allComb(meta_i, c("IBD"))
-totalSamples <- colSums(subSets)
-subSets <- subSets[, totalSamples >= 1]
-totalSamples <- totalSamples[totalSamples >= 1]
-presence <- prevalence %*% subSets
-absence <- matrix(totalSamples, nrow = nrow(presence), 
-                  byrow = TRUE, ncol = ncol(presence)) - presence
+res <- prevalence_tab(otus_table_i, meta_i, "IBD")
+
 # Fisher test
-d <- sapply(rownames(presence), function(i){
-  m <- rbind(P = presence[i, ], 
-             A = absence[i, ])
-  f <- fisher.test(m, workspace = 2e8)
-  # ch <- chisq.test(m)
-  # c(f$p.value, ch$p.value)
-  f$p.value
-})
-d[is.na(d)] <- 1
-d <- p.adjust(d, "BH")
+IBD <- prevalence(res$presence, res$absence)
+  
+IBD[is.na(IBD)] <- 1
+IBD <- p.adjust(IBD, "BH")
+
+summary(IBD < 0.05)
 
 pdf(paste0("Figures/", today, "_ratios_plots.pdf"))
 
-if (any(d < 0.05)) {
-  ta <- unique(otus_tax_i[d < 0.05, c("Genus", "Species")])
-  species <- unique(ta[, 2])
-  species[!is.na(species)]
-  
-  # Plot the 
-  genus <- ta[, 1]
-  genus <- t(t(table(genus)))
-  genus <- cbind(genus, rownames(genus))
-  colnames(genus) <- c("OTUs", "Genus")
-  genus <- as.data.frame(genus)
-  genus[, "OTUs"] <- as.numeric(genus[, "OTUs"])
-  genus <- genus[order(genus$OTUs, decreasing = TRUE), ]
-  genus$Genus <- as.character(genus$Genus)
-  genus$Genus <- factor(genus$Genus, levels = genus$Genus)
-  
-  ggplot(genus) + 
-    geom_bar(aes(Genus, OTUs), stat = "identity") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    ggtitle("Genus related to having IBD")
-}
+# Differences between responders and non responders at time 0 ####
+removeControls <- meta_i$IBD  != "CONTROL"
+removeTimes <- meta_i$Time  == "T0"
+keep <- removeControls & removeTimes
+res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], "HSCT_responder")
+
+# Fisher test
+T0 <- prevalence(res$presence, res$absence)
+T0[is.na(T0)] <- 1
+T0 <- p.adjust(T0, "BH")
+
+summary(T0 < 0.05)
+
+# Differences between responders and non responders at time T26 ####
+removeControls <- meta_i$IBD  != "CONTROL"
+removeTimes <- meta_i$Time  == "T26"
+keep <- removeControls & removeTimes
+res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], "HSCT_responder")
+
+# Fisher test
+T26 <- prevalence(res$presence, res$absence)
+T26[is.na(T26)] <- 1
+T26 <- p.adjust(T26, "BH")
+
+summary(T26 < 0.05)
+
+# Differences between responders and non responders at time T52 ####
+removeControls <- meta_i$IBD  != "CONTROL"
+removeTimes <- meta_i$Time  == "T52"
+keep <- removeControls & removeTimes
+res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], "HSCT_responder")
+
+# Fisher test
+T52 <- prevalence(res$presence, res$absence)
+T52[is.na(T52)] <- 1
+T52 <- p.adjust(T52, "BH")
+
+summary(T52 < 0.05)
+
 # summary:  Not significative, IBD patients are as  likely to have one 
 # microorganism as the controls.
 
 # Test the prevalence between non controls at times T0, T26, T52 ####
 removeControls <- meta_i$IBD  == "CD"
-removeTimes <- !meta_i$Time %in% c("T0", "T26", "T52")
+removeTimes <- meta_i$Time %in% c("T0", "T26", "T52")
 keep <- removeControls & removeTimes
-prevalence <- sweep(otus_table_i[, keep], 2, colSums(otus_table_i[, keep]), `/`) > 0.005
-subSets <- allComb(meta_i[keep, ], c("Time", "HSCT_responder"))
-totalSamples <- colSums(subSets)
-subSets <- subSets[, totalSamples >= 1]
-totalSamples <- totalSamples[totalSamples >= 1]
-presence <- prevalence %*% subSets
-totalSamplesm <- matrix(totalSamples, nrow = nrow(presence), 
-                        byrow = TRUE, ncol = ncol(presence)) 
-absence <- totalSamplesm - presence
+res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], 
+                      c("Time", "HSCT_responder"))
 
 # Fisher test
-d <- sapply(rownames(presence), function(i) {
-  m <- rbind(P = presence[i, ], 
-             A = absence[i, ])
-  f <- fisher.test(m, workspace = 2e8)
-  # ch <- chisq.test(m)
-  # c(f$p.value, ch$p.value)
-  f$p.value
-})
-d[is.na(d)] <- 1
-d <- p.adjust(d, "BH")
-if (any(d < 0.05)) {
+Time_Responder <- prevalence(res$presence, res$absence)
+
+Time_Responder[is.na(Time_Responder)] <- 1
+Time_Responder <- p.adjust(Time_Responder, "BH")
+
+if (any(Time_Responder < 0.05)) {
   message("Plots!!")
 }
+
 # The presence of microorganisms thorough time is not different in the 
 # overall patients
 
 # Test if the responders and the non responders behave differently along time
 # If the presence of microorganisms thorough time is different in responders 
 # than in non-responders ####
-removeControls <- meta_i$IBD  == "CD"
-keepResponders <- meta_i$HSCT_responder[removeControls] == "YES"
-keepNonResponders <- meta_i$HSCT_responder[removeControls] == "NO"
-wocontrols <- otus_table_i[, removeControls]
 
-subSets <- allComb(meta_i[removeControls, ][keepResponders, ], c("Time"))
-totalSamples <- colSums(subSets)
-subSets <- subSets[, totalSamples >= 1]
-totalSamples <- totalSamples[totalSamples >= 1]
+otus <- comp(otus_table_i, meta_i)
 
-prevalence <- sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005
+species_i <- aggTax(MR_i, lvl = "Species", out = "matrix")
+species <- comp(species_i, meta_i)
+unique(otus_tax_i[otus_tax_i[, "Species"] %in% names(which(species$Responders < 0.05)), 
+                  c("Genus", "Species")])
 
-presence <- prevalence[, keepResponders] %*% subSets
-totalSamplesm <- matrix(totalSamples, nrow = nrow(presence), 
-                        byrow = TRUE, ncol = ncol(presence)) 
-absence <- totalSamplesm - presence
+genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+genus <- comp(genus_i, meta_i)
+which(genus$Responders < 0.05)
 
-# Fisher test
-responders <- sapply(rownames(presence), function(i) {
-  m <- rbind(P = presence[i, ], 
-             A = absence[i, ])
-  f <- fisher.test(m, workspace = 2e8)
-  # ch <- chisq.test(m)
-  # c(f$p.value, ch$p.value)
-  f$p.value
-})
+family_i <- aggTax(MR_i, lvl = "Family", out = "matrix")
+family <- comp(family_i, meta_i)
+which(family$Responders < 0.05)
 
-subSets <- allComb(meta_i[removeControls, ][keepNonResponders, ], c("Time"))
-totalSamples <- colSums(subSets)
-subSets <- subSets[, totalSamples >= 1]
-totalSamples <- totalSamples[totalSamples >= 1]
+order_i <- aggTax(MR_i, lvl = "Order", out = "matrix")
+order <- comp(order_i, meta_i)
 
-presence <- prevalence[, keepNonResponders] %*% subSets
-totalSamplesm <- matrix(totalSamples, nrow = nrow(presence), 
-                        byrow = TRUE, ncol = ncol(presence)) 
-absence <- totalSamplesm - presence
+class_i <- aggTax(MR_i, lvl = "Class", out = "matrix")
+class <- comp(class_i, meta_i)
 
-# Fisher test
-nonResponders <- sapply(rownames(presence), function(i) {
-  m <- rbind(P = presence[i, ], 
-             A = absence[i, ])
-  f <- fisher.test(m, workspace = 2e8)
-  # ch <- chisq.test(m)
-  # c(f$p.value, ch$p.value)
-  f$p.value
-})
-
-
-hist(log10(nonResponders/responders))
+phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
+phylum <- comp(phylum_i, meta_i)
 
 # Bootstrapp while controlling by Time ####
-ratio <- function(columns, data, indices, meta) {
-  a <- t(data[indices, ]) # allows boot to select sample
-  bindices <- !seq_len(nrow(data)) %in% indices
-  b <- t(data[bindices, ])
-  Ameta <- meta[indices, ]
-  Bmeta <- meta[bindices, ]
-  
-  AsubSets <- allComb(Ameta, columns)
-  if (!is.matrix(AsubSets)) {
-    return(NA)
-  }
-  AtotalSamples <- colSums(AsubSets)
-  AsubSets <- AsubSets[, AtotalSamples >= 1]
-  AtotalSamples <- AtotalSamples[AtotalSamples >= 1]
-  
-  Apresence <- a %*% AsubSets
-  AtotalSamplesm <- matrix(AtotalSamples, nrow = nrow(Apresence), 
-                           byrow = TRUE, ncol = ncol(Apresence)) 
-  Aabsence <- AtotalSamplesm - Apresence
-  
-  BsubSets <- allComb(Bmeta, columns)
-  if (!is.matrix(BsubSets)) {
-    return(NA)
-  }
-  BtotalSamples <- colSums(BsubSets)
-  BsubSets <- BsubSets[, BtotalSamples >= 1]
-  BtotalSamples <- BtotalSamples[BtotalSamples >= 1]
-  
-  Bpresence <- b %*% BsubSets
-  BtotalSamplesm <- matrix(BtotalSamples, nrow = nrow(Bpresence), 
-                           byrow = TRUE, ncol = ncol(Bpresence)) 
-  Babsence <- BtotalSamplesm - Bpresence
-  
-  
-  
-  # Fisher test and ratio calculation
-  sapply(rownames(presence), function(i) {
-    Am <- rbind(P = Apresence[i, ], 
-                A = Aabsence[i, ])
-    Af <- fisher.test(Am, workspace = 2e8)
-    
-    Bm <- rbind(P = Bpresence[i, ], 
-                A = Babsence[i, ])
-    Bf <- fisher.test(Bm, workspace = 2e8)
-    
-    # ch <- chisq.test(m)
-    # c(f$p.value, ch$p.value)
-    Af$p.value/Bf$p.value
-  })
-}
 
 # # bootstrapping with 1000 replications
 # results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005),
