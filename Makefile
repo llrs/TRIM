@@ -6,7 +6,8 @@ pre_files=stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt \
 					stools_16S/OTUs-Table-refined-stools.tab \
 					intestinal_16S/OTUs-Table-new-biopsies.csv \
 					intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt \
-					intestinal_RNAseq/111217_metadata.csv
+					intestinal_RNAseq/111217_metadata.csv \
+					intestinal_RNAseq/table.counts.results
 
 out_files=meta_coherent.csv \
 					stools_16S/otus_coherent.csv \
@@ -16,7 +17,8 @@ out_files=meta_coherent.csv \
 					equivalent_otus.csv \
 					equivalent_genus.csv
 
-.PHONY: all
+.PHONY: all STATegRa eqSpecies eqGenus ileum_integration colon_integration PCA \
+stools_prevalence intestinal_prevalence prevalence
 
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
@@ -93,14 +95,18 @@ intestinal_16S_RNAseq_integration: intestinal_16S_RNAseq_integration/intestinal_
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the integration between the biopsies taking into account the metadata
-intestinal_16S_RNAseq_metadb/*.RData intestinal_16S_RNAseq_metadb: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R $(pre_files) helper_functions.R
+intestinal_16S_RNAseq_metadb/*.RData intestinal_16S_RNAseq_metadb: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R intestinal_16S_RNAseq_metadb/IBD_patients.R $(pre_files) helper_functions.R
 	@echo "Relating the RNAseq with the microbiota"
-	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	cd $(<D);\
+	R CMD BATCH $(R_OPTS) $(<F);\
+	R CMD BATCH $(R_OPTS) IBD_patients.R
 
 # Test which biological relation exists between the selected genes and microbiota
-intestinal_16S_RNAseq_metadb/*.csv biological_relations: helper_functions.R intestinal_16S_RNAseq_metadb/biological_relations.R intestinal_16S_RNAseq_metadb
+intestinal_16S_RNAseq_metadb/*.csv biological_relations: intestinal_16S_RNAseq_metadb/biological_relations.R helper_functions.R intestinal_16S_RNAseq_metadb
 	@echo "Finding the meaning of these relationships"
-	cd $(<D); R CMD BATCH $(R_OPTS) biological_relations.R
+	cd $(<D);\
+	R CMD BATCH $(R_OPTS) biological_relations.R;\
+	R CMD BATCH $(R_OPTS) biological_relations_IBD.R
 
 # Handles the calculation of the prevalence in intestinal 
 intestinal_prevalence: intestinal_16S_conceptual/prevalence.R  helper_functions.R $(pre_files)
