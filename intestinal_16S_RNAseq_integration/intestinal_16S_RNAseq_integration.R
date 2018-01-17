@@ -2,6 +2,7 @@ cd <- setwd("..")
 
 # Load the helper file
 source("helper_functions.R")
+source("helper_RGCCA.R")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -54,7 +55,8 @@ meta_r$`Sample Name_Code` <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", rownames
 
 colnames(otus_table_i) <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", 
                                colnames(otus_table_i))
-# Add people IDs
+
+# Add people IDs some of them are the same person but much later
 meta_r$ID <- meta_r$Patient_ID
 meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
 meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
@@ -64,6 +66,9 @@ meta_r$ID <- as.factor(meta_r$ID)
 # There is a mislabeling on those tubes, we don't know which is which
 meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
 meta_r$CD_Aftected_area[meta_r$Sample_Code == "22_T52_T_DM_III"] <- NA
+
+# We don't know yet if the newest samples are responders or not
+meta_i$HSCT_responder[(meta_i$ID %in% c("38", "40", "41"))] <- NA
 
 # Pre transplan and baseline
 meta_r$Transplant <- "Post" # 
@@ -343,83 +348,12 @@ save(sgcca.centroid, file = "sgcca.RData")
 
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
-nb_boot <- 1000 # number of bootstrap samples
-J <- length(A)
-STAB <- list()
-B <- lapply(A, cbind)
-
-for (j in 1:J) {
-  STAB[[j]]<- matrix(NA, nb_boot, NCOL(A[[j]]))
-  colnames(STAB[[j]])<- colnames(B[[j]])
-}
-names(STAB) <- names(B)
-
-# Bootstrap the data
-for (i in 1:nb_boot){
-  ind  <- sample(NROW(B[[1]]), replace = TRUE)
-  Bscr <- lapply(B, function(x) x[ind, ])
-  try(res <- sgcca(Bscr, C, c1 = shrinkage, 
-               ncomp = c(rep(1, length(B))),
-               scheme = "centroid", 
-               scale = TRUE), silent = TRUE)
-  
-  for (j in 1:J) {
-    STAB[[j]][i, ] <- res$a[[j]]
-  }
-}
+# Bootstrap of sgcca 
+STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
 save(STAB, file = "bootstrap.RData")
 
-# Calculate how many are selected
-count <- lapply(STAB, function(x) {
-  apply(x, 2, function(y){
-    sum(y != 0, na.rm = TRUE)/(nb_boot - sum(is.na(STAB[[1]][, 1])))
-  })
-})
-
-# Calculate the sign when selected
-sign <- lapply(STAB, function(x){colSums(sign(x))})
-
-# Calculate the mean and the standard error for each variable
-colMeAbs <- sapply(STAB, function(x){colMeans(abs(x))})
-seAbs <- sapply(STAB, function(x){
-  apply(abs(x), 2, sd, na.rm = TRUE)/sqrt(nrow(x))
-})
-names(seAbs) <- names(STAB)
-names(colMeAbs) <- names(STAB)
-
-# Calculate the mean and the standard error for each variable
-colMe <- sapply(STAB, function(x){colMeans(x)})
-se <- sapply(STAB, function(x){
-  apply(x, 2, sd, na.rm = TRUE)/sqrt(nrow(x))
-})
-names(se) <- names(STAB)
-names(colMe) <- names(STAB)
-
-# Merge the information in a table for each dataset
-var_info <- list(count, sign, colMeAbs, seAbs, colMe, se)
-consensus <- list()
-for (i in seq_along(STAB)){
-  consensus[[i]] <- simplify2array(list("freq" = count[[i]], 
-                                        "sign" = sign[[i]], 
-                                        "colMeAbs" = colMeAbs[[i]], 
-                                        "seAbs" = seAbs[[i]], 
-                                        "colMe" = colMe[[i]], 
-                                        "se" = se[[i]]))
-  consensus[[i]] <- as.data.frame(consensus[[i]])
-}
-names(consensus) <- names(STAB)
-
-# Plot the summary of the bootstrapping
-for (i in seq_len(2)){
-  p <- ggplot(consensus[[i]]) +
-    geom_point(aes(sign, freq, col = colMeAbs, size = -log10(seAbs))) +
-    ggtitle(paste("Selecting variable for", names(consensus)[i]))
-  print(p)
-  p <- ggplot(consensus[[i]]) +
-    geom_point(aes(sign, freq, col = colMe, size = -log10(se))) +
-    ggtitle(paste("Selecting variable for", names(consensus)[i]))
-  print(p)
-}
+# Evaluate the boostrap effect and plot 
+boot_evaluate(STAB)
 
 dev.off()

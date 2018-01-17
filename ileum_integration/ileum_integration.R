@@ -2,6 +2,8 @@ cd <- setwd("..")
 
 # Load the helper file
 source("helper_functions.R")
+source("helper_RGCCA.R")
+
 # Read files
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
 otus_s <- read.csv(file = "stools_16S/otus_coherent.csv")
@@ -224,53 +226,13 @@ ggplot(comp2) +
 
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
-nb_boot <- max(ncol(otus_i), ncol(otus_s)) # number of bootstrap samples
-J <- length(A)
-STAB <- list()
-B <- lapply(A, cbind)
+# Bootstrap of sgcca 
+STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-for (j in 1:J) {
-  STAB[[j]]<- matrix(0, nb_boot, NCOL(A[[j]]))
-  colnames(STAB[[j]])<- colnames(B[[j]])
-}
-names(STAB) <- names(B)
+save(STAB, file = "bootstrap.RData")
 
-# Bootstrap the data
-for (i in 1:nb_boot){
-  ind  <- sample(NROW(B[[1]]), replace = TRUE)
-  Bscr <- lapply(B, function(x) x[ind, ])
-  res <- sgcca(Bscr, C, c1 = shrinkage, 
-               ncomp = c(rep(1, length(B))),
-               scheme = "centroid", 
-               scale = TRUE)
-  
-  for (j in 1:J) {
-    STAB[[j]][i, ] <- res$a[[j]]
-  }
-}
-
-# Calculate the mean and the standard error for each variable
-colMe <- sapply(STAB, colMeans)
-se <- sapply(STAB, function(x){
-  apply(x, 2, sd)/sqrt(nrow(x))
-})
-names(se) <- names(STAB)
-names(colMe) <- names(STAB)
-
-# Select the block we want to plot the variables for
-for (i in seq_along(se)) {
-  a <- cbind("SE" = se[[i]], "mean" = colMe[[i]])
-  a <- as.data.frame(a)
-  a <- a[order(a$mean, a$SE, decreasing = c(TRUE, FALSE)), ]
-  
-  p <- ggplot(a) + 
-    geom_pointrange(aes(x = 1:nrow(a), y = mean, 
-                        ymin = mean - SE, ymax = mean + SE)) + 
-    ggtitle(names(se)[i]) + 
-    xlab("Features") +
-    ylab("Weight")
-  print(p)
-}
+# Evaluate the boostrap effect and plot 
+boot_evaluate(STAB)
 
 ## Use the previously calculated table of equivalent OTUs
 u_i <- unique(eqOTUS$intestinal)

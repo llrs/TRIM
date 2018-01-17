@@ -3,6 +3,7 @@ library("fgsea")
 
 # Load the helper file
 source("helper_functions.R")
+source("helper_RGCCA.R")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -52,6 +53,9 @@ meta_r$Transplant <- "Post" #
 meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
 meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
 meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
+
+# We don't know yet if the newest samples are responders or not
+meta_i$HSCT_responder[(meta_i$ID %in% c("38", "40", "41"))] <- NA
 
 meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
 meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]

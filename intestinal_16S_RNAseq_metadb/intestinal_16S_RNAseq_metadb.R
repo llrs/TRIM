@@ -9,7 +9,6 @@ library("fgsea")
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
 
-
 # Read the intestinal otus table
 otus_table_i <- read.csv(file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
                          stringsAsFactors = FALSE, row.names = 1, 
@@ -19,7 +18,6 @@ otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 
 # Extract the taxonomy and format it properly
 otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
-
 
 # Load the input data
 expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
@@ -46,15 +44,21 @@ int <- intersect(meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) &
 meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
 meta_r$CD_Aftected_area[meta_r$Sample_Code == "22_T52_T_DM_III"] <- NA
 
+# We don't know yet if the newest samples are responders or not
+meta_i$HSCT_responder[(meta_i$ID %in% c("38", "40", "41"))] <- NA
+
 # Pre transplan and baseline
 meta_r$Transplant <- "Post" # 
 meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
 meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
 meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
 
+
 meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
 meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
 meta_r <- meta_r[meta_r$`Sample Name_RNA` %in% colnames(expr), ]
+
+
 
 # Match the labels and order to append the id
 meta_i <- meta_i[match(meta_r$Sample_Code_uDNA, meta_i$Sample_Code), ]
