@@ -1,0 +1,87 @@
+cd <- setwd("..")
+
+# Load the helper file
+source("helper_functions.R")
+
+intestinal <- "intestinal_16S"
+
+# Read the intestinal otus table
+otus_table_i <- read.csv(file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
+                         stringsAsFactors = FALSE, row.names = 1, 
+                         check.names = FALSE)
+tax_i <- otus_table_i[, ncol(otus_table_i)]
+otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
+file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
+meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
+                     stringsAsFactors = FALSE)
+
+# Extract the taxonomy and format it properly
+otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
+
+# Load the input data
+rna <- "intestinal_RNAseq"
+expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
+file_meta_r <- file.path(rna, "111217_metadata.csv")
+meta_r <- read.table(file_meta_r, check.names = FALSE,
+                     stringsAsFactors = FALSE, sep = ";",
+                     na.strings = c(NA, ""), header = TRUE, dec = c(",", "."))
+
+setwd(cd)
+
+# Summarize to genus
+library("metagenomeSeq")
+
+# Create the objects to summarize data
+MR_i <- newMRexperiment(otus_table_i, 
+                        # phenoData = AnnotatedDataFrame(meta_r),
+                        featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i)))
+genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+
+
+
+# Find the samples that we have microbiota and expression
+int <- intersect(meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) & 
+                                           !is.na(meta_r$`Sample Name_RNA`)],
+                 meta_i$Sample_Code)
+# table(sapply(strsplit(int, "_"), "[", 1))
+
+# There is a mislabeling on those tubes, we don't know which is which
+meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
+meta_r$CD_Aftected_area[meta_r$Sample_Code == "22_T52_T_DM_III"] <- NA
+
+# Pre transplan and baseline
+meta_r$Transplant <- "Post" # 
+meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
+meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
+meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
+
+meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
+meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
+meta_r <- meta_r[meta_r$`Sample Name_RNA` %in% colnames(expr), ]
+
+# Match the labels and order to append the id
+meta_i <- meta_i[match(meta_r$Sample_Code_uDNA, meta_i$Sample_Code), ]
+meta_r$`Sample Name_Code` <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", rownames(meta_i))
+
+colnames(genus_i) <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", 
+                               colnames(genus_i))
+# Add people IDs
+meta_r$ID <- meta_r$Patient_ID
+meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
+meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
+meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
+meta_r$ID <- as.factor(meta_r$ID)
+
+# Subset expression and outs
+expr <- expr[, meta_r$`Sample Name_RNA`]
+genus_i <- genus_i[, meta_r$`Sample Name_Code`]
+
+# Subset if all the rows are 0 and if sd is 0
+genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ] 
+expr <- expr[apply(expr, 1, sd) != 0, ] 
+
+
+# Correlate
+p <- cor(t(genus_i), t(expr))
+
+saveRDS(p, file = "correlations.RDS")
