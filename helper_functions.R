@@ -172,7 +172,7 @@ convert.z.score <- function(z, one.sided = NULL) {
 compare.correlations <- function(r1, r2, n1, n2) {
   r.norm <- function(r){
     log(abs((1+r)/(1-r)))/2
-    }
+  }
   r1n <- r.norm(r1)
   r2n <- r.norm(r2)
   (r1n-r2n)/sqrt(1/(n1-3)+1/(n2-3))
@@ -183,7 +183,7 @@ compare.correlations <- function(r1, r2, n1, n2) {
 #' Given the names of the columns of the data calculates the logical vectors of 
 #' each subset of the data
 #' @param columns names of the columns to be used
-#' @param data.frame with factors
+#' @param data A \code{data.frame} with factors
 #' @return a matrix with the logical values of each combination of the levels of 
 #' the columns given for the data in each column. 
 #' @note If some rows are all FALSE it means some values are NA.
@@ -215,10 +215,14 @@ allComb <- function(data, columns){
   } else {
     data <- sapply(data, as.factor)
     lvl <- sapply(as.data.frame(data), levels)
+    if (is.matrix(lvl)) {
+      lvl <- as.data.frame(lvl)
+    } 
     
     comb <- expand.grid(sapply(lvl, as.factor))
+    
     comb2 <- apply(comb, 1, paste0, collapse = "_|_")
-    out <- apply(comb, 1, function(x, data) {
+    out <- apply(comb, 1, function(x) {
       # Repeat the terms as much as the data
       combT <- sapply(x, function(y){rep(y, nrow(data))})
       # Compare the data with the levels
@@ -227,7 +231,7 @@ allComb <- function(data, columns){
       o <- check == 2
       o[is.na(o)] <- FALSE
       o
-    }, data = data)
+    })
     colnames(out) <- comb2
   }
   out
