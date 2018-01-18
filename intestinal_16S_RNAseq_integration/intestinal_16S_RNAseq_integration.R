@@ -42,8 +42,9 @@ int <- intersect(meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) &
                  meta_i$Sample_Code)
 # table(sapply(strsplit(int, "_"), "[", 1))
 
-# There is a mislabeling on those tubes, we don't know which is which
-meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
+# Correct metadata
+meta_i <- meta_i_norm(meta_i)
+meta_r <- meta_r_norm(meta_r)
 
 meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
 meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
@@ -56,38 +57,12 @@ meta_r$`Sample Name_Code` <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", rownames
 colnames(otus_table_i) <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", 
                                colnames(otus_table_i))
 
-# Add people IDs some of them are the same person but much later
-meta_r$ID <- meta_r$Patient_ID
-meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_r$ID <- as.factor(meta_r$ID)
-
-# There is a mislabeling on those tubes, we don't know which is which
-meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
-meta_r$CD_Aftected_area[meta_r$Sample_Code == "22_T52_T_DM_III"] <- NA
-
-# We don't know yet if the newest samples are responders or not
-meta_i$HSCT_responder[(meta_i$ID %in% c("38", "40", "41"))] <- NA
-
-# Pre transplan and baseline
-meta_r$Transplant <- "Post" # 
-meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
-meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
-meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
-
 # Subset expression and outs and set in the same order between them
 expr <- expr[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
 
-# Remove low expressed genes
-expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
-expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
-
-# Filter genes by variance
-SD <- apply(expr, 1, sd)
-CV <- sqrt(exp(SD^2) - 1)
-expr <- expr[CV > quantile(CV, probs = 0.1), ]
+# Filter expression
+expr <- norm_RNAseq(expr)
 
 #' Remove otus not present in that set of samples
 otus_table_i <- otus_table_i[rowSums(otus_table_i) > 0, ]

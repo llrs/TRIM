@@ -44,18 +44,9 @@ int <- intersect(meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) &
                  meta_i$Sample_Code)
 # table(sapply(strsplit(int, "_"), "[", 1))
 
-# There is a mislabeling on those tubes, we don't know which is which
-meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
-meta_r$CD_Aftected_area[meta_r$Sample_Code == "22_T52_T_DM_III"] <- NA
-
-# Pre transplan and baseline
-meta_r$Transplant <- "Post" # 
-meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
-meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
-meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
-
-# We don't know yet if the newest samples are responders or not
-meta_i$HSCT_responder[(meta_i$ID %in% c("38", "40", "41"))] <- NA
+# Correct the metadata
+meta_i <- meta_i_norm(meta_i)
+meta_r <- meta_r_norm(meta_r)
 
 meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
 meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
@@ -67,12 +58,6 @@ meta_r$`Sample Name_Code` <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", rownames
 
 colnames(otus_table_i) <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", 
                                colnames(otus_table_i))
-# Add people IDs
-meta_r$ID <- meta_r$Patient_ID
-meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_r$ID <- as.factor(meta_r$ID)
 
 # Subset expression and outs
 expr <- expr[, meta_r$`Sample Name_RNA`]
@@ -84,7 +69,7 @@ otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 # Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them 
 metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
-nam <- c("CD_Aftected_area", "Involved_Healthy", 
+nam <- c("Involved_Healthy", 
          "Active_area", "AGE_SAMPLE", "Transplant", "ID", 
          "Exact_location", "Endoscopic_Activity", "Treatment", "SEX")
 keepCol <- keepCol[nam]
@@ -105,15 +90,8 @@ metadb <- metadb[, names(keepCol)]
 metadb <- apply(metadb, 1:2, as.numeric)
 metadb[is.na(metadb)] <- 0
 
-# Remove low expressed genes
-expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
-expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
-
-# Filter by variance
-SD <- apply(expr, 1, sd)
-CV <- sqrt(exp(SD^2) - 1)
-expr <- expr[CV > quantile(CV, probs = 0.1), ]
-
+# Filter expression
+expr <- norm_RNAseq(expr)
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)

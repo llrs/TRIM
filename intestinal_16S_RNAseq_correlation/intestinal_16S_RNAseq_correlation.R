@@ -37,23 +37,14 @@ MR_i <- newMRexperiment(otus_table_i,
                         featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i)))
 genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
 
-
+# Correct metadata
+meta_i <- meta_i_norm(meta_i)
+meta_r <- meta_r_norm(meta_r)
 
 # Find the samples that we have microbiota and expression
 int <- intersect(meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) & 
                                            !is.na(meta_r$`Sample Name_RNA`)],
                  meta_i$Sample_Code)
-# table(sapply(strsplit(int, "_"), "[", 1))
-
-# There is a mislabeling on those tubes, we don't know which is which
-meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
-meta_r$CD_Aftected_area[meta_r$Sample_Code == "22_T52_T_DM_III"] <- NA
-
-# Pre transplan and baseline
-meta_r$Transplant <- "Post" # 
-meta_r$Transplant[meta_r$Patient_ID %in% c("15", "33", "29")] <- "Pre"
-meta_r$Transplant[meta_r$Time %in% c("T0", "S0")] <- "Baseline"
-meta_r$Transplant[meta_r$Time %in% c("C")] <- NA
 
 meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
 meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
@@ -64,13 +55,7 @@ meta_i <- meta_i[match(meta_r$Sample_Code_uDNA, meta_i$Sample_Code), ]
 meta_r$`Sample Name_Code` <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", rownames(meta_i))
 
 colnames(genus_i) <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", 
-                               colnames(genus_i))
-# Add people IDs
-meta_r$ID <- meta_r$Patient_ID
-meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_r$ID <- as.factor(meta_r$ID)
+                          colnames(genus_i))
 
 # Subset expression and outs
 expr <- expr[, meta_r$`Sample Name_RNA`]

@@ -306,3 +306,67 @@ two.sided <- function(y, z) {
   
   (1 + greater)/(1 + sum(!is.na(z)))
 }
+
+
+#' Normalize the metadata of the RNA
+#' 
+#' Performs some modifications to the data.frame
+#' @param meta Meta
+#' @return A data.frame with some modifications
+meta_r_norm <- function(meta){
+  
+  # Duplicated label: we don't know which one is from where!!
+  meta$CD_Aftected_area[meta$Sample_Code == "22_T52_T_DM_III"] <- NA
+  meta$Exact_location[meta$Sample_Code == "22_T52_T_DM_III"] <- NA
+  
+  # Add people IDs (some people has several Patient ID) 
+  # This affects transplant too
+  meta$ID <- meta$Patient_ID
+  meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15/23"
+  meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33/36"
+  meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29/35"
+  meta$ID <- as.factor(meta$ID)
+  
+  # We don't know yet if the newest samples are responders or not (yet)
+  meta$HSCT_responder[(meta$ID %in% c("38", "40", "41"))] <- NA
+  
+  # Pre transplantament post and baseline three phases of the treatment
+  meta$Transplant <- "Post"
+  meta$Transplant[meta$Patient_ID %in% c("15", "33", "29")] <- "Pre"
+  meta$Transplant[meta$Time %in% c("T0", "S0")] <- "Baseline"
+  meta$Transplant[meta$Time %in% c("C")] <- NA
+  
+  meta$Active_area[meta$Involved_Healthy == "HEALTHY"] <- "HEALTHY"
+  
+  return(meta)
+}
+
+#' Normalize 16S metadata
+#' 
+#' @param meta The metadata
+#' @return The dataframe with the metadata corrected
+meta_i_norm <- function(meta) {
+  
+  # There is a mislabeling on those tubes, we don't know which is which
+  meta$CD_Aftected_area[meta$Sample_Code == "22_T52_T_DM_III"] <- NA
+  
+  # We don't know yet if the newest samples are responders or not
+  meta$HSCT_responder[(meta$ID %in% c("38", "40", "41"))] <- NA
+  
+  return(meta)
+}
+
+#' Filter expressions
+#' 
+#' @param expr Input RNAseq data (not microbiota)
+#' @return A matrix without low expressed genes and with low variance
+norm_RNAseq <- function(expr){
+  # Remove low expressed genes
+  expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
+  expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
+  
+  # Filter genes by variance
+  SD <- apply(expr, 1, sd)
+  CV <- sqrt(exp(SD^2) - 1)
+  expr[CV > quantile(CV, probs = 0.1), ]
+}

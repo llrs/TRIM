@@ -47,8 +47,9 @@ meta_s <- meta_s[order(meta_s$Patient_ID, meta_s$Time), ]
 meta_i <- meta_i[order(meta_i$Patient_ID, meta_i$Time), ]
 meta_r <- meta_r[order(meta_r$Patient_ID, meta_r$Time), ]
 
-# There is a mislabeling on those tubes, we don't know which is which
-meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
+# Correct samples metadata
+meta_r <- meta_r_norm(meta_r)
+meta_i <- meta_i_norm(meta_i)
 
 # Find common patients
 comPatient <- intersect(meta_i$Patient_ID, meta_s$Patient_ID)

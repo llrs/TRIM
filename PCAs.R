@@ -165,18 +165,8 @@ ggplot(pcai) +
 
 
 # PCA intestinal RNAseq with Barcelona
-
-# Remove low expressed genes
-expr <- expr[rowSums(expr != 0) >= (0.25* ncol(expr)), ]
-expr <- expr[rowMeans(expr) > quantile(rowMeans(expr), prob = 0.1), ]
-
-# Filter by variance
-SD <- apply(expr, 1, sd)
-CV <- sqrt(exp(SD^2) - 1)
-expr <- expr[CV > quantile(CV, probs = 0.1), ]
-
-# expr <- expr[rowSums(expr) != 0, ]
-
+# Filter expression
+expr <- norm_RNAseq(expr)
 
 pca_ir <- prcomp(t(expr), scale. = TRUE)
 pca_ir_x <- as.data.frame(pca_ir$x)
