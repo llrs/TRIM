@@ -44,12 +44,12 @@ stool_intestinal_16S_integration/STATegRa.Rout: stool_intestinal_16S_integration
 STATegRa: stool_intestinal_16S_integration/STATegRa.Rout
 
 # Integrates via correlations the OTUs of the same species
-eqSpecies: stool_intestinal_correlation/stool_intestinal_16S_otus.R equivalent_otus.csv stool_intestinal_metadb/important_common_microrg.csv helper_functions.R
+eqSpecies: stool_intestinal_16S_correlation/stool_intestinal_16S_otus.R equivalent_otus.csv stool_intestinal_16S_metadb/important_common_microrg.csv helper_functions.R
 	@echo "Analyse the microorganisms in common between stools and biopsies"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 	
 # Integrates via correlations the OTUs of the same genus
-eqGenus: stool_intestinal_correlation/stool_intestinal_16S_genus.R equivalent_genus.csv stool_intestinal_metadb/important_common_microrg.csv helper_functions.R
+eqGenus: stool_intestinal_16S_correlation/stool_intestinal_16S_genus.R equivalent_genus.csv stool_intestinal_16S_metadb/important_common_microrg.csv helper_functions.R
 	@echo "Analyse the microorganisms in common between stools and biopsies"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
