@@ -167,3 +167,20 @@ boot_evaluate <- function(STAB){
   }
 }
 
+variables_weight <- function(comp){
+  Loadings <- unlist(comp)
+  comp2 <- as.data.frame(Loadings)
+  comp2$Origin <- as.factor(gsub("([A-Z]*)\\..*", "\\1", rownames(comp2)))
+  rownames(comp2) <- seq_len(nrow(comp2))
+  p <- ggplot(comp2) +
+    stat_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
+    ggtitle("Importance of each block variable", 
+            subtitle = "Second component") +
+    ylab("Scaled density") +
+    xlab("weight") +
+    facet_grid(~Origin) + 
+    guides(fill = FALSE) 
+  print(p)
+  
+}
+

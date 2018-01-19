@@ -191,38 +191,11 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-comp1 <- sapply(comp1, '[', seq(max(sapply(comp1, length))))
-rownames(comp1) <- seq_len(nrow(comp1))
-
-# Plot the densities of the loadings
-comp1 <- melt(comp1)[2:3]
-colnames(comp1) <- c("Origin", "Loadings")
-ggplot(comp1) +
-  geom_density(aes(x = Loadings, 
-                   y = ..scaled..,
-                   fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of the otus of each data set") +
-  ylab("Scaled density") +
-  xlab("OTUs weight") +
-  facet_grid(~Origin) + 
-  guides(fill = FALSE) +
-  theme(plot.title = element_text(hjust = 0.5))
+cvariables_weight(comp1)
 
 # Second component
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
-comp2 <- sapply(comp2, '[', seq(max(sapply(comp2, length))))
-rownames(comp2) <- seq_len(nrow(comp2))
-
-comp2 <- melt(comp2)[2:3]
-colnames(comp2) <- c("Origin", "Loadings")
-ggplot(comp2) +
-  geom_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of each block variable", 
-          subtitle = "Second component") +
-  ylab("Scaled density") +
-  xlab("OTUs weight") +
-  facet_grid(~Origin) + 
-  guides(fill = FALSE) 
+variables_weight(comp2)
 
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship

@@ -82,13 +82,14 @@ otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 # Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them 
 metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
-nam <- c("Involved_Healthy", "Active_area", 
+nam <- c("Active_area", 
          "IBD", 
          "AGE_SAMPLE", 
          "Transplant", 
          "ID", 
          "Exact_location", 
-         "Endoscopic_Activity", 
+         "Surgery",
+         "HSCT_responder", 
          "Treatment", 
          "SEX")
 keepCol <- keepCol[nam]
@@ -122,7 +123,7 @@ C <- subSymm(C, "RNAseq", "metadata", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.122747, 0, 1) # We guess a 0.5 for the RNAseq expression
+shrinkage <- c(0.122747, 0, 1) # We guess a 0.1 for the RNAseq expression
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
 # # Don't let the shrinkage go below the thershold allowed
@@ -184,6 +185,9 @@ fgsea(groups, microbiota1, nperm = 1000)
 fgsea(groups, RNAseq2, nperm = 1000)
 fgsea(groups, microbiota2, nperm = 1000)
 
+
+pdf(paste0("Figures/", today, "_RGCCA_plots.pdf"))
+
 km <- kmeans(samples[, c("RNAseq", "microbiota")], 2, nstart = 2)
 plot(samples[, c("RNAseq", "microbiota")], col = km$cluster)
 
@@ -194,8 +198,6 @@ names(colors) <- unique(meta_r$ID)
 samples <- cbind(samples, meta_r)
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 samples$Sample_Code <- as.character(samples$Sample_Code)
-
-pdf(paste0("Figures/", today, "_RGCCA_plots.pdf"))
 
 # Labels of the samples
 label <- strsplit(as.character(samples$`Sample Name_RNA`), split = "-")
@@ -360,37 +362,11 @@ if (length(micro_i) >= 2) {
 }
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-Loadings <- unlist(comp1)
-comp1 <- as.data.frame(Loadings)
-comp1$Origin <- factor(rep(names(sgcca.centroid$a), 
-                           lengths(sgcca.centroid$a)/2), 
-                       levels = names(sgcca.centroid$a))
-rownames(comp1) <- seq_len(nrow(comp1))
-ggplot(comp1) +
-  stat_density(aes(x = Loadings, 
-                   y = ..scaled..,
-                   fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of the otus of each data set") +
-  ylab("Scaled density") +
-  xlab("weight") +
-  facet_grid(~Origin) + 
-  guides(fill = FALSE) +
-  theme(plot.title = element_text(hjust = 0.5))
+variables_weight(comp1)
 
 # Second component
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
-Loadings <- unlist(comp2)
-comp2 <- as.data.frame(Loadings)
-comp2$Origin <- comp1$Origin
-rownames(comp2) <- seq_len(nrow(comp2))
-ggplot(comp2) +
-  stat_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of each block variable", 
-          subtitle = "Second component") +
-  ylab("Scaled density") +
-  xlab("weight") +
-  facet_grid(~Origin) + 
-  guides(fill = FALSE) 
+variables_weight(comp2)
 
 # Bootstrap of sgcca 
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
