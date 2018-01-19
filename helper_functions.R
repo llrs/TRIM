@@ -328,7 +328,8 @@ meta_r_norm <- function(meta){
   meta$ID <- as.factor(meta$ID)
   
   # We don't know yet if the newest samples are responders or not (yet)
-  meta$HSCT_responder[(meta$ID %in% c("38", "40", "41"))] <- NA
+  meta$HSCT_responder[meta$ID %in% c("38", "40", "41")] <- NA
+  meta$HSCT_responder[meta$IBD == "CONTROL"] <- NA
   
   # Pre transplantament post and baseline three phases of the treatment
   meta$Transplant <- "Post"
@@ -338,7 +339,14 @@ meta_r_norm <- function(meta){
   
   meta$Active_area[meta$Involved_Healthy == "HEALTHY"] <- "HEALTHY"
   
-  return(meta)
+  meta$Treatment[grep("W TMT| W Surgery", meta$Endoscopic_Activity)] <- "YES"
+  meta$Treatment[meta$Treatment == "C"] <- NA
+  
+  # Surgery post transplant
+  meta$Surgery[!is.na(meta$Treatment)] <- "NO"
+  meta$Surgery[grep("Surgery", meta$Endoscopic_Activity)] <- "YES"
+  
+    return(meta)
 }
 
 #' Normalize 16S metadata
