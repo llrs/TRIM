@@ -35,18 +35,18 @@ meta_r <- read.table(file_meta_r, check.names = FALSE,
 setwd(cd)
 
 
+# Correct the metadata
+meta_i <- meta_i_norm(meta_i)
+meta_r <- meta_r_norm(meta_r)
+
 # Filter only the IBD patients
-meta_r <- meta_r[meta_r$HSCT_responder != "C", ]
+meta_r <- meta_r[meta_r$IBD == "CD", ]
 
 # Find the samples that we have microbiota and expression
 int <- intersect(meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) & 
                                            !is.na(meta_r$`Sample Name_RNA`)],
                  meta_i$Sample_Code)
 # table(sapply(strsplit(int, "_"), "[", 1))
-
-# Correct the metadata
-meta_i <- meta_i_norm(meta_i)
-meta_r <- meta_r_norm(meta_r)
 
 meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
 meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
@@ -69,9 +69,16 @@ otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 # Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them 
 metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
-nam <- c("Involved_Healthy", 
-         "Active_area", "AGE_SAMPLE", "Transplant", "ID", 
-         "Exact_location", "Endoscopic_Activity", "Treatment", "SEX")
+nam <- c("Active_area", 
+         "IBD", 
+         "AGE_SAMPLE", 
+         "Transplant", 
+         "ID", 
+         "Exact_location", 
+         "Surgery",
+         "HSCT_responder", 
+         "Treatment", 
+         "SEX")
 keepCol <- keepCol[nam]
 keepCol[nam] <- TRUE
 for (col in names(keepCol)){
@@ -342,37 +349,11 @@ if (length(micro_i) >= 2) {
 }
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x){x[, 1]})
-Loadings <- unlist(comp1)
-comp1 <- as.data.frame(Loadings)
-comp1$Origin <- factor(rep(names(sgcca.centroid$a), 
-                           lengths(sgcca.centroid$a)/2), 
-                       levels = names(sgcca.centroid$a))
-rownames(comp1) <- seq_len(nrow(comp1))
-ggplot(comp1) +
-  stat_density(aes(x = Loadings, 
-                   y = ..scaled..,
-                   fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of the otus of each data set") +
-  ylab("Scaled density") +
-  xlab("weight") +
-  facet_grid(~Origin) + 
-  guides(fill = FALSE) +
-  theme(plot.title = element_text(hjust = 0.5))
+variables_weight(comp1)
 
 # Second component
 comp2 <- sapply(sgcca.centroid$a, function(x){x[, 2]})
-Loadings <- unlist(comp2)
-comp2 <- as.data.frame(Loadings)
-comp2$Origin <- comp1$Origin
-rownames(comp2) <- seq_len(nrow(comp2))
-ggplot(comp2) +
-  stat_density(aes(x = Loadings, y = ..scaled.., fill = Origin), alpha = 0.5) +
-  ggtitle("Importance of each block variable", 
-          subtitle = "Second component") +
-  ylab("Scaled density") +
-  xlab("weight") +
-  facet_grid(~Origin) + 
-  guides(fill = FALSE) 
+variables_weight(comp2)
 
 # Bootstrap of sgcca 
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
