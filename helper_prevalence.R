@@ -30,9 +30,10 @@ prevalence <- function(presence, absence) {
 #' @return a list with the matrices of presence and absence
 prevalence_tab <- function(table, meta, columns) {
   stopifnot(all(colnames(table) == rownames(meta)))
-  prevalence <- sweep(table, 2, colSums(table), `/`) > 0.005
+  prevalence <- sweep(table, 2, colSums(table, na.rm = TRUE), `/`) > 0.005
   subSets <- allComb(meta, columns)
-  totalSamples <- colSums(subSets)
+  subSets[is.na(subSets)] <- FALSE
+  totalSamples <- colSums(subSets, na.rm = TRUE)
   subSets <- subSets[, totalSamples >= 1]
   totalSamples <- totalSamples[totalSamples >= 1]
   presence <- prevalence %*% subSets
@@ -130,7 +131,6 @@ comp <- function(input, meta) {
   # Fisher test
   Responders_Time <- prevalence(res$presence, res$absence)
   Responders_Time <- p.adjust(Responders_Time, "BH")
-  hist(Responders_Time)
   
   out[[1]] <- Responders_Time
   
@@ -143,9 +143,6 @@ comp <- function(input, meta) {
   
   out[[2]] <- NonResponders_Time
   
-  hist(NonResponders_Time)
-  hist(Responders_Time/NonResponders_Time)
-  
   ## Ileum ####
   ### Respondres #### 
   keepILEUM <- meta$CD_Aftected_area %in% "ILEUM"
@@ -157,9 +154,6 @@ comp <- function(input, meta) {
   # Fisher test
   Responders_Time <- prevalence(res$presence, res$absence)
   Responders_Time <- p.adjust(Responders_Time, "BH")
-  summary(Responders_Time < 0.05)
-  
-  
   
   ### Non Responders
   res <- prevalence_tab(input[, keepTime & removeControls & keepNonResponders & keepILEUM],
@@ -168,7 +162,6 @@ comp <- function(input, meta) {
   # Fisher test
   NonResponders_Time <- prevalence(res$presence, res$absence)
   NonResponders_Time <- p.adjust(NonResponders_Time, "BH")
-  summary(NonResponders_Time < 0.05)
   
   out[[3]] <- list(Responder = Responders_Time, 
                    NonResponders = NonResponders_Time)
@@ -184,7 +177,6 @@ comp <- function(input, meta) {
   # Fisher test
   Responders_Time <- prevalence(res$presence, res$absence)
   Responders_Time <- p.adjust(Responders_Time, "BH")
-  summary(Responders_Time < 0.05)
   
   ### Non Responders
   res <- prevalence_tab(input[, keepTime & removeControls & keepNonResponders & keepCOLON],
@@ -193,12 +185,101 @@ comp <- function(input, meta) {
   # Fisher test
   NonResponders_Time <- prevalence(res$presence, res$absence)
   NonResponders_Time <- p.adjust(NonResponders_Time, "BH")
-  summary(NonResponders_Time < 0.05)
   
   out[[4]] <- list(Responder = Responders_Time, 
                    NonResponders = NonResponders_Time)
   
   names(out) <- c("Responders", "NonResponders", "Ileum", "Colon")
-  out
+  as.data.frame(out)
+  
+}
+
+response_time <- function(table_org, meta) {
+  # Test the prevalence between controls and non controls ####
+  res <- prevalence_tab(table_org, meta, "IBD")
+  IBD <- prevalence(res$presence, res$absence)
+  
+  IBD[is.na(IBD)] <- 1
+  IBD <- p.adjust(IBD, "BH")
+  
+  out <- data.frame("ControlsVsIBD" = IBD)
+  
+  # Differences between responders and non responders at time 0 ####
+  removeControls <- meta$IBD  != "CONTROL"
+  removeTimes <- meta$Time  == "T0"
+  keep <- removeControls & removeTimes
+  res <- prevalence_tab(table_org[, keep], meta[keep, ], "HSCT_responder")
+  
+  # Fisher test
+  T0 <- prevalence(res$presence, res$absence)
+  T0[is.na(T0)] <- 1
+  T0 <- p.adjust(T0, "BH")
+  
+  out <- cbind(out, "T0_RvsNR" = T0)
+  
+  # Differences between responders and non responders at time 0 ####
+  removeControls <- meta$IBD  == "CONTROL"
+  removeTimes <- meta$Time  == "T0"
+  keep <- removeControls | removeTimes
+  res <- prevalence_tab(table_org[, keep], meta[keep, ], "HSCT_responder")
+  
+  # Fisher test
+  T0 <- prevalence(res$presence, res$absence)
+  T0[is.na(T0)] <- 1
+  T0 <- p.adjust(T0, "BH")
+  
+  out <- cbind(out, "T0vsC" = T0)
+  
+  
+  
+  # Differences between responders and non responders at time T26 ####
+  removeControls <- meta$IBD  != "CONTROL"
+  removeTimes <- meta$Time  == "T26"
+  keep <- removeControls & removeTimes
+  res <- prevalence_tab(table_org[, keep], meta[keep, ], "HSCT_responder")
+  
+  # Fisher test
+  T26 <- prevalence(res$presence, res$absence)
+  T26[is.na(T26)] <- 1
+  T26 <- p.adjust(T26, "BH")
+  
+  out <- cbind(out, "T26_RvsNR" = T26)
+  
+  removeControls <- meta$IBD  == "CONTROL"
+  removeTimes <- meta$Time  == "T26"
+  keep <- removeControls | removeTimes
+  res <- prevalence_tab(table_org[, keep], meta[keep, ], "HSCT_responder")
+  
+  # Fisher test
+  T26 <- prevalence(res$presence, res$absence)
+  T26[is.na(T26)] <- 1
+  T26 <- p.adjust(T26, "BH")
+  
+  out <- cbind(out, "T26vsC" = T26)
+  
+  # Differences between responders and non responders at time T52 ####
+  removeControls <- meta$IBD  != "CONTROL"
+  removeTimes <- meta$Time  == "T52"
+  keep <- removeControls & removeTimes
+  res <- prevalence_tab(table_org[, keep], meta[keep, ], "HSCT_responder")
+  
+  # Fisher test
+  T52 <- prevalence(res$presence, res$absence)
+  T52[is.na(T52)] <- 1
+  T52 <- p.adjust(T52, "BH")
+  
+  out <- cbind(out, "T52_RvsNR" = T52)
+  
+  removeControls <- meta$IBD  == "CONTROL"
+  removeTimes <- meta$Time  == "T52"
+  keep <- removeControls | removeTimes
+  res <- prevalence_tab(table_org[, keep], meta[keep, ], "HSCT_responder")
+  
+  # Fisher test
+  T52 <- prevalence(res$presence, res$absence)
+  T52[is.na(T52)] <- 1
+  T52 <- p.adjust(T52, "BH")
+  
+  cbind(out, "T52vsC" = T52)
   
 }

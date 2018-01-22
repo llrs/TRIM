@@ -325,6 +325,7 @@ meta_r_norm <- function(meta){
   meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15/23"
   meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33/36"
   meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29/35"
+  meta$ID[meta$Patient_ID %in% c("17", "40")] <- "17/40"
   meta$ID <- as.factor(meta$ID)
   
   # We don't know yet if the newest samples are responders or not (yet)
@@ -339,6 +340,7 @@ meta_r_norm <- function(meta){
   
   meta$Active_area[meta$Involved_Healthy == "HEALTHY"] <- "HEALTHY"
   
+  meta$Treatment <- "NO"
   meta$Treatment[grep("W TMT| W Surgery", meta$Endoscopic_Activity)] <- "YES"
   meta$Treatment[meta$Treatment == "C"] <- NA
   
@@ -346,7 +348,25 @@ meta_r_norm <- function(meta){
   meta$Surgery[!is.na(meta$Treatment)] <- "NO"
   meta$Surgery[grep("Surgery", meta$Endoscopic_Activity)] <- "YES"
   
-    return(meta)
+  # Add the date of the diagnosis
+  strDates <- c("13" = "15-feb-02", "14" = "15-jul-97", "15/23" = "15-jul-06",
+                "16" = "15-oct-06", "17/40" = "15-nov-02", "18" = "15-jul-99",
+                "19" = "15-jul-99", "20" = "19-jun-09", "21" = "15-jun-06",
+                "22" = "15-ago-09", "25" = "15-feb-99", "26" = "15-mar-00",
+                "27" = "15-abr-07", "28" = "15-abr-01", "29/35" = "15-jun-04",
+                "30" = "15-jun-89", "31" = "15-jun-03", "33/36" = "15-jun-05",
+                "34" = "15-jun-03", "37" = "15-jun-06", "38" = "15-feb-12",
+                "39" = "31-ago-11", "41" = "15-Jun-03")
+  dates <- as.Date(strDates, "%d-%b-%y") 
+  names(dates) <- names(strDates)
+  o <- match(meta$ID, names(dates))
+  meta <- cbind(meta, "DiagDate" = dates[o])
+  diagTime <- as.Date(meta$DATE_SAMPLE, "%d/%m/%Y") - dates[o]
+  diagTime <- as.numeric(diagTime/365)
+  diagTime[is.na(diagTime)] <- 0 # If no diagnosis (controls) set to 0
+  meta <- cbind(meta, diagTime)
+  
+  return(meta)
 }
 
 #' Normalize 16S metadata
@@ -354,6 +374,13 @@ meta_r_norm <- function(meta){
 #' @param meta The metadata
 #' @return The dataframe with the metadata corrected
 meta_i_norm <- function(meta) {
+  meta <- meta[, apply(meta, 2, function(x){length(unique(x)) != 1})]
+  meta$ID <- meta$Patient_ID
+  meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15/23"
+  meta$ID[meta$Patient_ID %in% c("33", "36")] <- "33/36"
+  meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29/35"
+  meta$ID[meta$Patient_ID %in% c("17", "40")] <- "17/40"
+  meta$ID <- as.factor(meta$ID)
   
   # There is a mislabeling on those tubes, we don't know which is which
   meta$CD_Aftected_area[meta$Sample_Code == "22_T52_T_DM_III"] <- NA

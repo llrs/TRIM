@@ -114,13 +114,13 @@ labels <- sapply(label, function(x){
   if (length(x) == 5){
     paste(x[5], sep = "_")
     # x[5]
-    }
+  }
   
   else if (length(x) != 5) {
     paste(x[4], sep = "_")
     # x[4]
-    }
-  })
+  }
+})
 meta_i <- cbind(meta_i, labels)
 
 pcai <- cbind(pca_i_x, meta_i)

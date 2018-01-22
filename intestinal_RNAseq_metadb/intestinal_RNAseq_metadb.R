@@ -23,12 +23,7 @@ setwd(cd)
 
 
 # Clean the metadata
-meta_r <- meta_r[, apply(meta_r, 2, function(x){length(unique(x)) != 1})]
-meta_r$ID <- meta_r$Patient_ID
-meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_r$ID <- as.factor(meta_r$ID)
+meta_r <- meta_r_norm(meta_r)
 
 
 # Define colors

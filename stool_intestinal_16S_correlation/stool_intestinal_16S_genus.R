@@ -16,7 +16,6 @@ setwd(cd)
 # Summarize to genus
 library("metagenomeSeq")
 
-
 # Create the objects
 MR_i <- newMRexperiment(t(otus_i), 
                       phenoData = AnnotatedDataFrame(meta),

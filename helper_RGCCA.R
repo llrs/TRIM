@@ -83,7 +83,6 @@ subSymm <- function(m, x, y, val){
 #' @return The outer weight of each variable of the input datasets. 
 boot_sgcca <- function(A, C, shrinkage, nb_boot = 1000){
   STAB <- list()
-  B <- A
   
   for (j in seq_along(A)) {
     STAB[[j]]<- matrix(NA, nb_boot, ncol(A[[j]]))
@@ -94,7 +93,7 @@ boot_sgcca <- function(A, C, shrinkage, nb_boot = 1000){
   # Bootstrap the data
   for (i in 1:nb_boot){
     ind  <- sample(nrow(A[[1]]), replace = TRUE)
-    Bscr <- lapply(A, `[`, i = ind)
+    Bscr <- sapply(A, function(x){x[ind, ]})
     try( # Prevent the error from LAPACK subroutine
       {res <- sgcca(Bscr, C, c1 = shrinkage, 
                     ncomp = c(rep(1, length(A))),
@@ -105,7 +104,7 @@ boot_sgcca <- function(A, C, shrinkage, nb_boot = 1000){
         STAB[[j]][i, ] <- res$a[[j]]
       }}, silent = TRUE)
   }
-  STAB
+  return(STAB)
 }
 
 #' Evaluates the boostrapping of RGCCA
@@ -117,7 +116,7 @@ boot_evaluate <- function(STAB){
   # Calculate how many are selected
   count <- lapply(STAB, function(x) {
     apply(x, 2, function(y){
-      sum(y != 0, na.rm = TRUE)/(nb_boot - sum(is.na(STAB[[1]][, 1])))
+      sum(y != 0, na.rm = TRUE)/(nrow(STAB[[1]]) - sum(is.na(STAB[[1]][, 1])))
     })
   })
   
@@ -167,6 +166,10 @@ boot_evaluate <- function(STAB){
   }
 }
 
+#' Plot density of the weight of components
+#' 
+#' @param comp Component from sapply(rgcca$a, function(x)x[, 1])
+#' @return Lateral effect: A plot, invisible the ggplot object of the plot
 variables_weight <- function(comp){
   Loadings <- unlist(comp)
   comp2 <- as.data.frame(Loadings)
@@ -178,9 +181,9 @@ variables_weight <- function(comp){
             subtitle = "Second component") +
     ylab("Scaled density") +
     xlab("weight") +
-    facet_grid(~Origin) + 
+    facet_grid(~Origin, scales="free") +
     guides(fill = FALSE) 
   print(p)
-  
+  invisible(p)
 }
 

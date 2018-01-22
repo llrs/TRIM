@@ -25,17 +25,7 @@ setwd(wd)
 
 
 # Clean the metadata
-meta_i <- meta_i[, apply(meta_i, 2, function(x){length(unique(x)) != 1})]
-meta_i$ID <- meta_i$Patient_ID
-meta_i$ID[meta_i$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_i$ID[meta_i$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_i$ID[meta_i$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_i$ID <- as.factor(meta_i$ID)
-
-# There is a mislabeling on those tubes, we don't know which is which
-meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
-
-meta_i$HSCT_responder[(meta_i$ID %in% c("38", "40", "41"))] <- NA
+meta_i <- meta_i_norm(meta_i)
 
 # Match the name of meta and rownames
 otus_table_i <- otus_table_i[, match(rownames(meta_i), colnames(otus_table_i))]
@@ -43,60 +33,30 @@ otus_table_i <- otus_table_i[, match(rownames(meta_i), colnames(otus_table_i))]
 MR_i <- newMRexperiment(otus_table_i, 
                         phenoData = AnnotatedDataFrame(meta_i),
                         featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i)))
+
+
 genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+species_i <- aggTax(MR_i, lvl = "Species", out = "matrix")
+family_i <- aggTax(MR_i, lvl = "Family", out = "matrix")
+order_i <- aggTax(MR_i, lvl = "Order", out = "matrix")
+class_i <- aggTax(MR_i, lvl = "Class", out = "matrix")
+phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
 
-
-# Test the prevalence between controls and non controls ####
-res <- prevalence_tab(otus_table_i, meta_i, "IBD")
-
-# Fisher test
-IBD <- prevalence(res$presence, res$absence)
-  
-IBD[is.na(IBD)] <- 1
-IBD <- p.adjust(IBD, "BH")
-
-summary(IBD < 0.05)
-
-pdf(paste0("Figures/", today, "_ratios_plots.pdf"))
-
-# Differences between responders and non responders at time 0 ####
-removeControls <- meta_i$IBD  != "CONTROL"
-removeTimes <- meta_i$Time  == "T0"
-keep <- removeControls & removeTimes
-res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], "HSCT_responder")
-
-# Fisher test
-T0 <- prevalence(res$presence, res$absence)
-T0[is.na(T0)] <- 1
-T0 <- p.adjust(T0, "BH")
-
-summary(T0 < 0.05)
-
-# Differences between responders and non responders at time T26 ####
-removeControls <- meta_i$IBD  != "CONTROL"
-removeTimes <- meta_i$Time  == "T26"
-keep <- removeControls & removeTimes
-res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], "HSCT_responder")
-
-# Fisher test
-T26 <- prevalence(res$presence, res$absence)
-T26[is.na(T26)] <- 1
-T26 <- p.adjust(T26, "BH")
-
-summary(T26 < 0.05)
-
-# Differences between responders and non responders at time T52 ####
-removeControls <- meta_i$IBD  != "CONTROL"
-removeTimes <- meta_i$Time  == "T52"
-keep <- removeControls & removeTimes
-res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], "HSCT_responder")
-
-# Fisher test
-T52 <- prevalence(res$presence, res$absence)
-T52[is.na(T52)] <- 1
-T52 <- p.adjust(T52, "BH")
-
-summary(T52 < 0.05)
+# Compare at the otus level the time and response effect
+otus <- response_time(otus_table_i, meta_i)
+write.csv(otus, "prevalence_otus.csv")
+genus_i <- response_time(genus_i, meta_i)
+write.csv(genus_i, "prevalence_genus_i.csv")
+species_i <- response_time(species_i, meta_i)
+write.csv(species_i, "prevalence_species.csv")
+family_i <- response_time(family_i, meta_i)
+write.csv(family_i, "prevalence_family.csv")
+order_i <- response_time(order_i, meta_i)
+write.csv(order_i, "prevalence_order.csv")
+class_i <- response_time(class_i, meta_i)
+write.csv(class_i, "prevalence_class.csv")
+phylum_i <- response_time(phylum_i, meta_i)
+write.csv(phylum_i, "prevalence_phylum.csv")
 
 # summary:  Not significative, IBD patients are as  likely to have one 
 # microorganism as the controls.
@@ -124,30 +84,20 @@ if (any(Time_Responder < 0.05)) {
 # Test if the responders and the non responders behave differently along time
 # If the presence of microorganisms thorough time is different in responders 
 # than in non-responders ####
-
 otus <- comp(otus_table_i, meta_i)
-
-species_i <- aggTax(MR_i, lvl = "Species", out = "matrix")
+write.csv(otus, "otus_time.csv")
 species <- comp(species_i, meta_i)
-unique(otus_tax_i[otus_tax_i[, "Species"] %in% names(which(species$Responders < 0.05)), 
-                  c("Genus", "Species")])
-
-genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+write.csv(species, "species_time.csv")
 genus <- comp(genus_i, meta_i)
-which(genus$Responders < 0.05)
-
-family_i <- aggTax(MR_i, lvl = "Family", out = "matrix")
+write.csv(genus, "genus_time.csv")
 family <- comp(family_i, meta_i)
-which(family$Responders < 0.05)
-
-order_i <- aggTax(MR_i, lvl = "Order", out = "matrix")
+write.csv(family, "family_time.csv")
 order <- comp(order_i, meta_i)
-
-class_i <- aggTax(MR_i, lvl = "Class", out = "matrix")
+write.csv(order, "order_time.csv")
 class <- comp(class_i, meta_i)
-
-phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
+write.csv(class, "class_time.csv")
 phylum <- comp(phylum_i, meta_i)
+write.csv(phylum, "phylum_time.csv")
 
 # Bootstrapp while controlling by Time ####
 
