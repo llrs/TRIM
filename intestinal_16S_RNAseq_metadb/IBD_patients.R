@@ -69,16 +69,17 @@ otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 # Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them 
 metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
-nam <- c("Active_area", 
-         "IBD", 
-         "AGE_SAMPLE", 
-         "Transplant", 
-         "ID", 
-         "Exact_location", 
-         "Surgery",
-         "HSCT_responder", 
-         "Treatment", 
-         "SEX")
+nam <- c("Exact_location", # Segment of the sample
+         "Active_area", # Health stage of the sample
+         "IBD", # Disease or control
+         "AGE_SAMPLE",  # Age
+         "diagTime", # Time with disease
+         "Transplant", # Stage of the treatment
+         "ID", # Patient 
+         "HSCT_responder", # Responder/nonResponder
+         "Treatment", # Furthere complications
+         "Surgery", # Up to surgery?
+         "SEX") # Male/female
 keepCol <- keepCol[nam]
 keepCol[nam] <- TRUE
 for (col in names(keepCol)){
@@ -117,7 +118,7 @@ shrinkage <- c(0.122747, 0, 1) # We guess a 0.5 for the RNAseq expression
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x){1/sqrt(ncol(x))}))
 # # Don't let the shrinkage go below the thershold allowed
-shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
+(shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage))
 # shrinkage <- rep(1, length(A))
 
 ncomp <- c(2, 2, 2)
@@ -182,7 +183,7 @@ plot(samples[, c("RNAseq", "microbiota")], col = km$cluster)
 # Colors for the plots
 names(colors) <- unique(meta_r$ID)
 
-samples <- cbind(samples, meta_r)
+samples <- cbind(samples, droplevels(meta_r))
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 samples$Sample_Code <- as.character(samples$Sample_Code)
 
@@ -249,7 +250,7 @@ ggplot(samples, aes(RNAseq, microbiota)) +
 
 ggplot(samples, aes(RNAseq, microbiota)) +
   geom_text(aes(color = HSCT_responder, 
-                label = paste(Time, labels, sep = "_"))) + 
+                label = paste(ID, labels, sep = "_"))) + 
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   ggtitle("All samples at all times ") + 

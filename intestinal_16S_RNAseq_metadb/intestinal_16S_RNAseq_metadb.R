@@ -82,16 +82,17 @@ otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 # Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them 
 metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
-nam <- c("Active_area", 
-         "IBD", 
-         "AGE_SAMPLE", 
-         "Transplant", 
-         "ID", 
-         "Exact_location", 
-         "Surgery",
-         "HSCT_responder", 
-         "Treatment", 
-         "SEX")
+nam <- c("Exact_location", # Segment of the sample
+         "Active_area", # Health stage of the sample
+         "IBD", # Disease or control
+         "AGE_SAMPLE",  # Age
+         "diagTime", # Time with disease
+         "Transplant", # Stage of the treatment
+         "ID", # Patient 
+         "HSCT_responder", # Responder/nonResponder
+         "Treatment", # Furthere complications
+         "Surgery", # Up to surgery?
+         "SEX") # Male/female
 keepCol <- keepCol[nam]
 keepCol[nam] <- TRUE
 for (col in names(keepCol)){
@@ -195,7 +196,7 @@ plot(samples[, c("RNAseq", "microbiota")], col = km$cluster)
 # Colors for the plots
 names(colors) <- unique(meta_r$ID)
 
-samples <- cbind(samples, meta_r)
+samples <- cbind(samples, droplevels(meta_r))
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 samples$Sample_Code <- as.character(samples$Sample_Code)
 
