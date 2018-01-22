@@ -8,13 +8,14 @@ endif
 
 helper:=../helper_functions.R \
 				../helper_RGCCA.R
+
 pre_files:=../stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt \
 					../stools_16S/OTUs-Table-refined-stools.tab \
 					../intestinal_16S/OTUs-Table-new-biopsies.csv \
 					../intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt \
 					../intestinal_RNAseq/111217_metadata.csv \
 					../intestinal_RNAseq/table.counts.results
-				
+
 TRIM.RDS sgcca.RData bootstrap.RData: intestinal_16S_RNAseq_metadb.R $(helper) $(pre_files)
 	@echo "Relating the RNAseq with the microbiota"
 	R CMD BATCH $(R_OPTS) $(<F)
