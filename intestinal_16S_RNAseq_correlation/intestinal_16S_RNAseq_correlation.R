@@ -65,12 +65,49 @@ genus_i <- genus_i[, meta_r$`Sample Name_Code`]
 genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ] 
 expr <- expr[apply(expr, 1, sd) != 0, ] 
 
+abundance <- 0.005 # 0.5%
 
+## All samples ####
+# Filter by abundance at 0.5%
+a <- prop.table(genus_i, 2)
+b <- rowSums(a > abundance)
+
+genus_i <- genus_i[b != 0, ]
 # Correlate
 p <- cor(t(genus_i), t(expr))
 saveRDS(p, file = "correlations.RDS")
 
+## All IBD ####
+disease_i <- genus_i[, meta_r$IBD == "CD"]
+disease_r <- expr[, meta_r$IBD == "CD"]
 
-# Correlate only IBD
-# p <- cor(t(genus_i), t(expr))
-# saveRDS(p, file = "correlations.RDS")
+disease_i <- disease_i[apply(disease_i, 1, sd) != 0, ] 
+disease_r <- disease_r[apply(disease_r, 1, sd) != 0, ] 
+
+# Filter by abundance at 0.5%
+a <- prop.table(disease_i, 2)
+b <- rowSums(a > abundance)
+
+disease_i <- disease_i[b != 0, ]
+
+# Correlate
+p <- cor(t(disease_i), t(disease_r))
+saveRDS(p, file = "correlations_IBD.RDS")
+
+
+## All Controls ####
+disease_i <- genus_i[, meta_r$IBD == "CONTROL"]
+disease_r <- expr[, meta_r$IBD == "CONTROL"]
+
+disease_i <- disease_i[apply(disease_i, 1, sd) != 0, ] 
+disease_r <- disease_r[apply(disease_r, 1, sd) != 0, ] 
+
+# Filter by abundance at 0.5%
+a <- prop.table(disease_i, 2)
+b <- rowSums(a > abundance)
+
+disease_i <- disease_i[b != 0, ]
+
+# Correlate
+p <- cor(t(disease_i), t(disease_r))
+saveRDS(p, file = "correlations_C.RDS")
