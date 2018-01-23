@@ -68,5 +68,9 @@ expr <- expr[apply(expr, 1, sd) != 0, ]
 
 # Correlate
 p <- cor(t(genus_i), t(expr))
-
 saveRDS(p, file = "correlations.RDS")
+
+
+# Correlate only IBD
+# p <- cor(t(genus_i), t(expr))
+# saveRDS(p, file = "correlations.RDS")
