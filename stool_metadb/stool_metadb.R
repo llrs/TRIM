@@ -6,20 +6,26 @@ source("helper_functions.R")
 
 
 # Read the stools OTUs
-otus_table_s <- read.delim(file.path(stool, "OTUs-Table-refined-stools.tab"), 
-                           stringsAsFactors = FALSE, row.names = 1,
-                           check.names = FALSE)
+otus_table_s <- read.delim(
+  file.path(stool, "OTUs-Table-refined-stools.tab"),
+  stringsAsFactors = FALSE, row.names = 1,
+  check.names = FALSE
+)
 otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
-meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1, 
-                     stringsAsFactors = FALSE)
+meta_s <- read.delim(
+  file_meta_s, check.names = FALSE, row.names = 1,
+  stringsAsFactors = FALSE
+)
 setwd(cd)
 
 
 # Clean the metadata
-meta_s <- meta_s[, apply(meta_s, 2, function(x){length(unique(x)) != 1})]
+meta_s <- meta_s[, apply(meta_s, 2, function(x) {
+  length(unique(x)) != 1
+})]
 meta_s$ID <- meta_s$Patient_ID
 meta_s$ID[meta_s$Patient_ID %in% c("15", "23")] <- "15/23"
 meta_s$ID[meta_s$Patient_ID %in% c("33", "36")] <- "33/36"
@@ -35,7 +41,7 @@ keepCol <- c("Time", "Age", "ID")
 metadb <- meta_s[, keepCol]
 
 # Prepare the metadata
-for (col in seq_len(ncol(metadb))){
+for (col in seq_len(ncol(metadb))) {
   metadb[, col] <- as.factor(metadb[, col])
   levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
 }
@@ -44,8 +50,10 @@ metadb[is.na(metadb)] <- 0
 
 ##### RGCCA #####
 A <- list(stool = t(otus_table_s), meta = metadb)
-C <- matrix(0, ncol = length(A), nrow = length(A), 
-            dimnames = list(names(A), names(A)))
+C <- matrix(
+  0, ncol = length(A), nrow = length(A),
+  dimnames = list(names(A), names(A))
+)
 C <- subSymm(C, "stool", "meta", 1)
 
 # Keep the covariance between them
@@ -53,11 +61,13 @@ shrinkage <- rep(1, length(A))
 
 ncomp <- c(2, 2)
 
-sgcca.centroid <-  sgcca(A, C, c1 = shrinkage,
-                         ncomp = ncomp,
-                         scheme = "centroid",
-                         scale = TRUE,
-                         verbose = FALSE)
+sgcca.centroid <- sgcca(
+  A, C, c1 = shrinkage,
+  ncomp = ncomp,
+  scheme = "centroid",
+  scale = TRUE,
+  verbose = FALSE
+)
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
@@ -65,15 +75,15 @@ names(sgcca.centroid$astar) <- names(A)
 
 PCA <- cbind(sgcca.centroid$Y[[1]], meta_s)
 pdf(paste0("Figures/", today, "_plots.pdf"))
-ggplot(PCA) + 
+ggplot(PCA) +
   geom_point(aes(comp1, comp2, col = Treatment))
-ggplot(PCA) + 
+ggplot(PCA) +
   geom_point(aes(comp1, comp2, col = ID))
-ggplot(PCA) + 
+ggplot(PCA) +
   geom_point(aes(comp1, comp2, col = Endoscopic_Activity))
-ggplot(PCA) + 
+ggplot(PCA) +
   geom_point(aes(comp1, comp2, col = HSCT_responder))
-ggplot(PCA) + 
+ggplot(PCA) +
   geom_point(aes(comp1, comp2, col = Age))
 
 dev.off()

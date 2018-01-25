@@ -1,4 +1,4 @@
-# Test if the loadings of the genes are from a relevant pathways. 
+# Test if the loadings of the genes are from a relevant pathways.
 wd <- setwd("..")
 
 # Load the helper file
@@ -10,9 +10,11 @@ rna <- "intestinal_RNAseq"
 source("helper_functions.R")
 
 # Read the intestinal otus table
-otus_table_i <- read.csv(file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
-                         stringsAsFactors = FALSE, row.names = 1, 
-                         check.names = FALSE)
+otus_table_i <- read.csv(
+  file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
+  stringsAsFactors = FALSE, row.names = 1,
+  check.names = FALSE
+)
 tax_i <- otus_table_i[, ncol(otus_table_i)]
 otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 
@@ -40,7 +42,7 @@ d <- sgcca.centroid$a[["RNAseq"]][, 1]
 # Remove duplicated if sgcca failed due to LAPACK subroutine
 b <- b[!is.na(b[, 1]), ]
 
-warning(is.na(b[, 1]), " iterations failed.")
+warning(sum(is.na(b[, 1])), " iterations failed.")
 
 pvalue <- numeric(ncol(b))
 for (col in seq_len(ncol(b))) {
@@ -49,7 +51,7 @@ for (col in seq_len(ncol(b))) {
 names(pvalue) <- colnames(b)
 fdr <- p.adjust(pvalue, "BH")
 
-# Select those genes that are significant 
+# Select those genes that are significant
 significant <- names(pvalue)[pvalue < 0.05]
 # The fdr results in none significant
 significant <- names(pvalue)[pvalue < 0.05]
@@ -61,13 +63,17 @@ loadings <- sgcca.centroid$a[["RNAseq"]]
 ensemblID <- rownames(loadings)
 ensemblID <- gsub("(.*)\\..*", "\\1", ensemblID)
 rownames(loadings) <- gsub("(.*)\\..*", "\\1", rownames(loadings))
-entrezID <- mapIds(org.Hs.eg.db, keys = ensemblID, keytype = "ENSEMBL", 
-                   column = "ENTREZID")
+entrezID <- mapIds(
+  org.Hs.eg.db, keys = ensemblID, keytype = "ENSEMBL",
+  column = "ENTREZID"
+)
 comp1 <- loadings[, 1]
 names(comp1) <- entrezID
 
-epitheliumE <- mapIds(org.Hs.eg.db, keys = as.character(epithelium), 
-                      keytype = "SYMBOL", column = "ENTREZID")
+epitheliumE <- mapIds(
+  org.Hs.eg.db, keys = as.character(epithelium),
+  keytype = "SYMBOL", column = "ENTREZID"
+)
 
 epitheliumE <- unlist(epitheliumE, use.names = TRUE)
 epitheliumE <- epitheliumE[!is.na(epitheliumE)]
@@ -83,27 +89,31 @@ paths2genes <- paths2genes[grep("R-HSA-", names(paths2genes))]
 
 ## Compute the hypergeometric/enrichment analysis ####
 library("ReactomePA")
-enrich <- enrichPathway(gene = entrezID[significant], pvalueCutoff = 0.05,
-                        readable = TRUE, universe = unique(entrezID))
+enrich <- enrichPathway(
+  gene = entrezID[significant], pvalueCutoff = 0.05,
+  readable = TRUE, universe = unique(entrezID)
+)
 write.csv(as.data.frame(enrich), file = "RNAseq_enrichment_IBD.csv")
 
 # Store the entrezid
 entrezSig <- entrezID[significant]
 entrezSig <- entrezSig[!is.na(entrezSig)]
-paths2genes[["significant"]] <-  entrezSig
-paths2genes[["Epithelium"]] <-  epitheliumE
+paths2genes[["significant"]] <- entrezSig
+paths2genes[["Epithelium"]] <- epitheliumE
 
 ## Compute the GSEA for the size effect ####
 gseaSizeEffect <- fgsea(paths2genes, comp1, nperm = length(comp1))
 
 # Get the name of the pathway
-namesPaths <- select(reactome.db, keys = gseaSizeEffect$pathway, 
-                     keytype = "PATHID", columns = "PATHNAME")
+namesPaths <- select(
+  reactome.db, keys = gseaSizeEffect$pathway,
+  keytype = "PATHID", columns = "PATHNAME"
+)
 # Remove the homo sapiens part
 namesPaths$PATHNAME <- gsub("Homo sapiens: (.*)", "\\1", namesPaths$PATHNAME)
 # Add a column
-gseaSizeEffect[ , namesPaths := namesPaths$PATHNAME]
-# Order the dataframe by size effect 
+gseaSizeEffect[, namesPaths := namesPaths$PATHNAME]
+# Order the dataframe by size effect
 data.table::setorder(gseaSizeEffect, -NES, padj, -size)
 # Store the output
 fwrite(gseaSizeEffect[padj < 0.05, ], file = "gsea_RNAseq_pathways_IBD.csv")
@@ -130,14 +140,20 @@ Taxon2Class <- as.list(as.data.frame(otus_tax_i))
 grouping <- split(Taxon2Class$Genus, Taxon2Class$Genus)
 grouping <- sapply(grouping, names)
 
-term2gene <- data.frame("Gene" = otus_tax_i[, "Genus"],
-                        "Term" = rownames(otus_tax_i))
-term2name <- data.frame("Name" = otus_tax_i[, "Genus"],
-                        "Term" = rownames(otus_tax_i))
+term2gene <- data.frame(
+  "Gene" = otus_tax_i[, "Genus"],
+  "Term" = rownames(otus_tax_i)
+)
+term2name <- data.frame(
+  "Name" = otus_tax_i[, "Genus"],
+  "Term" = rownames(otus_tax_i)
+)
 library("clusterProfiler")
-enrich <- as.data.frame(enricher(gene = otus, universe = rownames(otus_tax_i), 
-                                 minGSSize = 1, TERM2GENE = term2gene, 
-                                 TERM2NAME = term2name))
+enrich <- as.data.frame(enricher(
+  gene = otus, universe = rownames(otus_tax_i),
+  minGSSize = 1, TERM2GENE = term2gene,
+  TERM2NAME = term2name
+))
 
 write.csv(enrich, file = "Otus_genus_enrichment_IBD.csv")
 

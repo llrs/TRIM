@@ -5,9 +5,11 @@ source("helper_functions.R")
 library("SummarizedExperiment")
 
 # Read the intestinal otus table
-otus_table_i <- read.csv(file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
-                         stringsAsFactors = FALSE, row.names = 1, 
-                         check.names = FALSE)
+otus_table_i <- read.csv(
+  file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
+  stringsAsFactors = FALSE, row.names = 1,
+  check.names = FALSE
+)
 tax_i <- otus_table_i[, ncol(otus_table_i)]
 otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 
@@ -15,9 +17,11 @@ otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Read the stools OTUs
-otus_table_s <- read.delim(file.path(stool, "OTUs-Table-refined-stools.tab"), 
-                           stringsAsFactors = FALSE, row.names = 1,
-                           check.names = FALSE)
+otus_table_s <- read.delim(
+  file.path(stool, "OTUs-Table-refined-stools.tab"),
+  stringsAsFactors = FALSE, row.names = 1,
+  check.names = FALSE
+)
 tax_s <- otus_table_s[, ncol(otus_table_s)]
 otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 
@@ -30,15 +34,21 @@ expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
-meta_s <- read.delim(file_meta_s, check.names = FALSE, row.names = 1, 
-                     stringsAsFactors = FALSE)
+meta_s <- read.delim(
+  file_meta_s, check.names = FALSE, row.names = 1,
+  stringsAsFactors = FALSE
+)
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
-meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
-                     stringsAsFactors = FALSE)
+meta_i <- read.delim(
+  file_meta_i, row.names = 1, check.names = FALSE,
+  stringsAsFactors = FALSE
+)
 file_meta_r <- file.path(rna, "111217_metadata.csv")
-meta_r <- read.table(file_meta_r, check.names = FALSE,
-                     stringsAsFactors = FALSE, sep = ";", 
-                     na.strings = c("NA", ""))
+meta_r <- read.table(
+  file_meta_r, check.names = FALSE,
+  stringsAsFactors = FALSE, sep = ";",
+  na.strings = c("NA", "")
+)
 colnames(meta_r) <- meta_r[1, ]
 meta_r <- meta_r[-1, ]
 
@@ -54,7 +64,7 @@ meta_i <- meta_i_norm(meta_i)
 # Find common patients
 comPatient <- intersect(meta_i$Patient_ID, meta_s$Patient_ID)
 # Controls with same name but they are different people
-comPatient <- comPatient[!grepl("^C", comPatient)] 
+comPatient <- comPatient[!grepl("^C", comPatient)]
 comTime <- intersect(meta_i$Time, meta_s$Time)
 
 # Keep only the common patients and times
@@ -62,10 +72,10 @@ com_meta_i <- meta_i[meta_i$Patient_ID %in% comPatient & meta_i$Time %in% comTim
 com_meta_s <- meta_s[meta_s$Patient_ID %in% comPatient & meta_s$Time %in% comTime, ]
 
 # Delete rows of patients which are not in common between the datasets
-keep_i <- rownames(meta_i)[meta_i$Patient_ID %in% comPatient & 
-                             meta_i$Time %in% comTime]
-keep_s <- rownames(meta_s)[meta_s$Patient_ID %in% comPatient & 
-                             meta_s$Time %in% comTime]
+keep_i <- rownames(meta_i)[meta_i$Patient_ID %in% comPatient &
+  meta_i$Time %in% comTime]
+keep_s <- rownames(meta_s)[meta_s$Patient_ID %in% comPatient &
+  meta_s$Time %in% comTime]
 com_otus_table_i <- otus_table_i[, keep_i]
 com_otus_table_s <- otus_table_s[, keep_s]
 
@@ -82,41 +92,47 @@ QmoreS <- tab_i - tab_s
 meltQ <- melt(QmoreS, varnames = c("Patient_ID", "Time"))
 meltL <- melt(moreS, varnames = c("Patient_ID", "Time"))
 remove_s <- meltQ[meltQ$value < 0, ]
-add_s <- meltQ[meltQ$value > 0 & meltL$value,]
-remove_i <- meltQ[meltQ$value > 0 & !meltL$value,]
+add_s <- meltQ[meltQ$value > 0 & meltL$value, ]
+remove_i <- meltQ[meltQ$value > 0 & !meltL$value, ]
 
-# Remove the stools that should be removed because we don't have intestinal 
+# Remove the stools that should be removed because we don't have intestinal
 # samples
 rownames(remove_s) <- seq_len(nrow(remove_s))
 
-remove_samples_s <- apply(remove_s, 1, function(x){
+remove_samples_s <- apply(remove_s, 1, function(x) {
   rownames(meta_s)[meta_s$Patient_ID %in% x[1] & meta_s$Time %in% x[2]]
 })
 
-com_otus_table_s <- com_otus_table_s[, 
-                                     !colnames(com_otus_table_s) %in% remove_samples_s]
+com_otus_table_s <- com_otus_table_s[
+  ,
+  !colnames(com_otus_table_s) %in% remove_samples_s
+]
 
 # Add stool samples as much as need
 rownames(add_s) <- seq_len(nrow(add_s))
 
-add_samples_s <- apply(add_s, 1, function(x){
+add_samples_s <- apply(add_s, 1, function(x) {
   rep(rownames(meta_s)[meta_s$Patient_ID %in% x[1] & meta_s$Time %in% x[2]], x[3])
 })
 
-com_otus_table_s <- com_otus_table_s[, 
-                                     c(colnames(com_otus_table_s), unlist(add_samples_s))]
+com_otus_table_s <- com_otus_table_s[
+  ,
+  c(colnames(com_otus_table_s), unlist(add_samples_s))
+]
 
 # Remove intestinal data
 rownames(remove_i) <- seq_len(nrow(remove_i))
 
-remove_samples_i <- apply(remove_i, 1, function(x){
+remove_samples_i <- apply(remove_i, 1, function(x) {
   rownames(meta_i)[meta_i$Patient_ID %in% x[1] & meta_i$Time %in% x[2]]
 })
 
-com_otus_table_i <- com_otus_table_i[, 
-                                 !colnames(com_otus_table_i) %in% unlist(remove_samples_i)]
+com_otus_table_i <- com_otus_table_i[
+  ,
+  !colnames(com_otus_table_i) %in% unlist(remove_samples_i)
+]
 
-# Reorder so that the stools samples and the intestinal samples are in the 
+# Reorder so that the stools samples and the intestinal samples are in the
 # same order including Time and Patient_ID
 
 char_com_i <- meta_i[colnames(com_otus_table_i), c("Patient_ID", "Time")]
@@ -138,12 +154,14 @@ tax_i <- otus_tax_i[keep_otus_i, ]
 tax_s <- otus_tax_s[keep_otus_s, ]
 
 # Clean the metadata
-meta <- com_meta_i[colnames(otus_i),]
+meta <- com_meta_i[colnames(otus_i), ]
 meta$HSCT_responder[meta$HSCT_responder == "C"] <- NA
 meta$Active_area[meta$Active_area == ""] <- NA
 
 # Remove non informative variables
-meta <- meta[, apply(meta, 2, function(x){length(unique(x)) != 1})]
+meta <- meta[, apply(meta, 2, function(x) {
+  length(unique(x)) != 1
+})]
 meta$Active_area[meta$Active_area == ""] <- NA
 meta$ID <- meta$Patient_ID
 meta$ID[meta$Patient_ID %in% c("15", "23")] <- "15/23"
@@ -152,20 +170,22 @@ meta$ID[meta$Patient_ID %in% c("29", "35")] <- "29/35"
 meta$ID <- as.factor(meta$ID)
 
 # Pre transplant
-meta$Transplant <- "Post" # 
+meta$Transplant <- "Post" #
 meta$Transplant[meta$Patient_ID %in% c("15", "33", "29")] <- "Pre"
 
 ## Find the otus that are equivalent between datasets
-comb <- expand.grid(rownames(otus_tax_i[keep_otus_i, ]), 
-                    rownames(otus_tax_s[keep_otus_s, ]), stringsAsFactors = FALSE)
+comb <- expand.grid(
+  rownames(otus_tax_i[keep_otus_i, ]),
+  rownames(otus_tax_s[keep_otus_s, ]), stringsAsFactors = FALSE
+)
 colnames(comb) <- c("intestinal", "stools")
 
-eq <- apply(comb, 1, function(z){
+eq <- apply(comb, 1, function(z) {
   y <- z[2]
   x <- z[1]
   # If there is any NA then they are nor precise enough to say they are the same
   # OTU
-  sum(otus_tax_i[keep_otus_i, ][x, ] == otus_tax_s[keep_otus_s, ][y, ]) 
+  sum(otus_tax_i[keep_otus_i, ][x, ] == otus_tax_s[keep_otus_s, ][y, ])
 })
 
 eqOTUS <- comb[eq >= 7 & !is.na(eq), ]
@@ -178,31 +198,45 @@ rownames(eqGenera) <- seq_len(nrow(eqGenera))
 
 # Create the SummarizedExperiment objects
 meta_i <- meta_i[match(colnames(otus_table_i), rownames(meta_i)), ]
-SE_i <- SummarizedExperiment(assays = SimpleList(otus = as.matrix(otus_table_i)), 
-                             colData = meta_i,
-                             rowData = otus_tax_i) 
+SE_i <- SummarizedExperiment(
+  assays = SimpleList(otus = as.matrix(otus_table_i)),
+  colData = meta_i,
+  rowData = otus_tax_i
+)
 
 meta_s <- meta_s[match(colnames(otus_table_s), rownames(meta_s)), ]
-SE_s <- SummarizedExperiment(assays = SimpleList(otus = as.matrix(otus_table_s)), 
-                             colData = meta_s, 
-                             rowData = otus_tax_s)
+SE_s <- SummarizedExperiment(
+  assays = SimpleList(otus = as.matrix(otus_table_s)),
+  colData = meta_s,
+  rowData = otus_tax_s
+)
 meta_r <- meta_r[match(colnames(expr), meta_r$`Sample Name_RNA`), ]
 rownames(meta_r) <- NULL
-SE_expr <- SummarizedExperiment(assays = SimpleList(expr = as.matrix(expr)), 
-                             colData = meta_r)
+SE_expr <- SummarizedExperiment(
+  assays = SimpleList(expr = as.matrix(expr)),
+  colData = meta_r
+)
 
 # prepMultiAssay(list(SE_i, SE_s, SE_expr), meta_r, )
 
-list_SE <- list("intestinal_16S" = SE_i, 
-                "stools_16S" = SE_s, 
-                "intestinal_RNAseq" = SE_expr)
-assay <- rep(names(list_SE), sapply(list_SE, function(x){ncol(assay(x))}))
-colnames <- unlist(sapply(list_SE, function(x){colnames(assay(x))}), use.names = FALSE)
-sampleMap <- data.frame(assay = as.factor(assay), primary = NA, 
-                        colname = colnames)
+list_SE <- list(
+  "intestinal_16S" = SE_i,
+  "stools_16S" = SE_s,
+  "intestinal_RNAseq" = SE_expr
+)
+assay <- rep(names(list_SE), sapply(list_SE, function(x) {
+  ncol(assay(x))
+}))
+colnames <- unlist(sapply(list_SE, function(x) {
+  colnames(assay(x))
+}), use.names = FALSE)
+sampleMap <- data.frame(
+  assay = as.factor(assay), primary = NA,
+  colname = colnames
+)
 # sampleMap$primary[sampleMap$assay == sampleMap$assay[1]]
 # <- meta_r[, meta_r$`Sample Name_RNA` == sampleMap$colname]
-# 
+#
 
 # Find the samples that we have microbiota and expression
 i_names <- rownames(meta_i)[meta_i$Sample_Code %in% meta_r$Sample_Code_uDNA]
@@ -212,10 +246,14 @@ o_i <- otus_table_i[, i_names]
 e_i <- expr[, e_IDs]
 
 # Write the files
-write.csv(otus_s_f, row.names = FALSE, 
-          file = "stools_16S/otus_coherent.csv")
-write.csv(otus_i_f, row.names = FALSE, 
-          file = "intestinal_16S//otus_coherent.csv")
+write.csv(
+  otus_s_f, row.names = FALSE,
+  file = "stools_16S/otus_coherent.csv"
+)
+write.csv(
+  otus_i_f, row.names = FALSE,
+  file = "intestinal_16S//otus_coherent.csv"
+)
 write.csv(meta, file = "meta_coherent.csv")
 write.csv(tax_i, file = file.path(intestinal, "taxonomy.csv"), row.names = TRUE)
 write.csv(tax_s, file = file.path(stool, "taxonomy.csv"), row.names = TRUE)

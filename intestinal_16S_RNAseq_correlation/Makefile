@@ -12,17 +12,7 @@ pre_files=../intestinal_16S/OTUs-Table-new-biopsies.csv \
 correlations.RDS: intestinal_16S_RNAseq_correlation.R ../helper_functions.R $(pre_files)
 	@echo "Relating the RNAseq with the microbiota"
 	R CMD BATCH $(R_OPTS) $(<F)
-	
-.PHONY: all filter
 
-post_files=../intestinal_16S_RNAseq_metadb/bootstrap_IBD.RData \
-	../intestinal_16S_RNAseq_metadb/bootstrap.RData \
-	../intestinal_16S_RNAseq_metadb/sgcca.RDS \
-	../intestinal_16S_RNAseq_metadb/IBD.RDS \
-	correlations.RDS
+.PHONY: all
 
-filter: filter.R ../helper_functions.R $(post_files)
-	@echo "Filtering the correlations"
-	R CMD BATCH $(R_OPTS) $(<F)
-
-all: correlations.RDS filter
+all: correlations.RDS 
