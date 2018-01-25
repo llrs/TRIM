@@ -8,9 +8,11 @@ source("helper_prevalence.R")
 
 intestinal <- "intestinal_16S"
 # Read the intestinal otus table
-otus_table_i <- read.csv(file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
-                         stringsAsFactors = FALSE, row.names = 1, 
-                         check.names = FALSE)
+otus_table_i <- read.csv(
+  file.path(intestinal, "OTUs-Table-new-biopsies.csv"),
+  stringsAsFactors = FALSE, row.names = 1,
+  check.names = FALSE
+)
 tax_i <- otus_table_i[, ncol(otus_table_i)]
 otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 
@@ -19,10 +21,11 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Read the metadata for each type of sample
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
-meta_i <- read.delim(file_meta_i, row.names = 1, check.names = FALSE,
-                     stringsAsFactors = FALSE)
+meta_i <- read.delim(
+  file_meta_i, row.names = 1, check.names = FALSE,
+  stringsAsFactors = FALSE
+)
 setwd(wd)
-
 
 # Clean the metadata
 meta_i <- meta_i_norm(meta_i)
@@ -30,9 +33,11 @@ meta_i <- meta_i_norm(meta_i)
 # Match the name of meta and rownames
 otus_table_i <- otus_table_i[, match(rownames(meta_i), colnames(otus_table_i))]
 
-MR_i <- newMRexperiment(otus_table_i, 
-                        phenoData = AnnotatedDataFrame(meta_i),
-                        featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i)))
+MR_i <- newMRexperiment(
+  otus_table_i,
+  phenoData = AnnotatedDataFrame(meta_i),
+  featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i))
+)
 
 
 genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
@@ -58,15 +63,33 @@ write.csv(class_i, "prevalence_class.csv")
 phylum_i <- response_time(phylum_i, meta_i)
 write.csv(phylum_i, "prevalence_phylum.csv")
 
-# summary:  Not significative, IBD patients are as  likely to have one 
-# microorganism as the controls.
+# Pairwise comparisons
+otus <- comb_prevalence(otus_table_i, meta_i, c("Time", "HSCT_responder"))
+write.csv(otus, "otus_pairwise.csv")
+species <- comb_prevalence(species_i, meta_i, c("Time", "HSCT_responder"))
+write.csv(species, "species_pairwise.csv")
+genus <- comb_prevalence(genus_i, meta_i, c("Time", "HSCT_responder"))
+write.csv(genus, "genus_pairwise.csv")
+family <- comb_prevalence(family_i, meta_i, c("Time", "HSCT_responder"))
+write.csv(family, "family_pairwise.csv")
+order <- comb_prevalence(order_i, meta_i, c("Time", "HSCT_responder"))
+write.csv(order, "order_pairwise.csv")
+class <- comb_prevalence(class_i, meta_i, c("Time", "HSCT_responder"))
+write.csv(class, "class_pairwise.csv")
+phylum <- comb_prevalence(phylum_i, meta_i, c("Time", "HSCT_responder"))
+write.csv(phylum, "phylum_pairwise.csv")
 
+
+# summary:  Not significative, IBD patients are as  likely to have one
+# microorganism as the controls.
 # Test the prevalence between non controls at times T0, T26, T52 ####
-removeControls <- meta_i$IBD  == "CD"
+removeControls <- meta_i$IBD == "CD"
 removeTimes <- meta_i$Time %in% c("T0", "T26", "T52")
 keep <- removeControls & removeTimes
-res <- prevalence_tab(otus_table_i[, keep], meta_i[keep, ], 
-                      c("Time", "HSCT_responder"))
+res <- prevalence_tab(
+  otus_table_i[, keep], meta_i[keep, ],
+  c("Time", "HSCT_responder")
+)
 
 # Fisher test
 Time_Responder <- prevalence(res$presence, res$absence)
@@ -78,11 +101,11 @@ if (any(Time_Responder < 0.05)) {
   message("Plots!!")
 }
 
-# The presence of microorganisms thorough time is not different in the 
+# The presence of microorganisms thorough time is not different in the
 # overall patients
 
 # Test if the responders and the non responders behave differently along time
-# If the presence of microorganisms thorough time is different in responders 
+# If the presence of microorganisms thorough time is different in responders
 # than in non-responders ####
 otus <- comp(otus_table_i, meta_i)
 write.csv(otus, "otus_time.csv")
@@ -99,6 +122,7 @@ write.csv(class, "class_time.csv")
 phylum <- comp(phylum_i, meta_i)
 write.csv(phylum, "phylum_time.csv")
 
+
 # Bootstrapp while controlling by Time ####
 
 # # bootstrapping with 1000 replications
@@ -107,11 +131,11 @@ write.csv(phylum, "phylum_time.csv")
 #                 R = 1000,
 #                 meta = meta_i[removeControls, ], columns = "Time",
 #                 parallel = "multicore", ncpus = 4)
-# 
+#
 # # view results
 # results
 # plot(results)
-# 
+#
 # # get 95% confidence interval
 # boot.ci(results, type="bca")
 
