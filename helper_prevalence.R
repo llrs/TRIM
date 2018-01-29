@@ -32,7 +32,7 @@ prevalence <- function(presence, absence) {
 #' @return a list with the matrices of presence and absence
 prevalence_tab <- function(table, meta, columns) {
   stopifnot(all(colnames(table) == rownames(meta)))
-  prevalence <- sweep(table, 2, colSums(table, na.rm = TRUE), `/`) > 0.005
+  prevalence <- prop.table(as.matrix(table), 2) > 0.005
   subSets <- allComb(meta, columns)
   subSets[is.na(subSets)] <- FALSE
   totalSamples <- colSums(subSets, na.rm = TRUE)
@@ -313,7 +313,20 @@ response_time <- function(table_org, meta) {
   cbind(out, "T52vsC" = T52)
 }
 
+#' Look for prevalene in combinations of two
+#' 
+#' @param table is the data
+#' @param meta is the metadata
+#' @param columns is the columns to make comparisons from
+#' @return A table with all the pairwise comparisons
 comb_prevalence <- function(table, meta, columns) {
+  above <- rowSums(prop.table(as.matrix(table), 2) > 0.005)
+  
+  if (sum(above > 0) == 0) {
+    return(data.frame(0))
+  }
+  table <- table[above > 0, ]
+  
   out <- prevalence_tab(table, meta, columns)
   func <- function(x) {
     res <- prevalence(out$presence[, x], out$absence[, x])
