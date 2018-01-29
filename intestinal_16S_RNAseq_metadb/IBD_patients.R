@@ -115,6 +115,10 @@ expr <- norm_RNAseq(expr)
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
+A <- sapply(A, function(x){
+  x[, apply(x, 2, sd) != 0]
+}, simplify = FALSE)
+
 saveRDS(A, file = "TRIM_IBD.RDS")
 
 # The design
@@ -128,7 +132,7 @@ C <- subSymm(C, "RNAseq", "metadata", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.122747, 0, 1) # We guess a 0.5 for the RNAseq expression
+shrinkage <- c(0.122747, 0, 1) # We guess a 0.1 for the RNAseq expression
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))
@@ -149,6 +153,8 @@ sgcca.centroid <- sgcca(
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
+names(sgcca.centroid$AVE$AVE_X) <- names(A)
+sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
 
 sgcca.factorial <- sgcca(
   A, C, c1 = shrinkage,
@@ -160,6 +166,8 @@ sgcca.factorial <- sgcca(
 names(sgcca.factorial$Y) <- names(A)
 names(sgcca.factorial$a) <- names(A)
 names(sgcca.factorial$astar) <- names(A)
+names(sgcca.factorial$AVE$AVE_X) <- names(A)
+sgcca.factorial$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 sgcca.horst <- sgcca(
   A, C, c1 = shrinkage,
@@ -171,6 +179,8 @@ sgcca.horst <- sgcca(
 names(sgcca.horst$Y) <- names(A)
 names(sgcca.horst$a) <- names(A)
 names(sgcca.horst$astar) <- names(A)
+names(sgcca.horst$AVE$AVE_X) <- names(A)
+sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
@@ -417,6 +427,5 @@ save(STAB, file = "bootstrap_IBD.RData")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)
-
 
 dev.off()

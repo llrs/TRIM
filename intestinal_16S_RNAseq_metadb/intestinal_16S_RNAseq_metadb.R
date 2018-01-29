@@ -125,6 +125,9 @@ metadb[is.na(metadb)] <- 0
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
+A <- sapply(A, function(x){
+  x[, apply(x, 2, sd) != 0]
+}, simplify = FALSE)
 saveRDS(A, file = "TRIM.RDS")
 
 # The design

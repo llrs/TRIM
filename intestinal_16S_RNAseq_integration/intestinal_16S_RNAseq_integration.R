@@ -23,8 +23,6 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Load the input data
 expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
-expr <- expr[rowSums(expr) != 0, ]
-
 
 # Read the metadata for each type of sample
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
@@ -78,7 +76,10 @@ expr <- norm_RNAseq(expr)
 otus_table_i <- otus_table_i[rowSums(otus_table_i) > 0, ]
 
 # Prepare input for the sgcca function
-A <- list(RNAseq = t(expr), "16S" = t(otus_table_i))
+A <- list("RNAseq" = t(expr), "16S" = t(otus_table_i))
+A <- sapply(A, function(x){
+  x[, apply(x, 2, sd) != 0]
+}, simplify = FALSE)
 
 # The design
 C <- matrix(
@@ -90,7 +91,7 @@ C <- subSymm(C, "16S", "RNAseq", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.5, 0) # We guess a 0.5
+shrinkage <- c(0.1, 0) # We guess a 0.5
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))
