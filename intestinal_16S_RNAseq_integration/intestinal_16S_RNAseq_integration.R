@@ -80,6 +80,7 @@ A <- list("RNAseq" = t(expr), "16S" = t(otus_table_i))
 A <- sapply(A, function(x){
   x[, apply(x, 2, sd) != 0]
 }, simplify = FALSE)
+save(A, meta_i, file = "TRIM.RData")
 
 # The design
 C <- matrix(
@@ -112,6 +113,8 @@ sgcca.centroid <- sgcca(
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
+names(sgcca.centroid$AVE$AVE_X) <- names(A)
+sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
 
 sgcca.factorial <- sgcca(
   A, C, c1 = shrinkage,
@@ -123,6 +126,8 @@ sgcca.factorial <- sgcca(
 names(sgcca.factorial$Y) <- names(A)
 names(sgcca.factorial$a) <- names(A)
 names(sgcca.factorial$astar) <- names(A)
+names(sgcca.factorial$AVE$AVE_X) <- names(A)
+sgcca.factorial$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 sgcca.horst <- sgcca(
   A, C, c1 = shrinkage,
@@ -134,6 +139,8 @@ sgcca.horst <- sgcca(
 names(sgcca.horst$Y) <- names(A)
 names(sgcca.horst$a) <- names(A)
 names(sgcca.horst$astar) <- names(A)
+names(sgcca.horst$AVE$AVE_X) <- names(A)
+sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
