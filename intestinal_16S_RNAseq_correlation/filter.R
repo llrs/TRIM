@@ -74,3 +74,60 @@ heatmap.2(
   labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
   notecol = "black", notecex = 0.5
 )
+
+# Do the same but using the genes of the model with only IBD
+pre <- "../intestinal_16S_RNAseq_metadb"
+load(file.path(pre, "IBD.RData"))
+comp1 <- sgcca.centroid$a[["RNAseq"]][, 1]
+outliers <- comp1 != 0
+summary(outliers)
+
+cors <- readRDS("correlations.RDS")
+disease <- readRDS("correlations_IBD.RDS")
+controls <- readRDS("correlations_C.RDS")
+
+cors <- cors[, names(comp1)]
+
+library("org.Hs.eg.db")
+names(comp1) <- gsub("(.*)\\..*", "\\1", names(comp1))
+
+symbol <- mapIds(
+  org.Hs.eg.db, keys = names(comp1), keytype = "ENSEMBL",
+  column = "SYMBOL"
+)
+
+outliers[is.na(symbol)] <- FALSE
+
+
+a <- matrix(, ncol = ncol(cors[, outliers]), nrow = nrow(cors))
+a[abs(cors[, outliers]) >= 0.16] <- "*" # Significant threshold of 0.05
+heatmap.2(
+  cors[, outliers], main = "Correlation heatmap all: genes-genus",
+  xlab = "Genes", ylab = "Genus", scale = "none",
+  tracecol = "black", col = bluered(64), trace = "none",
+  labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
+  notecol = "black", notecex = 0.5
+)
+
+disease <- disease[, colnames(disease) %in% names(outliers)]
+a <- matrix(, ncol = ncol(disease[, outliers]), nrow = nrow(cors))
+a[abs(disease[, outliers]) >= 0.19] <- "*" # Significant threshold of 0.05
+heatmap.2(
+  disease[, outliers], main = "Correlation heatmap IBD: genes-genus",
+  xlab = "Genes", ylab = "Genus", scale = "none",
+  tracecol = "black", col = bluered(64), trace = "none",
+  labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
+  notecol = "black", notecex = 0.5
+)
+
+int <- intersect(colnames(controls), names(outliers))
+controls <- controls[, int]
+a <- matrix(, ncol = ncol(controls), nrow = nrow(cors))
+a[abs(controls[, outliers[int]]) >= 0.28] <- "*" # Significant threshold of 0.05
+heatmap.2(
+  controls[, outliers[int]], main = "Correlation heatmap controls: genes-genus",
+  xlab = "Genes", ylab = "Genus", scale = "none",
+  tracecol = "black", col = bluered(64), trace = "none",
+  labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
+  notecol = "black", notecex = 0.5
+)
