@@ -31,14 +31,13 @@ otus_tax_s <- taxonomy(tax_s, rownames(otus_table_s))
 # Load the input data
 expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 
-
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
 meta_s <- read.delim(
   file_meta_s, check.names = FALSE, row.names = 1,
   stringsAsFactors = FALSE
 )
-file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
+file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_complete.txt"
 meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
@@ -51,6 +50,66 @@ meta_r <- read.table(
 )
 colnames(meta_r) <- meta_r[1, ]
 meta_r <- meta_r[-1, ]
+
+
+pdf(paste0("Figures/", today, "_quality.pdf"))
+counts <- colSums(otus_table_i)
+counts_ord <- counts[order(counts)]
+code <- meta_i$Sample_Code
+names(code) <- rownames(meta_i)
+barplot(counts_ord, col = ifelse(grepl("w", code[names(counts_ord)]), "red", "black"),
+        main = "Total counts otus biopsies", xlab = "Samples", ylab = "counts",
+        border = NA)
+abline(h = 100000, col = "green")
+abline(h = 50000)
+
+o <- apply(otus_table_i, 2, function(x) sum(x != 0))
+p <- data.frame(OTUs = o, Abundance = counts)
+ggplot(p, aes(Abundance, OTUs)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  ggtitle("Biopsies") +
+  xlim(c(0, max(p$Abundance)))
+
+p2 <- cbind(p, meta_i[match(rownames(p), rownames(meta_i)), ])
+ggplot(p2[-88, ], aes(Abundance, OTUs)) +
+  geom_point(aes(col = Time)) +
+  geom_smooth() +
+  ggtitle("Biopsies", sub = "Removing outlier sample") +
+  xlim(c(0, max(p$Abundance[-88])))
+
+counts <- colSums(otus_table_s)
+counts_ord <- counts[order(counts)]
+barplot(counts_ord, col = "black",
+        main = "Total counts otus stools", xlab = "Samples", ylab = "counts",
+        border = NA)
+abline(h = 100000, col = "green")
+abline(h = 50000)
+
+o <- apply(otus_table_s, 2, function(x) sum(x != 0))
+p <- data.frame(OTUs = o, Abundance = counts)
+ggplot(p, aes(Abundance, OTUs)) +
+  geom_point() +
+  geom_smooth() +
+  ggtitle("Stools") +
+  xlim(c(0, max(p$Abundance)))
+
+counts <- colSums(expr)
+counts_ord <- counts[order(counts)]
+barplot(counts_ord, col = ifelse(grepl("w", names(counts)), "red", "black"),
+        main = "Total counts biopsies RNAseq", xlab = "Samples",
+        border = NA, ylab = "counts")
+abline(h = 100000, col = "green")
+abline(h = 50000)
+
+o <- apply(expr, 2, function(x) sum(x != 0))
+p <- data.frame(Genes = o, Abundance = counts)
+ggplot(p, aes(Abundance, Genes)) +
+  geom_point() +
+  geom_smooth() +
+  ggtitle("RNA")
+
+dev.off()
 
 # Reorder by patient and time
 meta_s <- meta_s[order(meta_s$Patient_ID, meta_s$Time), ]
