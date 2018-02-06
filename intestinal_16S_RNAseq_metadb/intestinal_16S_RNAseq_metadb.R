@@ -39,10 +39,10 @@ meta_r <- read.table(
 
 setwd(cd)
 
-# Normalize the RNA data
+# Normalize the RNA metadata
 meta_r <- meta_r_norm(meta_r)
 
-# Normalize the 16S intestinal
+# Normalize the 16S intestinal metadata
 meta_i <- meta_i_norm(meta_i)
 
 # Find the samples that we have microbiota and expression in the metadata
@@ -83,8 +83,22 @@ meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int2, ]
 expr <- expr[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
 
+# Normalize expression
+expr_edge <- edgeR::DGEList(expr)
+expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
+expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
+
 # Filter expression
-expr <- norm_RNAseq(expr)
+expr <- norm_RNAseq(expr_norm)
+
+# Normalize OTUS
+library("metagenomeSeq")
+MR_i <- newMRexperiment(
+  otus_table_i, 
+  featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
+)
+MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
 
 # Subset if all the rows are 0 and if sd is 0
 otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
@@ -162,6 +176,9 @@ sgcca.centroid <- sgcca(
 names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
+names(sgcca.centroid$AVE$AVE_X) <- names(A)
+sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
+sgcca.centroid$AVE
 
 sgcca.factorial <- sgcca(
   A, C, c1 = shrinkage,
@@ -217,7 +234,8 @@ fgsea(groups, microbiota2, nperm = 1000)
 pdf(paste0("Figures/", today, "_RGCCA_plots.pdf"))
 
 km <- kmeans(samples[, c("RNAseq", "microbiota")], 2, nstart = 2)
-plot(samples[, c("RNAseq", "microbiota")], col = km$cluster)
+plot(samples[, c("RNAseq", "microbiota")], col = km$cluster, 
+     main = "K-clustering (2 groups)")
 
 ## Plotting ####
 # Colors for the plots
@@ -402,7 +420,8 @@ if (length(rnaseq_i) >= 2) {
     geom_point() +
     xlab(paste("PC1", prS$importance[2, "PC1"] * 100)) +
     ylab(paste("PC2", prS$importance[2, "PC2"] * 100)) +
-    ggtitle("RNAseq PCA from the important variables")
+    ggtitle("RNAseq PCA from the important variables") +
+    guides(col = guide_legend(title = "Responders"))
 }
 
 micro_i <- subVariables$var[subVariables$Origin == "16S"]
@@ -413,7 +432,8 @@ if (length(micro_i) >= 2) {
     geom_point() +
     xlab(paste("PC1", prS$importance[2, "PC1"] * 100)) +
     ylab(paste("PC2", prS$importance[2, "PC2"] * 100)) +
-    ggtitle("16S PCA from the important variables")
+    ggtitle("16S PCA from the important variables") +
+    guides(col = guide_legend(title = "Responders"))
 }
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x) {

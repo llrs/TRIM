@@ -73,8 +73,6 @@ colnames(otus_table_i) <- gsub(
 expr <- expr[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
 
-# Subset if all the rows are 0 and if sd is 0
-otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 
 # Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them
 metadb <- meta_r
@@ -110,8 +108,25 @@ metadb <- metadb[, names(keepCol)]
 metadb <- apply(metadb, 1:2, as.numeric)
 metadb[is.na(metadb)] <- 0
 
+# Normalize expression
+expr_edge <- edgeR::DGEList(expr)
+expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
+expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
+
 # Filter expression
-expr <- norm_RNAseq(expr)
+expr <- norm_RNAseq(expr_norm)
+
+# Normalize OTUS
+library("metagenomeSeq")
+MR_i <- newMRexperiment(
+  otus_table_i, 
+  featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
+)
+MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
+
+# Subset if all the rows are 0 and if sd is 0
+otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
