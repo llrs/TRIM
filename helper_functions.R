@@ -359,6 +359,11 @@ meta_r_norm <- function(meta) {
   meta$Surgery[!is.na(meta$Treatment)] <- "NO"
   meta$Surgery[grep("Surgery", meta$Endoscopic_Activity)] <- "YES"
 
+  # Correct clinical scores (mainly for controls)
+  meta$SESCD_local[meta$IBD == "CONTROL"] <- 0
+  meta$SESCD_global[meta$IBD == "CONTROL"] <- 0
+  meta$CDAI[meta$IBD == "CONTROL"] <- 0
+
   # Add the date of the diagnosis
   strDates <- c(
     "13" = "15-feb-02", "14" = "15-jul-97", "15/23" = "15-jul-06",
