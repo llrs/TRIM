@@ -208,3 +208,49 @@ variables_weight <- function(comp) {
   print(p)
   invisible(p)
 }
+
+
+#' Check the efficacy of RGCCA
+#' 
+#' This function test some help from 
+#' \url{https://onlinecourses.science.psu.edu/stat505/node/68}
+#' Performs the wilks test on the model
+wilks_rgcca <- function(a, rgcca) {
+  stopifnot(length(a) == length(rgcca$Y))
+  cors <- lapply(names(a), function(x) {
+    cor(a[[x]], rgcca$Y[[x]])
+  })
+  m <- do.call(rbind, cors)
+  groups <- factor(rep(names(a), sapply(a, ncol)))
+  anova(lm(m[, 1] ~ groups), test = "Wilks")
+}
+
+#' Check the efficacy of RGCCA
+#' 
+#' This function test some help from 
+#' \url{https://onlinecourses.science.psu.edu/stat505/node/68}
+#' Performs the correlation between the original variables and the 
+#' resulting components (of each block). To check if the 
+cors_rgcca <- function(a, rgcca) {
+  l <- list()
+  for (i in seq_along(a)) {
+    l[[names(a)[i]]] <- list()
+    for (j in seq_along(a)) {
+      l[[names(a)[i]]][[names(a)[j]]] <- cor(a[[i]], rgcca$Y[[j]])
+    }
+  }
+  l
+}
+
+#' Calculate correlation and covariance between CCA dimensions
+cca_rgcca <- function(rgcca) {
+  l <- list()
+  for (i in seq_along(rgcca$Y)) {
+    l[[names(rgcca$Y)[i]]] <- list()
+    for (j in seq_along(rgcca$Y)) {
+      l[[names(rgcca$Y)[i]]][[names(rgcca$Y)[j]]] <- list("cor" = cor(rgcca$Y[[i]], rgcca$Y[[j]]),
+                                           "cov" = cov(rgcca$Y[[i]], rgcca$Y[[j]]))
+    }
+  }
+  l
+}
