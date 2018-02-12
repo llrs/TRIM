@@ -81,11 +81,41 @@ meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
 meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_r$ID <- as.factor(meta_r$ID)
 
+
+# Normalize expression
+expr_edge <- edgeR::DGEList(expr)
+expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
+expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
+
+# Filter expression
+expr <- norm_RNAseq(expr_norm)
+
+# Normalize OTUS
+library("metagenomeSeq")
+MR_i <- newMRexperiment(
+  otus_table_i
+)
+MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
+
+MR_s <- newMRexperiment(
+  otus_table_s
+)
+MR_s <- cumNorm(MR_s, metagenomeSeq::cumNormStat(MR_s))
+otus_table_s <- MRcounts(MR_s, norm = TRUE, log = TRUE)
+
+# Subset if all the rows are 0 and if sd is 0
+otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
+otus_table_i <- otus_table_i[rowSums(otus_table_i) != 0, ]
+
+# Subset if all the rows are 0 and if sd is 0
+otus_table_s <- otus_table_s[apply(otus_table_s, 1, sd) != 0, ]
+otus_table_s <- otus_table_s[rowSums(otus_table_s) != 0, ]
+
 # Make PCAs
 pca_s <- prcomp(t(otus_table_s), scale. = TRUE)
 pca_s_x <- as.data.frame(pca_s$x)
 pca_s_var <- round(summary(pca_s)$importance[2, ] * 100, digits = 2)
-
 
 # Define colors
 colors_i <- colors
