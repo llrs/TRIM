@@ -35,7 +35,13 @@ MR_s <- newMRexperiment(
   phenoData = AnnotatedDataFrame(meta_s),
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_s))
 )
-genus_s <- aggTax(MR_s, lvl = "Species", out = "matrix")
+
+genus_i <- aggTax(MR_s, lvl = "Genus", out = "matrix")
+species_i <- aggTax(MR_s, lvl = "Species", out = "matrix")
+family_i <- aggTax(MR_s, lvl = "Family", out = "matrix")
+order_i <- aggTax(MR_s, lvl = "Order", out = "matrix")
+class_i <- aggTax(MR_s, lvl = "Class", out = "matrix")
+phylum_i <- aggTax(MR_s, lvl = "Phylum", out = "matrix")
 
 pdf(paste0("Figures/", today, "_ratios_plots.pdf"))
 
@@ -49,140 +55,56 @@ meta_s$ID[meta_s$Patient_ID %in% c("33", "36")] <- "33/36"
 meta_s$ID[meta_s$Patient_ID %in% c("29", "35")] <- "29/35"
 meta_s$ID <- as.factor(meta_s$ID)
 
-# Test the prevalence between controls and non controls ####
-res <- prevalence_tab(otus_table_s, meta_s, "Controls")
-
-# Fisher test
-Disease <- prevalence(res$presence, res$absence)
-Disease[is.na(Disease)] <- 1
-Disease <- p.adjust(Disease, "BH")
-
-# summary:  Not significative, IBD patients are as  likely to have one
-# microorganism as the controls.
-
-# Differences between responders and non responders at time 0
-removeControls <- meta_s$Controls == "NO"
-removeTimes <- meta_s$Time == "T0"
-keep <- removeControls & removeTimes
-res <- prevalence_tab(otus_table_s[, keep], meta_s[keep, ], "HSCT_responder")
-
-# Fisher test
-T0 <- prevalence(res$presence, res$absence)
-T0[is.na(T0)] <- 1
-T0 <- p.adjust(T0, "BH")
-
-any(T0 < 0.05)
-
-# Differences between responders and non responders at time T26 ##
-removeControls <- meta_s$Controls == "NO"
-removeTimes <- meta_s$Time == "T26"
-keep <- removeControls & removeTimes
-res <- prevalence_tab(otus_table_s[, keep], meta_s[keep, ], "HSCT_responder")
-
-# Fisher test
-T26 <- prevalence(res$presence, res$absence)
-T26[is.na(T26)] <- 1
-T26 <- p.adjust(T26, "BH")
-
-any(T26 < 0.05)
-
-# Differences between responders and non responders at time T52 ##
-removeControls <- meta_s$Controls == "NO"
-removeTimes <- meta_s$Time == "T52"
-keep <- removeControls & removeTimes
-res <- prevalence_tab(otus_table_s[, keep], meta_s[keep, ], "HSCT_responder")
-
-# Fisher test
-T52 <- prevalence(res$presence, res$absence)
-T52[is.na(T52)] <- 1
-T52 <- p.adjust(T52, "BH")
-
-any(T52 < 0.05)
-
-# Test the prevalence between non controls at times T0, T26, T52 ####
-removeControls <- meta_s$Controls == "NO"
-removeTimes <- meta_s$Time %in% c("T0", "T26", "T52")
-keep <- removeControls & removeTimes
-prevalence_d <- sweep(otus_table_s[, keep], 2, colSums(otus_table_s[, keep]), `/`) > 0.005
-subSets <- allComb(meta_s[keep, ], c("Time", "HSCT_responder"))
-totalSamples <- colSums(subSets)
-subSets <- subSets[, totalSamples >= 1]
-totalSamples <- totalSamples[totalSamples >= 1]
-presence <- prevalence_d %*% subSets
-totalSamplesm <- matrix(
-  totalSamples, nrow = nrow(presence),
-  byrow = TRUE, ncol = ncol(presence)
-)
-absence <- totalSamplesm - presence
-
-# Fisher test
-IBD_Time <- prevalence(presence, absence)
-
-# Remove and adjust
-IBD_Time[is.na(IBD_Time)] <- 1
-IBD_Time <- p.adjust(IBD_Time, "BH")
-
-if (any(IBD_Time < 0.05)) {
-  message("Plots!!")
-}
-# The presence of microorganisms thorough time is not different in the
-# overall patients
-
-# Test if the responders and the non responders behave differently along time
-# If the presence of microorganisms thorough time is different in responders
-# than in non-responders ####
-removeControls <- meta_s$Controls == "NO"
-keepResponders <- meta_s$HSCT_responder[removeControls] == "YES"
-keepNonResponders <- meta_s$HSCT_responder[removeControls] == "NO"
-wocontrols <- otus_table_s[, removeControls]
-
-subSets <- allComb(meta_s[removeControls, ][keepResponders, ], c("Time"))
-totalSamples <- colSums(subSets)
-subSets <- subSets[, totalSamples >= 1]
-totalSamples <- totalSamples[totalSamples >= 1]
-
-prevalence_d <- sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005
-
-presence <- prevalence[, keepResponders] %*% subSets
-totalSamplesm <- matrix(
-  totalSamples, nrow = nrow(presence),
-  byrow = TRUE, ncol = ncol(presence)
-)
-absence <- totalSamplesm - presence
-
-# Fisher test
-responders <- prevalence(presence, absence)
 
 
-subSets <- allComb(meta_s[removeControls, ][keepNonResponders, ], c("Time"))
-totalSamples <- colSums(subSets)
-subSets <- subSets[, totalSamples >= 1]
-totalSamples <- totalSamples[totalSamples >= 1]
+## Time ####
+otus <- comb_prevalence(otus_table_s, meta_s, c("Time"))
+write.csv(otus, "prevalence_time_otus.csv")
+genus <- comb_prevalence(genus_i, meta_s, c("Time"))
+write.csv(genus, "prevalence_time_genus.csv")
+species <- comb_prevalence(species_i, meta_s, c("Time"))
+write.csv(species, "prevalence_time_species.csv")
+family <- comb_prevalence(family_i, meta_s, c("Time"))
+write.csv(family, "prevalence_time_family.csv")
+order <- comb_prevalence(order_i, meta_s, c("Time"))
+write.csv(order, "prevalence_time_order.csv")
+class <- comb_prevalence(class_i, meta_s, c("Time"))
+write.csv(class, "prevalence_time_class.csv")
+phylum <- comb_prevalence(phylum_i, meta_s, c("Time"))
+write.csv(phylum, "prevalence_time_phylum.csv")
 
-presence <- prevalence_d[, keepNonResponders] %*% subSets
-totalSamplesm <- matrix(
-  totalSamples, nrow = nrow(presence),
-  byrow = TRUE, ncol = ncol(presence)
-)
-absence <- totalSamplesm - presence
+# Responders
+otus <- comb_prevalence(otus_table_s, meta_s, c("HSCT_responder"))
+write.csv(otus, "prevalence_otus.csv")
+genus <- comb_prevalence(genus_i, meta_s, c("HSCT_responder"))
+write.csv(genus, "prevalence_genus_i.csv")
+species <- comb_prevalence(species_i, meta_s, c("HSCT_responder"))
+write.csv(species, "prevalence_species.csv")
+family <- comb_prevalence(family_i, meta_s, c("HSCT_responder"))
+write.csv(family, "prevalence_family.csv")
+order <- comb_prevalence(order_i, meta_s, c("HSCT_responder"))
+write.csv(order, "prevalence_order.csv")
+class <- comb_prevalence(class_i, meta_s, c("HSCT_responder"))
+write.csv(class, "prevalence_class.csv")
+phylum <- comb_prevalence(phylum_i, meta_s, c("HSCT_responder"))
+write.csv(phylum, "prevalence_phylum.csv")
 
-# Fisher test
-nonResponders <- prevalence(presence, absence)
+# Responders Time
+otus <- comb_prevalence(otus_table_s, meta_s, c("HSCT_responder", "Time"))
+write.csv(otus, "prevalence_response_time_otus.csv")
+genus <- comb_prevalence(genus_i, meta_s, c("HSCT_responder", "Time"))
+write.csv(genus, "prevalence_response_time_genus_i.csv")
+species <- comb_prevalence(species_i, meta_s, c("HSCT_responder", "Time"))
+write.csv(species, "prevalence_response_time_species.csv")
+family <- comb_prevalence(family_i, meta_s, c("HSCT_responder", "Time"))
+write.csv(family, "prevalence_response_time_family.csv")
+order <- comb_prevalence(order_i, meta_s, c("HSCT_responder", "Time"))
+write.csv(order, "prevalence_response_time_order.csv")
+class <- comb_prevalence(class_i, meta_s, c("HSCT_responder", "Time"))
+write.csv(class, "prevalence_response_time_class.csv")
+phylum <- comb_prevalence(phylum_i, meta_s, c("HSCT_responder", "Time"))
+write.csv(phylum, "prevalence_response_time_phylum.csv")
 
-
-# Bootstrapp while controlling by Time ####
-# bootstrapping with 1000 replications
-# results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005),
-#                 statistic = ratio,
-#                 R = 1000,
-#                 meta = meta_s[removeControls, ], columns = "Time",
-#                 parallel = "multicore", ncpus = 4)
-#
-# # view results
-# results
-# plot(results)
-#
-# # get 95% confidence interval
-# boot.ci(results, type="bca")
+# No need to test for different locations :D
 
 dev.off()
