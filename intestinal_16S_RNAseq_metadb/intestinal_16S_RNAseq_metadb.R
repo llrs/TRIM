@@ -155,7 +155,7 @@ C <- subSymm(C, "RNAseq", "metadata", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.122747, 0, 1) # We guess a 0.1 for the RNAseq expression
+shrinkage <- c(0.25670333, 0, 1) # We guess a 0.1 for the RNAseq expression
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))
@@ -208,7 +208,8 @@ save(sgcca.centroid, file = "sgcca.RData")
 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
-  "microbiota" = sgcca.centroid$Y[["16S"]][, 1]
+  "microbiota" = sgcca.centroid$Y[["16S"]][, 1],
+  "metadata" = sgcca.centroid$Y[["metadata"]][, 1]
 )
 
 

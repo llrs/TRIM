@@ -147,7 +147,7 @@ C <- subSymm(C, "RNAseq", "metadata", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.122747, 0, 1) # We guess a 0.1 for the RNAseq expression
+shrinkage <- c(0.25670333, 0, 1) # We guess a 0.1 for the RNAseq expression
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))
@@ -203,7 +203,8 @@ save(sgcca.centroid, file = "IBD.RData")
 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
-  "microbiota" = sgcca.centroid$Y[["16S"]][, 1]
+  "microbiota" = sgcca.centroid$Y[["16S"]][, 1],
+  "metadata" = sgcca.centroid$Y[["metadata"]][, 1]
 )
 
 
@@ -408,6 +409,7 @@ if (length(rnaseq_i) >= 2) {
   prS <- summary(pr)
   ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
     geom_point() +
+    guides(col = guide_legend(title = "Responder")) +
     xlab(paste("PC1", prS$importance[2, "PC1"] * 100)) +
     ylab(paste("PC2", prS$importance[2, "PC2"] * 100)) +
     ggtitle("RNAseq PCA from the important variables")
@@ -419,6 +421,7 @@ if (length(micro_i) >= 2) {
   prS <- summary(pr)
   ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
     geom_point() +
+    guides(col = guide_legend(title = "Responder")) +
     xlab(paste("PC1", prS$importance[2, "PC1"] * 100)) +
     ylab(paste("PC2", prS$importance[2, "PC2"] * 100)) +
     ggtitle("16S PCA from the important variables")
