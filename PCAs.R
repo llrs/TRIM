@@ -45,41 +45,9 @@ colnames(meta_r) <- meta_r[1, ]
 meta_r <- meta_r[-1, ]
 
 # Clean the metadata
-meta_i$Active_area[meta_i$Active_area == ""] <- NA
-meta_i <- meta_i[, apply(meta_i, 2, function(x) {
-  length(unique(x)) != 1
-})]
-meta_i$Active_area[meta_i$Active_area == ""] <- NA
-meta_i$ID <- meta_i$Patient_ID
-meta_i$ID[meta_i$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_i$ID[meta_i$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_i$ID[meta_i$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_i$ID <- as.factor(meta_i$ID)
-# There is a mislabeling on those tubes, we don't know which is which
-meta_i$CD_Aftected_area[meta_i$Sample_Code == "22_T52_T_DM_III"] <- NA
-
-
-# Clean the metadata
-meta_s <- meta_s[, apply(meta_s, 2, function(x) {
-  length(unique(x)) != 1
-})]
-meta_s$ID <- meta_s$Patient_ID
-meta_s$ID[meta_s$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_s$ID[meta_s$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_s$ID[meta_s$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_s$ID <- as.factor(meta_s$ID)
-
-# Clean the metadata
-meta_r$Active_area[meta_r$Active_area == ""] <- NA
-meta_r <- meta_r[, apply(meta_r, 2, function(x) {
-  length(unique(x)) != 1
-})]
-meta_r$Active_area[meta_r$Active_area == ""] <- NA
-meta_r$ID <- meta_r$Patient_ID
-meta_r$ID[meta_r$Patient_ID %in% c("15", "23")] <- "15/23"
-meta_r$ID[meta_r$Patient_ID %in% c("33", "36")] <- "33/36"
-meta_r$ID[meta_r$Patient_ID %in% c("29", "35")] <- "29/35"
-meta_r$ID <- as.factor(meta_r$ID)
+meta_i <- meta_i_norm(meta_i)
+meta_s <- meta_s_norm(meta_s)
+meta_r <- meta_r_norm(meta_r)
 
 
 # Normalize expression
