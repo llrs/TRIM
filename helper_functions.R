@@ -36,10 +36,15 @@ taxonomy <- function(taxonomy, otus) {
   taxonomy <- sapply(taxonomy, strsplit, split = ";")
   names(taxonomy) <- otus
   otus_tax <- t(sapply(taxonomy, "[", seq(max(sapply(taxonomy, length)))))
-  colnames(otus_tax) <- c(
-    "Domain", "Phylum", "Class", "Order",
-    "Family", "Genus", "Species"
-  )
+  if (ncol(otus_tax) == 7) {
+    colnames(otus_tax) <- c(
+      "Domain", "Phylum", "Class", "Order",
+      "Family", "Genus", "Species")
+  } else if (ncol(otus_tax) == 6 ) {
+    colnames(otus_tax) <- c(
+      "Domain", "Phylum", "Class", "Order",
+      "Family", "Genus") 
+  }
   # Remove spaces
   otus_tax <- apply(otus_tax, 1:2, sub, pattern = "\\s", replacement = "")
   otus_tax <- apply(otus_tax, 1:2, sub, pattern = "[;:]", replacement = "")
@@ -363,7 +368,9 @@ meta_r_norm <- function(meta) {
   meta$SESCD_local[meta$IBD == "CONTROL"] <- 0
   meta$SESCD_global[meta$IBD == "CONTROL"] <- 0
   meta$CDAI[meta$IBD == "CONTROL"] <- 0
-
+  meta$DiagDate[meta$IBD == "CONTROL"] <- 0
+  meta$Transplant[meta$IBD == "CONTROL"] <- "Baseline"
+  
   # Add the date of the diagnosis
   strDates <- c(
     "13" = "15-feb-02", "14" = "15-jul-97", "15/23" = "15-jul-06",
@@ -383,6 +390,9 @@ meta_r_norm <- function(meta) {
   diagTime <- as.numeric(diagTime / 365)
   diagTime[is.na(diagTime)] <- 0 # If no diagnosis (controls) set to 0
   meta <- cbind(meta, diagTime)
+  AgeDiag <- as.numeric(dates[o] - 
+                as.Date(meta$Birth_date, "%d/%m/%Y"))/365.25
+  meta <- cbind(meta, "AgeDiag" = AgeDiag)
 
   return(meta)
 }
