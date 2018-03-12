@@ -1,8 +1,7 @@
 cd <- setwd("..")
 
 # Load the helper file
-source("helper_functions.R")
-source("helper_RGCCA.R")
+library("integration")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"

@@ -1,7 +1,8 @@
 cd <- setwd("..")
 
 # Load the helper file
-source("helper_functions.R")
+library("integration")
+
 # Read files
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
 otus_s <- read.csv(file = "stools_16S/otus_coherent.csv")

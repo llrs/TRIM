@@ -1,5 +1,5 @@
 
-source("../helper_functions.R")
+library("integration")
 
 # Load data of correlations
 cors <- readRDS("correlations.RDS")

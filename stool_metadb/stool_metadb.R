@@ -2,7 +2,7 @@ cd <- setwd("..")
 
 stool <- "stools_16S"
 
-source("helper_functions.R")
+library("integration")
 
 
 # Read the stools OTUs

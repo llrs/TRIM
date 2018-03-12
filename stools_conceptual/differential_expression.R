@@ -2,7 +2,8 @@ library("metagenomeSeq")
 library("phyloseq")
 
 wd <- setwd("..")
-source("helper_functions.R")
+library("integration")
+
 stool <- "stools_16S"
 # Read the stools OTUs
 otus_table_s <- read.delim(

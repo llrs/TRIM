@@ -2,12 +2,11 @@
 wd <- setwd("..")
 
 # Load the helper file
-source("helper_functions.R")
+library("integration")
 
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
-source("helper_functions.R")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(
@@ -160,6 +159,6 @@ write.csv(enrich, file = "Otus_genus_enrichment_IBD.csv")
 # GSEA
 comp1 <- sgcca.centroid$a[["16S"]][, 1]
 
-gseaSizeEffect <- fgsea(grouping, comp1, nperm = 20000)
+gseaSizeEffect <- fgsea(grouping, comp1, nperm = 10000)
 data.table::setorder(gseaSizeEffect, -NES, padj, -size)
 fwrite(gseaSizeEffect[pval < 0.05], file = "gsea_otus_genus_IBD.csv")

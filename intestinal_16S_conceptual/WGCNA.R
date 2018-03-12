@@ -1,5 +1,5 @@
 wd <- setwd("..")
-source("helper_functions.R")
+library("integration")
 intestinal <- "intestinal_16S"
 
 # Read the intestinal otus table

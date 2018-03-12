@@ -2,7 +2,7 @@ intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
 
-source("helper_functions.R")
+library("integration")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(
@@ -49,14 +49,13 @@ meta_i <- meta_i_norm(meta_i)
 meta_s <- meta_s_norm(meta_s)
 meta_r <- meta_r_norm(meta_r)
 
-
 # Normalize expression
 expr_edge <- edgeR::DGEList(expr)
 expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
 expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
-
+expr <- expr_norm - apply(expr_norm, 1, median)
 # Filter expression
-expr <- norm_RNAseq(expr_norm)
+# expr <- norm_RNAseq(expr_norm)
 
 # Normalize OTUS
 library("metagenomeSeq")
@@ -183,10 +182,8 @@ ggplot(pcai) +
 
 
 # PCA intestinal RNAseq with Barcelona
-# Filter expression
-expr <- norm_RNAseq(expr)
 
-pca_ir <- prcomp(t(expr), scale. = TRUE)
+pca_ir <- prcomp(t(expr), scale. = FALSE)
 pca_ir_x <- as.data.frame(pca_ir$x)
 pca_ir_var <- round(summary(pca_ir)$importance[2, ] * 100, digits = 2)
 

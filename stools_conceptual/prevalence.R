@@ -3,8 +3,7 @@ library("boot")
 library("metagenomeSeq")
 
 wd <- setwd("..")
-source("helper_functions.R")
-source("helper_prevalence.R")
+library("integration")
 
 stool <- "stools_16S"
 # Read the stools OTUs

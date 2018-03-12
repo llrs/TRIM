@@ -1,7 +1,7 @@
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
-source("helper_functions.R")
+library("integration")
 library("SummarizedExperiment")
 
 # Read the intestinal otus table
@@ -59,11 +59,14 @@ code <- meta_i$Sample_Code
 names(code) <- rownames(meta_i)
 barplot(counts_ord, col = ifelse(grepl("w", code[names(counts_ord)]), "red", "black"),
         main = "Total counts otus biopsies", xlab = "Samples", ylab = "counts",
-        border = NA)
-abline(h = 100000, col = "green")
-abline(h = 50000)
+        border = NA, 
+        sub = paste(round(sum(counts_ord < 10000)/length(counts_ord)*100), "%"))
+abline(h = 10000, col = "green")
+abline(h = mean(counts), col = "orange")
+abline(h = 25000)
 
 o <- apply(otus_table_i, 2, function(x) sum(x != 0))
+mean(o)
 p <- data.frame(OTUs = o, Abundance = counts)
 ggplot(p, aes(Abundance, OTUs)) +
   geom_point() +
@@ -84,6 +87,7 @@ barplot(counts_ord, col = "black",
         main = "Total counts otus stools", xlab = "Samples", ylab = "counts",
         border = NA)
 abline(h = 100000, col = "green")
+abline(h = mean(counts), col = "orange")
 abline(h = 50000)
 
 o <- apply(otus_table_s, 2, function(x) sum(x != 0))
@@ -100,6 +104,7 @@ barplot(counts_ord, col = ifelse(grepl("w", names(counts)), "red", "black"),
         main = "Total counts biopsies RNAseq", xlab = "Samples",
         border = NA, ylab = "counts")
 abline(h = 100000, col = "green")
+abline(h = mean(counts), col = "orange")
 abline(h = 50000)
 
 o <- apply(expr, 2, function(x) sum(x != 0))

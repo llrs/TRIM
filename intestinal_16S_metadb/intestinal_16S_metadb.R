@@ -2,7 +2,7 @@ cd <- setwd("..")
 
 intestinal <- "intestinal_16S"
 
-source("helper_functions.R")
+library("integration")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(

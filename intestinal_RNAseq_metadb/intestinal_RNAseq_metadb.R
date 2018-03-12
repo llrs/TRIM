@@ -2,7 +2,7 @@ cd <- setwd("..")
 
 rna <- "intestinal_RNAseq"
 
-source("helper_functions.R")
+library("integration")
 
 # Read the intestinal RNAseq table
 

@@ -1,7 +1,7 @@
 cd <- setwd("..")
 
 # Load the helper file
-source("helper_functions.R")
+library("integration")
 
 intestinal <- "intestinal_16S"
 
