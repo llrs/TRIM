@@ -18,7 +18,7 @@ out_files=meta_coherent.csv \
 					equivalent_genus.csv
 
 .PHONY: all STATegRa eqSpecies eqGenus ileum_integration colon_integration PCA \
-stools_prevalence intestinal_prevalence prevalence
+stools_prevalence intestinal_prevalence prevalence upset
 
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
@@ -124,5 +124,11 @@ prevalence: intestinal_prevalence stools_prevalence
 # Analyse the data with PCA taking into account the categories
 Deconvolute: stool_metadb intestinal_RNAseq_metadb intestinal_16S_metadb
 
+upset: upset.R $(pre-files)
+	@echo "Making upset plots"
+	R CMD BATCH $(R_OPTS) $(<F)
+	
 clean:
 	find . -name "*.Rout" -type f -delete
+	find . -name "*gsea*.csv" -type f -delete
+	find . -name "*enrichment*.csv" -type f -delete
