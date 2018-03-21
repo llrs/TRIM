@@ -2,6 +2,7 @@ cd <- setwd("..")
 
 # Load the helper file
 library("integration")
+library("ppcor")
 
 intestinal <- "intestinal_16S"
 
@@ -25,7 +26,7 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 # Load the input data
 rna <- "intestinal_RNAseq"
 expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
-file_meta_r <- file.path(rna, "111217_metadata.csv")
+file_meta_r <- file.path(rna, "metadata_13032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -48,6 +49,11 @@ genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
 # Correct metadata
 meta_i <- meta_i_norm(meta_i)
 meta_r <- meta_r_norm(meta_r)
+
+# Correct the swapped samples
+position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
+              grep("33-T52-TTR-IIA", colnames(expr)))
+colnames(expr)[position] <- rev(position)
 
 # Find the samples that we have microbiota and expression
 int <- intersect(
@@ -80,46 +86,61 @@ expr <- expr[apply(expr, 1, sd) != 0, ]
 abundance <- 0.005 # 0.5%
 
 ## All samples ####
-# Filter by abundance at 0.5%
-a <- prop.table(genus_i, 2)
-b <- rowSums(a > abundance)
+#' Correlation matrix
+#' 
+#' Calculates the correlation between genus at 0.005
+#' @param x The genus table
+#' @param y the expression matrix
+#' @param label The label of the correlation
+#' @param abundance The proportion below to filter out
+#' @return A file of correlations
+cor2 <- function(x, y, label, abundance = 0.005){
+  genus_i <- x
+  expr <- y
+  
+  # Filter by those which have variation
+  genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
+  expr <- expr[apply(expr, 1, sd) != 0, ]
+  
+    # Filter by abundance at 0.5%
+  a <- prop.table(genus_i, 2)
+  b <- rowSums(a > abundance)
+  
+  genus_i <- genus_i[b != 0, ]
+  # Correlate
+  dat <- cbind(t(genus_i), t(expr))
+  p <- cor(dat, "spearman")
+  # Subset to only between microbiota and RNAseq
+  # p$estimates <- p$estimates[rownames(genus_i), rownames(expr)]
+  # p$p.value <- p$p.value[rownames(genus_i), rownames(expr)]
+  # p$statistic <- p$statistic[rownames(genus_i), rownames(expr)]
+  
+  saveRDS(p, file = paste0("correlations_", label, ".RDS"))
+}
+ncol(expr)
+cor2(genus_i, expr, "all")
 
-genus_i <- genus_i[b != 0, ]
-# Correlate
-p <- cor(t(genus_i), t(expr))
-saveRDS(p, file = "correlations.RDS")
+keep <- meta_r$IBD == "CD"
+sum(keep)
+cor_sign(sum(keep))
+cor2(genus_i[, keep], expr[, keep], "CD")
 
-## All IBD ####
-disease_i <- genus_i[, meta_r$IBD == "CD"]
-disease_r <- expr[, meta_r$IBD == "CD"]
+keep <-  meta_r$IBD == "CONTROL"
+sum(keep)
+cor_sign(sum(keep))
+cor2(genus_i[, keep], expr[, keep], "Controls")
 
-disease_i <- disease_i[apply(disease_i, 1, sd) != 0, ]
-disease_r <- disease_r[apply(disease_r, 1, sd) != 0, ]
+keep <-  meta_r$IBD == "CD" & meta_r$Time == "T0"
+sum(keep)
+cor_sign(sum(keep))
+cor2(genus_i[, keep], expr[, keep], "CD_T0")
 
-# Filter by abundance at 0.5%
-a <- prop.table(disease_i, 2)
-b <- rowSums(a > abundance)
+keep <-  meta_r$IBD == "CD" & meta_r$Time == "T26"
+sum(keep)
+cor_sign(sum(keep))
+cor2(genus_i[, keep], expr[, keep], "CD_T26")
 
-disease_i <- disease_i[b != 0, ]
-
-# Correlate
-p <- cor(t(disease_i), t(disease_r))
-saveRDS(p, file = "correlations_IBD.RDS")
-
-
-## All Controls ####
-disease_i <- genus_i[, meta_r$IBD == "CONTROL"]
-disease_r <- expr[, meta_r$IBD == "CONTROL"]
-
-disease_i <- disease_i[apply(disease_i, 1, sd) != 0, ]
-disease_r <- disease_r[apply(disease_r, 1, sd) != 0, ]
-
-# Filter by abundance at 0.5%
-a <- prop.table(disease_i, 2)
-b <- rowSums(a > abundance)
-
-disease_i <- disease_i[b != 0, ]
-
-# Correlate
-p <- cor(t(disease_i), t(disease_r))
-saveRDS(p, file = "correlations_C.RDS")
+keep <-  meta_r$IBD == "CD" & meta_r$Time == "T52"
+sum(keep)
+cor_sign(sum(keep))
+cor2(genus_i[, keep], expr[, keep], "CD_T52")
