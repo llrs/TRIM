@@ -24,6 +24,11 @@ otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 # Load the RNAseq
 expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
 
+# Correct the swapped samples
+position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
+              grep("33-T52-TTR-IIA", colnames(expr)))
+colnames(expr)[position] <- rev(position)
+
 colnames(expr) <- toupper(colnames(expr))
 
 # Read the metadata for each type of sample
@@ -38,7 +43,7 @@ meta_i <- read.delim(
   stringsAsFactors = FALSE
 )
 
-file_meta_r <- file.path(rna, "111217_metadata.csv")
+file_meta_r <- file.path(rna, "metadata_13032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
