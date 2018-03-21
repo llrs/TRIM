@@ -27,30 +27,42 @@ setwd(wd)
 # Do the biological analysis of all the samples
 load("bootstrap.RData", verbose = TRUE)
 load("sgcca.RData", verbose = TRUE)
+write.csv(weights(sgcca.centroid), file = "RNAseq_weight_all.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_all.csv", na = "")
 biological_relationships(sgcca.centroid, STAB, "all", otus_tax_i, epithelium)
 
 # Controls
 load("bootstrap_Controls.RData", verbose = TRUE)
 load("Controls.RData", verbose = TRUE)
+write.csv(weights(sgcca.centroid), file = "RNAseq_weight_controls.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_controls.csv", na = "")
 biological_relationships(sgcca.centroid, STAB, "controls", otus_tax_i, epithelium)
 
 
 # IBD
 load("bootstrap_IBD.RData", verbose = TRUE)
 load("IBD.RData", verbose = TRUE)
+write.csv(weights(sgcca.centroid), file = "RNAseq_weight_IBD.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_IBD.csv", na = "")
 biological_relationships(sgcca.centroid, STAB, "IBD", otus_tax_i, epithelium)
 
 # T0
 load("bootstrap_IBD_T0.RData", verbose = TRUE)
 load("IBD_T0.RData", verbose = TRUE)
+write.csv(weights(sgcca.centroid), file = "RNAseq_weight_IBD_T0.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_T0.csv", na = "")
 biological_relationships(sgcca.centroid, STAB, "T0", otus_tax_i, epithelium)
 
 # T26
 load("bootstrap_IBD_T26.RData", verbose = TRUE)
 load("IBD_T26.RData", verbose = TRUE)
+write.csv(weights(sgcca.centroid), file = "RNAseq_weight_IBD_T26.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_T26.csv", na = "")
 biological_relationships(sgcca.centroid, STAB, "T26", otus_tax_i, epithelium)
 
 # T52
 load("bootstrap_IBD_T52.RData", verbose = TRUE)
 load("IBD_T52.RData", verbose = TRUE)
+write.csv(weights(sgcca.centroid), file = "RNAseq_weight_IBD_T52.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_T52.csv", na = "")
 biological_relationships(sgcca.centroid, STAB, "T52", otus_tax_i, epithelium)
