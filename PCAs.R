@@ -35,7 +35,7 @@ meta_i <- read.delim(
   stringsAsFactors = FALSE
 )
 
-file_meta_r <- file.path(rna, "111217_metadata.csv")
+file_meta_r <- file.path(rna, "metadata_13032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -43,6 +43,12 @@ meta_r <- read.table(
 )
 colnames(meta_r) <- meta_r[1, ]
 meta_r <- meta_r[-1, ]
+
+# Correct the swapped samples
+position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
+              grep("33-T52-TTR-IIA", colnames(expr)))
+colnames(expr)[position] <- rev(position)
+
 
 # Clean the metadata
 meta_i <- meta_i_norm(meta_i)

@@ -42,7 +42,7 @@ meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
 )
-file_meta_r <- file.path(rna, "111217_metadata.csv")
+file_meta_r <- file.path(rna, "metadata_13032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -50,6 +50,11 @@ meta_r <- read.table(
 )
 colnames(meta_r) <- meta_r[1, ]
 meta_r <- meta_r[-1, ]
+
+# Correct the swapped samples
+position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
+              grep("33-T52-TTR-IIA", colnames(expr)))
+colnames(expr)[position] <- rev(position)
 
 
 pdf(paste0("Figures/", today, "_quality.pdf"))
