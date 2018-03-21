@@ -1,8 +1,8 @@
 cd <- setwd("..")
+library("ggforce")
 
 # Load the helper file
-source("helper_functions.R")
-source("helper_RGCCA.R")
+library("integration")
 
 library("fgsea")
 
@@ -30,7 +30,7 @@ meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
 )
-file_meta_r <- file.path(rna, "111217_metadata.csv")
+file_meta_r <- file.path(rna, "metadata_13032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -38,6 +38,12 @@ meta_r <- read.table(
 )
 
 setwd(cd)
+
+# Correct the swapped samples
+position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
+              grep("33-T52-TTR-IIA", colnames(expr)))
+colnames(expr)[position] <- rev(position)
+
 
 # Normalize the RNA metadata
 meta_r <- meta_r_norm(meta_r)
@@ -108,17 +114,20 @@ metadb <- meta_r
 keepCol <- sapply(metadb, is.factor)
 nam <- c(
   "Exact_location", # Segment of the sample
-  "Active_area", # Health stage of the sample
+  # superseeded by SESCD 
+  # "Active_area", # Health stage of the sample
   "IBD", # Disease or control
   "AGE_SAMPLE", # Age
   "diagTime", # Time with disease
+  # Not really needed induced by diagTime and age sample
+  "AgeDiag", # Age at which the disease was diagnositcated
   "Transplant", # Stage of the treatment
   "ID", # Patient
-  "HSCT_responder", # Responder/nonResponder
-  "Treatment", # Furthere complications
+  "SESCD_local", # Clinical score
+  "Treatment", # Further complications
   "Surgery", # Up to surgery?
-  "SEX"
-) # Male/female
+  "SEX" # Male/female
+) 
 keepCol <- keepCol[nam]
 keepCol[nam] <- TRUE
 for (col in names(keepCol)) {
@@ -457,3 +466,4 @@ save(STAB, file = "bootstrap.RData")
 boot_evaluate(STAB)
 
 dev.off()
+
