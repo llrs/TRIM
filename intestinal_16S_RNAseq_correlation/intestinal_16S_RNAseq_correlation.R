@@ -12,6 +12,7 @@ otus_table_i <- read.csv(
   stringsAsFactors = FALSE, row.names = 1,
   check.names = FALSE
 )
+
 tax_i <- otus_table_i[, ncol(otus_table_i)]
 otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
@@ -25,7 +26,8 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Load the input data
 rna <- "intestinal_RNAseq"
-expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
+expr <- as.matrix(read.delim(file.path(rna, "table.counts.results"), 
+                             check.names = FALSE))
 file_meta_r <- file.path(rna, "metadata_13032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
@@ -37,6 +39,8 @@ setwd(cd)
 
 # Summarize to genus
 library("metagenomeSeq")
+library("vegan")
+library("phyloseq")
 
 # Create the objects to summarize data
 MR_i <- newMRexperiment(
@@ -45,6 +49,12 @@ MR_i <- newMRexperiment(
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i))
 )
 genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+
+# Calculate the alpha diversity of the samples
+alpha <- estimate_richness(otu_table(genus_i, taxa_are_rows = TRUE))
+alpha$Shannon.Effective <- exp(alpha$Shannon)
+# Remove some diversities that are not linear
+
 
 # Correct metadata
 meta_i <- meta_i_norm(meta_i)
@@ -78,12 +88,15 @@ colnames(genus_i) <- gsub(
 # Subset expression and outs
 expr <- expr[, meta_r$`Sample Name_RNA`]
 genus_i <- genus_i[, meta_r$`Sample Name_Code`]
+alpha <- alpha[paste0("X", meta_r$`Sample Name_Code`), ]
 
 # Subset if all the rows are 0 and if sd is 0
 genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
 expr <- expr[apply(expr, 1, sd) != 0, ]
 
 abundance <- 0.005 # 0.5%
+
+cors <- cor(log10(t(expr) + 0.25), alpha)
 
 ## All samples ####
 #' Correlation matrix
@@ -95,28 +108,37 @@ abundance <- 0.005 # 0.5%
 #' @param abundance The proportion below to filter out
 #' @return A file of correlations
 cor2 <- function(x, y, label, abundance = 0.005){
-  genus_i <- x
-  expr <- y
+  genus_i <- as.matrix(x)
+  expr <- as.matrix(y)
   
   # Filter by those which have variation
   genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
   expr <- expr[apply(expr, 1, sd) != 0, ]
+  
+  # Filter by those which have more than one data point
+  genus_i <- genus_i[apply(genus_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
+  expr <- expr[apply(expr, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
   
     # Filter by abundance at 0.5%
   a <- prop.table(genus_i, 2)
   b <- rowSums(a > abundance)
   
   genus_i <- genus_i[b != 0, ]
+  
   # Correlate
-  dat <- cbind(t(genus_i), t(expr))
-  p <- cor(dat, "spearman")
+  p <- cor(log10(t(expr +0.25)), log10(t(genus_i+0.25)), method = "spearman")
   # Subset to only between microbiota and RNAseq
   # p$estimates <- p$estimates[rownames(genus_i), rownames(expr)]
   # p$p.value <- p$p.value[rownames(genus_i), rownames(expr)]
   # p$statistic <- p$statistic[rownames(genus_i), rownames(expr)]
-  
+  pval <- pvalue(p, ncol(expr))
+  padj <- p.adjust(pval, method = "BH")
+  dim(padj) <- dim(pval)
+  dimnames(padj) <- dimnames(pval)
   saveRDS(p, file = paste0("correlations_", label, ".RDS"))
+  saveRDS(padj, file = paste0("padj_", label, ".RDS"))
 }
+
 ncol(expr)
 cor2(genus_i, expr, "all")
 
