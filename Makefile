@@ -19,14 +19,14 @@ out_files=meta_coherent.csv \
 
 .PHONY: all STATegRa eqSpecies eqGenus ileum_integration colon_integration PCA \
 stools_prevalence intestinal_prevalence prevalence upset intestinal_16S_RNAseq_correlation \
-alpha
+alpha cleaning
 
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
 STATegRa intestinal_16S_RNAseq_integration prevalence
 
 # Clean the input and prepare the output for integration
-$(out_files): cleaning.R $(pre_files) 
+$(out_files) cleaning: cleaning.R $(pre_files) 
 	@echo "Preparing input data"
 	R CMD BATCH $(R_OPTS) $(<F)
 	
@@ -89,11 +89,6 @@ intestinal_16S_metadb: intestinal_16S_metadb/intestinal_16S_metadb.R $(pre_files
 intestinal_RNAseq_metadb: intestinal_RNAseq_metadb/intestinal_RNAseq_metadb.R $(pre_files) 
 	@echo "PCAs controlling for clinical variables of RNAseq biopsies"
 	cd $(<D);\ 
-	R CMD BATCH $(R_OPTS) Controls_patients.R \
-	R CMD BATCH $(R_OPTS) IBD_patients.R \
-	R CMD BATCH $(R_OPTS) CD_T0_patients.R \
-	R CMD BATCH $(R_OPTS) CD_T26_patients.R \
-	R CMD BATCH $(R_OPTS) CD_T52_patients.R \
 	R CMD BATCH $(R_OPTS) $(<F)
 
 intestinal_16S_RNAseq_correlation: intestinal_16S_RNAseq_correlation/intestinal_16S_RNAseq_correlation.R intestinal_16S_RNAseq_correlation/filter.R intestinal_RNAseq_metadb
@@ -111,7 +106,9 @@ intestinal_16S_RNAseq_metadb/*.RData intestinal_16S_RNAseq_metadb: intestinal_16
 	@echo "Relating the RNAseq with the microbiota"
 	cd $(<D);\
 	R CMD BATCH $(R_OPTS) $(<F);\
+	R CMD BATCH $(R_OPTS) Controls_patients.R; \
 	R CMD BATCH $(R_OPTS) IBD_patients.R
+	
 
 # Test which biological relation exists between the selected genes and microbiota
 intestinal_16S_RNAseq_metadb/*.csv biological_relations: intestinal_16S_RNAseq_metadb/biological_relations.R intestinal_16S_RNAseq_metadb
@@ -135,7 +132,7 @@ prevalence: intestinal_prevalence stools_prevalence
 # Analyse the data with PCA taking into account the categories
 Deconvolute: stool_metadb intestinal_RNAseq_metadb intestinal_16S_metadb
 
-upset: upset.R $(pre-files)
+upset: upsets.R $(pre-files)
 	@echo "Making upset plots"
 	R CMD BATCH $(R_OPTS) $(<F)
 
