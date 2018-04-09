@@ -1,6 +1,7 @@
 cd <- setwd("..")
 
 # Load the helper file
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 library("ppcor")
 
@@ -25,9 +26,9 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Load the input data
 rna <- "intestinal_RNAseq"
-expr <- as.matrix(read.delim(file.path(rna, "table.counts.results"), 
+expr <- as.matrix(read.delim(file.path(rna, "taula_sencera2.tsv"), 
                              check.names = FALSE))
-file_meta_r <- file.path(rna, "metadata_13032018.csv")
+file_meta_r <- file.path(rna, "metadata_28032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -54,7 +55,7 @@ meta_r <- meta_r_norm(meta_r)
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- rev(position)
+colnames(expr)[position] <- colnames(expr)[rev(position)]
 
 # Find the samples that we have microbiota and expression
 int <- intersect(
@@ -86,7 +87,6 @@ expr <- expr[apply(expr, 1, sd) != 0, ]
 
 abundance <- 0.005 # 0.5%
 
-library("integration")
 library("ComplexHeatmap")
 library("org.Hs.eg.db")
 library("heatmaply")
@@ -106,6 +106,7 @@ pcontrols <- readRDS("padj_Controls.RDS")
 pdisease_T0 <- readRDS("padj_CD_T0.RDS")
 pdisease_T26 <- readRDS("padj_CD_T26.RDS")
 pdisease_T52 <- readRDS("padj_CD_T52.RDS")
+
 filter_values <- function(file, cors, pval, threshold) {
 
   # Load data from all the patients
@@ -120,28 +121,39 @@ filter_values <- function(file, cors, pval, threshold) {
   outliers <- comp1 != 0
   # summary(outliers)
   comp1 <- comp1[outliers]
-  cors <- cors[rownames(cors) %in% names(comp1), ]
-  pval <- pval[rownames(pval) %in% names(comp1), ]
   
-  rownames(cors) <- gsub("(.*)\\..*", "\\1", rownames(cors))
+  keepGenes <- colnames(cors) %in% names(comp1)
+  cors <- cors[, keepGenes]
+  pval <- pval[, keepGenes]
+  
+  colnames(cors) <- gsub("(.*)\\..*", "\\1", colnames(cors))
   
   symbol <- mapIds(
-    org.Hs.eg.db, keys =  rownames(cors), keytype = "ENSEMBL",
+    org.Hs.eg.db, keys =  colnames(cors), keytype = "ENSEMBL",
     column = "SYMBOL"
   )
-  rownames(cors) <- symbol
-  rownames(pval) <- symbol
-  cors <- cors[!is.na(rownames(cors)), ]
-  pval <- pval[!is.na(rownames(pval)), ]
+  colnames(cors) <- symbol
+  colnames(pval) <- symbol
+  cors <- cors[, !is.na(colnames(cors))]
+  pval <- pval[, !is.na(colnames(pval))]
   
   message("Dimensions ", paste0(dim(cors), collapse = ", "))
   
   keepCols <- apply(pval, 2, function(x){any(x < threshold)})
   keepRows <- apply(pval, 1, function(x){any(x < threshold)})
   
+  keepCols[is.na(keepCols)] <- FALSE
+  keepRows[is.na(keepRows)] <- FALSE
+  
+  if (sum(keepCols) == 0 || sum(keepRows) == 0) {
+    stop("No relevant correlations with this threshold")
+  }
+  
   cors <- cors[keepRows, keepCols]
   pval <- pval[keepRows, keepCols]
-  
+  if (is.null(pval) || is.null(cors)) {
+    stop("No relevant correlations with this threshold")
+  }
   message("Dimensions ", paste0(dim(cors), collapse = ", "))
   
   list(cors = cors, pval = pval)
@@ -164,9 +176,10 @@ relevant <- function(file, cors, pval, threshold = 0.05) {
   ind$row <- rownames(cors)[ind$row]
   ind$col <- colnames(cors)[ind$col]
   ind <- cbind(ind, t(cor_pval))
-  colnames(ind) <- c("Gene", "Microorganism", "Correlation", "pvalue")
+  colnames(ind) <- c("Microorganism", "Gene", "Correlation", "pvalue")
   
   ind <- ind[!duplicated(ind), ]
+  ind <- ind[order(ind$Microorganism, ind$pvalue, decreasing = c(TRUE, FALSE)), ]
   rownames(ind) <- seq_len(nrow(ind))
   ind
 }
@@ -188,126 +201,50 @@ plot_cor <- function(file, cors, pval, threshold, label) {
 }
 
 #  The numbers come from the number of samples in each correlation
-#  
-b <- relevant("sgcca.RData", all_s, pall_s, 0.0005)
+threshold <- 0.05
+b <- relevant("sgcca.RData", all_s, pall_s, threshold)
 write.csv(b, file = "correlation_all.csv", row.names = FALSE, na = "")
+# 
+# b <- relevant("IBD.RData", disease, pdisease, threshold)
+# write.csv(b, file = "correlation_CD.csv", row.names = FALSE, na = "")
+# 
+# b <- relevant("Controls.RData", controls, pcontrols, threshold)
+# write.csv(b, file = "correlation_Controls.csv", row.names = FALSE, na = "")
+# 
+# b <- relevant("IBD_T0.RData", disease_T0, pdisease_T0, threshold)
+# write.csv(b, file = "correlation_CD_T0.csv", row.names = FALSE, na = "")
+# 
+# b <- relevant("IBD_T26.RData", disease_T26, pdisease_T26, threshold)
+# write.csv(b, file = "correlation_CD_T26.csv", row.names = FALSE, na = "")
+# 
+# b <- relevant("IBD_T52.RData", disease_T52, pdisease_T52, threshold)
+# write.csv(b, file = "correlation_CD_T52.csv", row.names = FALSE, na = "")
 
-b <- relevant("IBD.RData", disease, pdisease, 0.005)
-write.csv(b, file = "correlation_CD.csv", row.names = FALSE, na = "")
-
-b <- relevant("Controls.RData", controls, pcontrols, 0.05)
-write.csv(b, file = "correlation_Controls.csv", row.names = FALSE, na = "")
-
-b <- relevant("IBD_T0.RData", disease_T0, pdisease_T0, 0.08)
-write.csv(b, file = "correlation_CD_T0.csv", row.names = FALSE, na = "")
-
-b <- relevant("IBD_T26.RData", disease_T26, pdisease_T26, 0.8)
-write.csv(b, file = "correlation_CD_T26.csv", row.names = FALSE, na = "")
-
-b <- relevant("IBD_T52.RData", disease_T52, pdisease_T52, 0.08)
-write.csv(b, file = "correlation_CD_T52.csv", row.names = FALSE, na = "")
-
-# To see if the weight have a relation with the direct correlation
-# colCol = ifelse(comp1[outliers] > 0, "green", "black")
-
-# To have a good feeling plot some random genes. Most of the time there are
-# the double of 0 than in the selected heatmap
-# sam <- sample(colnames(cors), 600)
-# gplots::heatmap.2(cors[, sam], main = "Correlation heatmap: genes-genus",
-#                   xlab = "Genes", ylab = "Genus", scale = "none",
-#                   tracecol = "black", col = bluered(64), trace = "none",
-#                   labCol = symbol[sam], margins = c(6, 9))
-# 
-# disease <- disease[, colnames(disease) %in% names(outliers)]
-# a <- matrix(, ncol = ncol(disease[, outliers]), nrow = nrow(cors))
-# a[abs(disease[, outliers]) >= 0.19] <- "*" # Significant threshold of 0.05
-# heatmap.2(
-#   disease[, outliers], main = "Correlation heatmap IBD: genes-genus",
-#   xlab = "Genes", ylab = "Genus", scale = "none",
-#   tracecol = "black", col = bluered(64), trace = "none",
-#   labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
-#   notecol = "black", notecex = 0.5
-# )
-# 
-# 
-# controls <- controls[, colnames(controls) %in% names(outliers)]
-# a <- matrix(, ncol = ncol(controls[, outliers]), nrow = nrow(cors))
-# a[abs(controls[, outliers]) >= 0.28] <- "*" # Significant threshold of 0.05
-# heatmap.2(
-#   controls[, outliers], main = "Correlation heatmap controls: genes-genus",
-#   xlab = "Genes", ylab = "Genus", scale = "none",
-#   tracecol = "black", col = bluered(64), trace = "none",
-#   labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
-#   notecol = "black", notecex = 0.5
-# )
-# 
-# # Do the same but using the genes of the model with only IBD
-# pre <- "../intestinal_16S_RNAseq_metadb"
-# load(file.path(pre, "IBD.RData"))
-# comp1 <- sgcca.centroid$a[["RNAseq"]][, 1]
-# outliers <- comp1 != 0
-# summary(outliers)
-# 
-# cors <- readRDS("correlations.RDS")
-# disease <- readRDS("correlations_IBD.RDS")
-# controls <- readRDS("correlations_C.RDS")
-# 
-# cors <- cors[, names(comp1)]
-# 
-# library("org.Hs.eg.db")
-# names(comp1) <- gsub("(.*)\\..*", "\\1", names(comp1))
-# 
-# symbol <- mapIds(
-#   org.Hs.eg.db, keys = names(comp1), keytype = "ENSEMBL",
-#   column = "SYMBOL"
-# )
-# 
-# outliers[is.na(symbol)] <- FALSE
-# 
-# 
-# a <- matrix(, ncol = ncol(cors[, outliers]), nrow = nrow(cors))
-# a[abs(cors[, outliers]) >= 0.16] <- "*" # Significant threshold of 0.05
-# heatmap.2(
-#   cors[, outliers], main = "Correlation heatmap all: genes-genus",
-#   xlab = "Genes", ylab = "Genus", scale = "none",
-#   tracecol = "black", col = bluered(64), trace = "none",
-#   labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
-#   notecol = "black", notecex = 0.5
-# )
-# 
-# disease <- disease[, colnames(disease) %in% names(outliers)]
-# a <- matrix(, ncol = ncol(disease[, outliers]), nrow = nrow(cors))
-# a[abs(disease[, outliers]) >= 0.19] <- "*" # Significant threshold of 0.05
-# heatmap.2(
-#   disease[, outliers], main = "Correlation heatmap IBD: genes-genus",
-#   xlab = "Genes", ylab = "Genus", scale = "none",
-#   tracecol = "black", col = bluered(64), trace = "none",
-#   labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
-#   notecol = "black", notecex = 0.5
-# )
-# 
-# int <- intersect(colnames(controls), names(outliers))
-# controls <- controls[, int]
-# a <- matrix(, ncol = ncol(controls), nrow = nrow(cors))
-# a[abs(controls[, outliers[int]]) >= 0.28] <- "*" # Significant threshold of 0.05
-# heatmap.2(
-#   controls[, outliers[int]], main = "Correlation heatmap controls: genes-genus",
-#   xlab = "Genes", ylab = "Genus", scale = "none",
-#   tracecol = "black", col = bluered(64), trace = "none",
-#   labCol = symbol[outliers], margins = c(6, 9), cellnote = a,
-#   notecol = "black", notecex = 0.5
-# )
-
-
-
-plot_single_cor <- function(x, gene, y, rowY) {
+plot_single_cor <- function(x, gene, y, rowY, colr, case) {
   suppressMessages(g <- mapIds(org.Hs.eg.db, keys = gene, 
                                keytype = "SYMBOL", column = "ENSEMBL"))
   rowX <- grep(g, rownames(x))
-  main <- cor(log10(x[rowX, ]+0.25), log10(y[rowY, ]+0.25), method = "spearman")
-  plot(log10(x[rowX, ]+0.25), log10(y[rowY, ]+0.25), 
-       xlab = gene, ylab = rowY, main = main)
+  x_s <- x[rowX, ]
+  x_s[x_s == 0] <- NA
+  
+  y_s <- y[rowY, ]
+  y_s[y_s == 0] <- NA
+  
+  x_s <- log10(x_s)
+  y_s <- log10(y_s)
+  main <- cor(x_s, y_s, method = "spearman", use = "pairwise.complete.obs")
+  plot(x_s, y_s, xlab = gene, ylab = rowY, main = main, col = colr, 
+       pch = as.numeric(case))
+  legend("topright", fill = as.factor(levels(colr)), legend = levels(colr))
+  legend("bottomleft", pch = as.factor(levels(case)), 
+         legend = levels(case))
   
 }
 
-
+pdf("correlations_plot.pdf")
+apply(b, 1, function(x) {
+  micro <- x[[1]]
+  gene <- x[[2]]
+  plot_single_cor(expr, gene, genus_i, micro, as.factor(meta_r$IBD), as.factor(meta_r$IBD))
+})
+dev.off()
