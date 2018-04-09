@@ -248,7 +248,7 @@ ggplot(pcair) +
 barcelona <- grepl("w", colnames(expr))
 counts_woBarcelona <- expr[, !barcelona]
 counts_woBarcelona <- counts_woBarcelona[rowSums(counts_woBarcelona) != 0, ]
-pca_ir <- prcomp(t(counts_woBarcelona), scale. = TRUE)
+pca_ir <- prcomp(t(counts_woBarcelona), scale. = FALSE)
 pca_ir_x <- as.data.frame(pca_ir$x)
 pca_ir_var <- round(summary(pca_ir)$importance[2, ] * 100, digits = 2)
 
@@ -256,6 +256,7 @@ pca_ir_x <- pca_ir_x[rownames(pca_ir_x) %in% meta_r$`Sample Name_RNA`, ]
 meta_r_ord <- meta_r[meta_r$`Sample Name_RNA` %in% rownames(pca_ir_x), ]
 pcair <- cbind(pca_ir_x, meta_r_ord[match(rownames(pca_ir_x), meta_r_ord$`Sample Name_RNA`), ])
 
+# FIXME
 ggplot(pcair) +
   geom_text(aes(PC1, PC2, col = ID, label = paste(ID, Time, sep = "_"))) +
   guides(col = guide_legend(title = "Patient")) +
