@@ -1,6 +1,7 @@
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 library("SummarizedExperiment")
 
@@ -29,7 +30,7 @@ otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 otus_tax_s <- taxonomy(tax_s, rownames(otus_table_s))
 
 # Load the input data
-expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
+expr <- read.delim(file.path(rna, "taula_sencera2.tsv"), check.names = FALSE)
 
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
@@ -42,7 +43,7 @@ meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
 )
-file_meta_r <- file.path(rna, "metadata_13032018.csv")
+file_meta_r <- file.path(rna, "metadata_28032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -54,7 +55,7 @@ meta_r <- meta_r[-1, ]
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- rev(position)
+colnames(expr)[position] <- colnames(expr)[rev(position)]
 
 
 pdf(paste0("Figures/", today, "_quality.pdf"))
@@ -145,6 +146,10 @@ keep_i <- rownames(meta_i)[meta_i$Patient_ID %in% comPatient &
   meta_i$Time %in% comTime]
 keep_s <- rownames(meta_s)[meta_s$Patient_ID %in% comPatient &
   meta_s$Time %in% comTime]
+
+keep_i <- keep_i[keep_i %in% colnames(otus_table_i)]
+keep_s <- keep_s[keep_s %in% colnames(otus_table_s)]
+
 com_otus_table_i <- otus_table_i[, keep_i]
 com_otus_table_s <- otus_table_s[, keep_s]
 
