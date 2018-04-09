@@ -1,8 +1,11 @@
 cd <- setwd("..")
 
+# Load genes of chromosome X and Y
+source("genes_XY.R")
+
 # Load the helper file
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
-library("ppcor")
 
 intestinal <- "intestinal_16S"
 
@@ -26,9 +29,9 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Load the input data
 rna <- "intestinal_RNAseq"
-expr <- as.matrix(read.delim(file.path(rna, "table.counts.results"), 
+expr <- as.matrix(read.delim(file.path(rna, "taula_sencera2.tsv"), 
                              check.names = FALSE))
-file_meta_r <- file.path(rna, "metadata_13032018.csv")
+file_meta_r <- file.path(rna, "metadata_28032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -63,7 +66,7 @@ meta_r <- meta_r_norm(meta_r)
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- rev(position)
+colnames(expr)[position] <- colnames(expr)[rev(position)]
 
 # Find the samples that we have microbiota and expression
 int <- intersect(
@@ -111,31 +114,75 @@ cor2 <- function(x, y, label, abundance = 0.005){
   genus_i <- as.matrix(x)
   expr <- as.matrix(y)
   
-  # Filter by those which have variation
-  genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
-  expr <- expr[apply(expr, 1, sd) != 0, ]
+  
   
   # Filter by those which have more than one data point
   genus_i <- genus_i[apply(genus_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
   expr <- expr[apply(expr, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
   
-    # Filter by abundance at 0.5%
+  # Filter by abundance at 0.5%
   a <- prop.table(genus_i, 2)
   b <- rowSums(a > abundance)
   
-  genus_i <- genus_i[b != 0, ]
+    genus_i <- genus_i[b != 0, ]
   
+  # Filter by sex
+  sexual_related <- gsub("(.+)\\..*", "\\1", rownames(expr)) %in% 
+    c(#bmX$ensembl_gene_id, 
+      bmY$ensembl_gene_id)
+  expr <- expr[!sexual_related, ]
+  
+  expr[expr == 0] <- NA
+  genus_i[genus_i == 0] <- NA
+
+  r <- matrix(NA, nrow = nrow(genus_i), ncol = nrow(expr), 
+              dimnames = list(rownames(genus_i), rownames(expr)))
+  pval <- matrix(NA, nrow = nrow(genus_i), ncol = nrow(expr), 
+                 dimnames = list(rownames(genus_i), rownames(expr)))
+  
+  for (gene in rownames(expr)) {
+    y <- expr[gene, ]
+    y[y == 0] <- NA
+    if (sum(!is.na(y)) < 3 | sum(!is.na(y))/length(y) < 0.15) {
+      next
+    }
+    for (micro in rownames(genus_i)) {
+      # message(micro, " ", gene)
+      x <- genus_i[micro, ]
+      
+      x[x == 0] <- NA
+      if (sum(!is.na(x)) < 3 | sum(!is.na(x))/length(x) < 0.15) {
+        next
+      }
+      
+      # Join all the data
+      d <- rbind(x, y)
+      pairwise <- apply(d, 2, function(z){all(!is.na(z))})
+      k <- sum(pairwise, na.rm = TRUE)
+      if (k/length(pairwise) < 0.15 & k < 4) {
+        next
+      }
+      
+      # Errors because they don't match up to three points
+      try({
+        cors <- cor.test(log10(x), log10(y), use = "spearman", 
+                         use = "pairwise.complete.obs")
+        pval[micro, gene] <- cors$p.value
+        r[micro, gene] <- cors$estimate},
+        silent = TRUE)
+    }
+  }
   # Correlate
-  p <- cor(log10(t(expr +0.25)), log10(t(genus_i+0.25)), method = "spearman")
+  # p <- cor(log2(t(expr)), log2(t(genus_i)), method = "spearman", use = "pairwise.complete.obs")
   # Subset to only between microbiota and RNAseq
   # p$estimates <- p$estimates[rownames(genus_i), rownames(expr)]
   # p$p.value <- p$p.value[rownames(genus_i), rownames(expr)]
   # p$statistic <- p$statistic[rownames(genus_i), rownames(expr)]
-  pval <- pvalue(p, ncol(expr))
+  # pval <- pvalue(p, ncol(expr))
   padj <- p.adjust(pval, method = "BH")
   dim(padj) <- dim(pval)
   dimnames(padj) <- dimnames(pval)
-  saveRDS(p, file = paste0("correlations_", label, ".RDS"))
+  saveRDS(r, file = paste0("correlations_", label, ".RDS"))
   saveRDS(padj, file = paste0("padj_", label, ".RDS"))
 }
 
@@ -166,3 +213,4 @@ keep <-  meta_r$IBD == "CD" & meta_r$Time == "T52"
 sum(keep)
 cor_sign(sum(keep))
 cor2(genus_i[, keep], expr[, keep], "CD_T52")
+
