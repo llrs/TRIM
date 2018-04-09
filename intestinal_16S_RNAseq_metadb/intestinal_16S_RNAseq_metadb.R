@@ -2,6 +2,7 @@ cd <- setwd("..")
 library("ggforce")
 
 # Load the helper file
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 
 library("fgsea")
@@ -22,7 +23,7 @@ otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Load the input data
-expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
+expr <- read.delim(file.path(rna, "taula_sencera2.tsv"), check.names = FALSE)
 
 # Read the metadata for each type of sample
 file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
@@ -30,7 +31,7 @@ meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
 )
-file_meta_r <- file.path(rna, "metadata_13032018.csv")
+file_meta_r <- file.path(rna, "metadata_28032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -42,7 +43,7 @@ setwd(cd)
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- rev(position)
+colnames(expr)[position] <- colnames(expr)[rev(position)]
 
 
 # Normalize the RNA metadata

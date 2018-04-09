@@ -2,6 +2,7 @@ library("metagenomeSeq")
 library("phyloseq")
 
 wd <- setwd("..")
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 
 intestinal <- "intestinal_16S"

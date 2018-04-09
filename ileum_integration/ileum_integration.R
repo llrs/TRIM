@@ -1,6 +1,7 @@
 cd <- setwd("..")
 
 # Load the helper file
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 
 # Read files

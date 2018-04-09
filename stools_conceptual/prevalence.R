@@ -3,6 +3,7 @@ library("boot")
 library("metagenomeSeq")
 
 wd <- setwd("..")
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 
 stool <- "stools_16S"

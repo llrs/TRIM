@@ -2,6 +2,7 @@ cd <- setwd("..")
 
 intestinal <- "intestinal_16S"
 
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 
 # Read the intestinal otus table

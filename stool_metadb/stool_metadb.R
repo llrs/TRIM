@@ -1,7 +1,7 @@
 cd <- setwd("..")
 
 stool <- "stools_16S"
-
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 
 

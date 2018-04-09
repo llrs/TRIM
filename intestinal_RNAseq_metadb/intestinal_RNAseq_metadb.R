@@ -2,12 +2,14 @@ cd <- setwd("..")
 
 rna <- "intestinal_RNAseq"
 
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
+
 
 # Read the intestinal RNAseq table
 
 # Load the input data
-expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
+expr <- read.delim(file.path(rna, "taula_sencera2.tsv"), check.names = FALSE)
 
 # Clean the RNAseq table
 expr <- expr[rowSums(expr) != 0, ]

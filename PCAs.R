@@ -2,6 +2,7 @@ intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
 
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 
 # Read the intestinal otus table
@@ -21,7 +22,7 @@ otus_table_s <- read.delim(
 otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 
 # Load the RNAseq
-expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
+expr <- read.delim(file.path(rna, "taula_sencera2.tsv"), check.names = FALSE)
 
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
@@ -35,7 +36,7 @@ meta_i <- read.delim(
   stringsAsFactors = FALSE
 )
 
-file_meta_r <- file.path(rna, "metadata_13032018.csv")
+file_meta_r <- file.path(rna, "metadata_28032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
@@ -47,7 +48,7 @@ meta_r <- meta_r[-1, ]
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- rev(position)
+colnames(expr)[position] <- colnames(expr)[rev(position)]
 
 
 # Clean the metadata
