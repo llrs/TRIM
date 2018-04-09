@@ -2,6 +2,7 @@ intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
 
+today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 library("grid")
 
@@ -22,12 +23,12 @@ otus_table_s <- read.delim(
 otus_table_s <- otus_table_s[, -ncol(otus_table_s)]
 
 # Load the RNAseq
-expr <- read.delim(file.path(rna, "table.counts.results"), check.names = FALSE)
+expr <- read.delim(file.path(rna, "taula_sencera2.tsv"), check.names = FALSE)
 
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- rev(position)
+colnames(expr)[position] <- colnames(expr)[rev(position)]
 
 colnames(expr) <- toupper(colnames(expr))
 
@@ -43,11 +44,11 @@ meta_i <- read.delim(
   stringsAsFactors = FALSE
 )
 
-file_meta_r <- file.path(rna, "metadata_13032018.csv")
+file_meta_r <- file.path(rna, "metadata_28032018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
-  na.strings = c("NA", "")
+  na.strings = c("NA", ""),
 )
 colnames(meta_r) <- meta_r[1, ]
 meta_r <- meta_r[-1, ]
@@ -79,7 +80,7 @@ if (nrow(meta_r[colnames(expr), ]) != nrow(meta_r)){
     }
   }
 }
- 
+
 # First by patient
 i_pat <- unique(as.character(meta_i$ID))
 s_pat <- unique(as.character(meta_s$ID))
