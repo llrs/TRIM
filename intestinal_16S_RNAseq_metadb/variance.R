@@ -106,20 +106,23 @@ otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
 # Subset if all the rows are 0 and if sd is 0
 otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 
-library("globaltest") # Only for one gene
-gt(t(expr)[-c(50, 51), 1]~Exact_location * IBD*ID + AGE_SAMPLE + diagTime, data = meta_r[-c(50, 51), 1])
+pos <- which(is.na(meta_r$Exact_location))
+
+library("globaltest") 
+# Only for one gene
+gt(t(expr)[-pos, 1]~Exact_location * IBD*ID + AGE_SAMPLE + diagTime, data = meta_r[-pos, ])
 
 library("vegan") # For all lthe matrice
-a <- adonis(as.data.frame(t(expr))[-c(50, 51), ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-c(50, 51), ], method = "euclidean")
-# It captures the ~90% of the variation of the expression!!
-a2 <- adonis2(as.data.frame(t(expr))[-c(50, 51), ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-a3 <- adonis(as.data.frame(t(expr))[-c(50, 51), ] ~ Exact_location:ID , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-a4 <- adonis(as.data.frame(t(expr))[-c(50, 51), ] ~ Exact_location:IBD , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-a5 <- adonis(as.data.frame(t(expr))[-c(50, 51), ] ~ Exact_location , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-a6 <- adonis(as.data.frame(t(expr))[-c(50, 51), ] ~ IBD , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-a7 <- adonis(as.data.frame(t(expr))[-c(50, 51), ] ~ AGE_SAMPLE , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
+a <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-pos, ], method = "euclidean")
+# It captures the ~70% of the variation of the expression!!
+a2 <- adonis2(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-pos, ], method = "euclidean", by = "margin")
+a3 <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location:ID , meta_r[-pos, ], method = "euclidean", by = "margin")
+a4 <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location:IBD , meta_r[-pos, ], method = "euclidean", by = "margin")
+a5 <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location , meta_r[-pos, ], method = "euclidean", by = "margin")
+a6 <- adonis(as.data.frame(t(expr)) ~ IBD , meta_r, method = "euclidean", by = "margin")
+a7 <- adonis(as.data.frame(t(expr)) ~ AGE_SAMPLE , meta_r, method = "euclidean", by = "margin")
 
-b2 <- adonis(as.data.frame(t(otus_table_i))[-c(50, 51), ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-b3 <- adonis(as.data.frame(t(otus_table_i))[-c(50, 51), ] ~ Exact_location:ID , meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-b4 <- adonis(as.data.frame(t(otus_table_i))[-c(50, 51), ] ~ Exact_location:IBD, meta_r[-c(50, 51), ], method = "euclidean", by = "margin")
-(b5 <- adonis(as.data.frame(t(otus_table_i))[-c(50, 51), ] ~ IBD , meta_r[-c(50, 51), ], method = "euclidean", by = "margin"))
+b2 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-pos, ], method = "euclidean", by = "margin")
+b3 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location:ID , meta_r[-pos, ], method = "euclidean", by = "margin")
+b4 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location:IBD, meta_r[-pos, ], method = "euclidean", by = "margin")
+(b5 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ IBD , meta_r[-pos, ], method = "euclidean", by = "margin"))
