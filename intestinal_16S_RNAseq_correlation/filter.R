@@ -46,7 +46,8 @@ MR_i <- newMRexperiment(
   # phenoData = AnnotatedDataFrame(meta_r),
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i))
 )
-genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix", norm = TRUE, log = TRUE)
 
 # Correct metadata
 meta_i <- meta_i_norm(meta_i)
@@ -81,9 +82,17 @@ colnames(genus_i) <- gsub(
 expr <- expr[, meta_r$`Sample Name_RNA`]
 genus_i <- genus_i[, meta_r$`Sample Name_Code`]
 
+
+# Normalize expression
+expr_edge <- edgeR::DGEList(expr)
+expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
+expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
+
+# Filter expression
+expr <- norm_RNAseq(expr_norm)
+
 # Subset if all the rows are 0 and if sd is 0
 genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
-expr <- expr[apply(expr, 1, sd) != 0, ]
 
 abundance <- 0.005 # 0.5%
 
@@ -95,17 +104,17 @@ library("heatmaply")
 all_s <- readRDS("correlations_all.RDS")
 disease <- readRDS("correlations_CD.RDS")
 controls <- readRDS("correlations_Controls.RDS")
-disease_T0 <- readRDS("correlations_CD_T0.RDS")
-disease_T26 <- readRDS("correlations_CD_T26.RDS")
-disease_T52 <- readRDS("correlations_CD_T52.RDS")
+# disease_T0 <- readRDS("correlations_CD_T0.RDS")
+# disease_T26 <- readRDS("correlations_CD_T26.RDS")
+# disease_T52 <- readRDS("correlations_CD_T52.RDS")
 
 # Load data of pvalues
 pall_s <- readRDS("padj_all.RDS")
 pdisease <- readRDS("padj_CD.RDS")
 pcontrols <- readRDS("padj_Controls.RDS")
-pdisease_T0 <- readRDS("padj_CD_T0.RDS")
-pdisease_T26 <- readRDS("padj_CD_T26.RDS")
-pdisease_T52 <- readRDS("padj_CD_T52.RDS")
+# pdisease_T0 <- readRDS("padj_CD_T0.RDS")
+# pdisease_T26 <- readRDS("padj_CD_T26.RDS")
+# pdisease_T52 <- readRDS("padj_CD_T52.RDS")
 
 filter_values <- function(file, cors, pval, threshold) {
 
@@ -126,14 +135,14 @@ filter_values <- function(file, cors, pval, threshold) {
   cors <- cors[, keepGenes]
   pval <- pval[, keepGenes]
   
-  colnames(cors) <- gsub("(.*)\\..*", "\\1", colnames(cors))
-  
-  symbol <- mapIds(
-    org.Hs.eg.db, keys =  colnames(cors), keytype = "ENSEMBL",
-    column = "SYMBOL"
-  )
-  colnames(cors) <- symbol
-  colnames(pval) <- symbol
+  # colnames(cors) <- gsub("(.*)\\..*", "\\1", colnames(cors))
+  # 
+  # symbol <- mapIds(
+  #   org.Hs.eg.db, keys =  colnames(cors), keytype = "ENSEMBL",
+  #   column = "SYMBOL"
+  # )
+  # colnames(cors) <- symbol
+  # colnames(pval) <- symbol
   cors <- cors[, !is.na(colnames(cors))]
   pval <- pval[, !is.na(colnames(pval))]
   
@@ -203,14 +212,16 @@ plot_cor <- function(file, cors, pval, threshold, label) {
 #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
 b <- relevant("sgcca.RData", all_s, pall_s, threshold)
+b$Gene <- gsub("(.*)\\..*", "\\1", b$Gene)
+b$Gene <- mapIds(org.Hs.eg.db, keys = b$Gene, keytype = "ENSEMBL", column = "SYMBOL")
 write.csv(b, file = "correlation_all.csv", row.names = FALSE, na = "")
-# 
-# b <- relevant("IBD.RData", disease, pdisease, threshold)
-# write.csv(b, file = "correlation_CD.csv", row.names = FALSE, na = "")
-# 
-# b <- relevant("Controls.RData", controls, pcontrols, threshold)
-# write.csv(b, file = "correlation_Controls.csv", row.names = FALSE, na = "")
-# 
+
+b <- relevant("IBD.RData", disease, pdisease, threshold)
+write.csv(b, file = "correlation_CD.csv", row.names = FALSE, na = "")
+
+b <- relevant("Controls.RData", controls, pcontrols, threshold)
+write.csv(b, file = "correlation_Controls.csv", row.names = FALSE, na = "")
+
 # b <- relevant("IBD_T0.RData", disease_T0, pdisease_T0, threshold)
 # write.csv(b, file = "correlation_CD_T0.csv", row.names = FALSE, na = "")
 # 
@@ -221,30 +232,41 @@ write.csv(b, file = "correlation_all.csv", row.names = FALSE, na = "")
 # write.csv(b, file = "correlation_CD_T52.csv", row.names = FALSE, na = "")
 
 plot_single_cor <- function(x, gene, y, rowY, colr, case) {
-  suppressMessages(g <- mapIds(org.Hs.eg.db, keys = gene, 
-                               keytype = "SYMBOL", column = "ENSEMBL"))
-  rowX <- grep(g, rownames(x))
-  x_s <- x[rowX, ]
+  
+  genes <- gsub("(.*)\\..*", "\\1", gene)
+
+  symbol <- tryCatch({mapIds(
+    org.Hs.eg.db, key = genes, keytype = "ENSEMBL",
+    column = "SYMBOL"
+  )},  error = function(e){NA}) 
+  # stopifnot(length(symbol) == nrow(x))
+  # rowX <- which(symbol == gene)
+  # if (length(rowX) == 1) {
+  #   return(NA)
+  # }
+  if (is.na(symbol)) {
+    return(NA)
+  }
+  
+  x_s <- x[gene, ]
   x_s[x_s == 0] <- NA
   
   y_s <- y[rowY, ]
   y_s[y_s == 0] <- NA
   
-  x_s <- log10(x_s)
-  y_s <- log10(y_s)
   main <- cor(x_s, y_s, method = "spearman", use = "pairwise.complete.obs")
-  plot(x_s, y_s, xlab = gene, ylab = rowY, main = main, col = colr, 
+  plot(x_s, y_s, xlab = paste(symbol, collapse = " "), ylab = rowY, main = main, col = colr, 
        pch = as.numeric(case))
-  legend("topright", fill = as.factor(levels(colr)), legend = levels(colr))
-  legend("bottomleft", pch = as.factor(levels(case)), 
+  legend("bottomleft", fill = as.factor(levels(colr)), legend = levels(colr))
+  legend("topright", pch = as.factor(levels(case)), 
          legend = levels(case))
   
 }
 
-pdf("correlations_plot.pdf")
-apply(b, 1, function(x) {
+pdf("correlations_plot_all.pdf")
+o <- apply(b, 1, function(x) {
   micro <- x[[1]]
   gene <- x[[2]]
-  plot_single_cor(expr, gene, genus_i, micro, as.factor(meta_r$IBD), as.factor(meta_r$IBD))
+  plot_single_cor(expr, gene, genus_i, micro, as.factor(meta_r$Exact_location), as.factor(meta_r$IBD))
 })
 dev.off()

@@ -51,7 +51,9 @@ MR_i <- newMRexperiment(
   # phenoData = AnnotatedDataFrame(meta_r),
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i))
 )
-genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix")
+MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix", norm = TRUE, log = TRUE)
+
 
 # Calculate the alpha diversity of the samples
 alpha <- estimate_richness(otu_table(genus_i, taxa_are_rows = TRUE))
@@ -97,9 +99,15 @@ alpha <- alpha[paste0("X", meta_r$`Sample Name_Code`), ]
 genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
 expr <- expr[apply(expr, 1, sd) != 0, ]
 
-abundance <- 0.005 # 0.5%
+# Normalize expression
+expr_edge <- edgeR::DGEList(expr)
+expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
+expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 
-cors <- cor(log10(t(expr) + 0.25), alpha)
+# Filter expression
+expr <- norm_RNAseq(expr_norm)
+
+abundance <- 0.005 # 0.5%
 
 ## All samples ####
 #' Correlation matrix
@@ -165,7 +173,7 @@ cor2 <- function(x, y, label, abundance = 0.005){
       
       # Errors because they don't match up to three points
       try({
-        cors <- cor.test(log10(x), log10(y), use = "spearman", 
+        cors <- cor.test(x, y, use = "spearman", 
                          use = "pairwise.complete.obs")
         pval[micro, gene] <- cors$p.value
         r[micro, gene] <- cors$estimate},
@@ -198,19 +206,19 @@ keep <-  meta_r$IBD == "CONTROL"
 sum(keep)
 cor_sign(sum(keep))
 cor2(genus_i[, keep], expr[, keep], "Controls")
-
-keep <-  meta_r$IBD == "CD" & meta_r$Time == "T0"
-sum(keep)
-cor_sign(sum(keep))
-cor2(genus_i[, keep], expr[, keep], "CD_T0")
-
-keep <-  meta_r$IBD == "CD" & meta_r$Time == "T26"
-sum(keep)
-cor_sign(sum(keep))
-cor2(genus_i[, keep], expr[, keep], "CD_T26")
-
-keep <-  meta_r$IBD == "CD" & meta_r$Time == "T52"
-sum(keep)
-cor_sign(sum(keep))
-cor2(genus_i[, keep], expr[, keep], "CD_T52")
+# 
+# keep <-  meta_r$IBD == "CD" & meta_r$Time == "T0"
+# sum(keep)
+# cor_sign(sum(keep))
+# cor2(genus_i[, keep], expr[, keep], "CD_T0")
+# 
+# keep <-  meta_r$IBD == "CD" & meta_r$Time == "T26"
+# sum(keep)
+# cor_sign(sum(keep))
+# cor2(genus_i[, keep], expr[, keep], "CD_T26")
+# 
+# keep <-  meta_r$IBD == "CD" & meta_r$Time == "T52"
+# sum(keep)
+# cor_sign(sum(keep))
+# cor2(genus_i[, keep], expr[, keep], "CD_T52")
 
