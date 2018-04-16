@@ -1,3 +1,4 @@
+# Load ####
 cd <- setwd("..")
 
 # Load genes of chromosome X and Y
@@ -40,10 +41,14 @@ meta_r <- read.table(
 
 setwd(cd)
 
-# Summarize to genus
+# Summarize to genus ####
 library("metagenomeSeq")
 library("vegan")
 library("phyloseq")
+
+# Correct metadata
+meta_i <- meta_i_norm(meta_i)
+meta_r <- meta_r_norm(meta_r)
 
 # Create the objects to summarize data
 MR_i <- newMRexperiment(
@@ -53,17 +58,6 @@ MR_i <- newMRexperiment(
 )
 MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
 genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix", norm = TRUE, log = TRUE)
-
-
-# Calculate the alpha diversity of the samples
-alpha <- estimate_richness(otu_table(genus_i, taxa_are_rows = TRUE))
-alpha$Shannon.Effective <- exp(alpha$Shannon)
-# Remove some diversities that are not linear
-
-
-# Correct metadata
-meta_i <- meta_i_norm(meta_i)
-meta_r <- meta_r_norm(meta_r)
 
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
@@ -93,7 +87,6 @@ colnames(genus_i) <- gsub(
 # Subset expression and outs
 expr <- expr[, meta_r$`Sample Name_RNA`]
 genus_i <- genus_i[, meta_r$`Sample Name_Code`]
-alpha <- alpha[paste0("X", meta_r$`Sample Name_Code`), ]
 
 # Subset if all the rows are 0 and if sd is 0
 genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
@@ -107,9 +100,21 @@ expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 # Filter expression
 expr <- norm_RNAseq(expr_norm)
 
-abundance <- 0.005 # 0.5%
 
-## All samples ####
+# Filter by those which have more than one data point
+genus_i <- genus_i[apply(genus_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
+expr <- expr[apply(expr, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
+
+# Filter by abundance at 0.5%
+abundance <- 0.005 # 0.5%
+a <- prop.table(genus_i, 2)
+b <- rowSums(a > abundance)
+genus_i <- genus_i[b != 0, ]
+
+saveRDS(expr, "expr.RDS")
+saveRDS(genus_i, "genus.RDS")
+
+## Functions ####
 #' Correlation matrix
 #' 
 #' Calculates the correlation between genus at 0.005
@@ -121,18 +126,6 @@ abundance <- 0.005 # 0.5%
 cor2 <- function(x, y, label, abundance = 0.005){
   genus_i <- as.matrix(x)
   expr <- as.matrix(y)
-  
-  
-  
-  # Filter by those which have more than one data point
-  genus_i <- genus_i[apply(genus_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
-  expr <- expr[apply(expr, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
-  
-  # Filter by abundance at 0.5%
-  a <- prop.table(genus_i, 2)
-  b <- rowSums(a > abundance)
-  
-    genus_i <- genus_i[b != 0, ]
   
   # Filter by sex
   sexual_related <- gsub("(.+)\\..*", "\\1", rownames(expr)) %in% 
@@ -149,22 +142,17 @@ cor2 <- function(x, y, label, abundance = 0.005){
                  dimnames = list(rownames(genus_i), rownames(expr)))
   
   for (gene in rownames(expr)) {
-    y <- expr[gene, ]
-    y[y == 0] <- NA
     if (sum(!is.na(y)) < 3 | sum(!is.na(y))/length(y) < 0.15) {
       next
     }
+    gene_expr <- expr[gene, ]
     for (micro in rownames(genus_i)) {
-      # message(micro, " ", gene)
-      x <- genus_i[micro, ]
-      
-      x[x == 0] <- NA
       if (sum(!is.na(x)) < 3 | sum(!is.na(x))/length(x) < 0.15) {
         next
       }
-      
+      genus_expr <- genus_i[micro, ]
       # Join all the data
-      d <- rbind(x, y)
+      d <- rbind(gene_expr, genus_expr)
       pairwise <- apply(d, 2, function(z){all(!is.na(z))})
       k <- sum(pairwise, na.rm = TRUE)
       if (k/length(pairwise) < 0.15 & k < 4) {
@@ -173,19 +161,13 @@ cor2 <- function(x, y, label, abundance = 0.005){
       
       # Errors because they don't match up to three points
       try({
-        cors <- cor.test(x, y, use = "spearman", 
+        cors <- cor.test(gene_expr, genus_expr, use = "spearman", 
                          use = "pairwise.complete.obs")
         pval[micro, gene] <- cors$p.value
         r[micro, gene] <- cors$estimate},
         silent = TRUE)
     }
   }
-  # Correlate
-  # p <- cor(log2(t(expr)), log2(t(genus_i)), method = "spearman", use = "pairwise.complete.obs")
-  # Subset to only between microbiota and RNAseq
-  # p$estimates <- p$estimates[rownames(genus_i), rownames(expr)]
-  # p$p.value <- p$p.value[rownames(genus_i), rownames(expr)]
-  # p$statistic <- p$statistic[rownames(genus_i), rownames(expr)]
   # pval <- pvalue(p, ncol(expr))
   padj <- p.adjust(pval, method = "BH")
   dim(padj) <- dim(pval)
@@ -194,19 +176,23 @@ cor2 <- function(x, y, label, abundance = 0.005){
   saveRDS(padj, file = paste0("padj_", label, ".RDS"))
 }
 
-ncol(expr)
+## All samples ####
+# ncol(expr)
 cor2(genus_i, expr, "all")
 
+
+## CD ####
 keep <- meta_r$IBD == "CD"
-sum(keep)
-cor_sign(sum(keep))
+# sum(keep)
+# cor_sign(sum(keep))
 cor2(genus_i[, keep], expr[, keep], "CD")
 
+## Healthy ####
 keep <-  meta_r$IBD == "CONTROL"
-sum(keep)
-cor_sign(sum(keep))
+# sum(keep)
+# cor_sign(sum(keep))
 cor2(genus_i[, keep], expr[, keep], "Controls")
-# 
+
 # keep <-  meta_r$IBD == "CD" & meta_r$Time == "T0"
 # sum(keep)
 # cor_sign(sum(keep))
