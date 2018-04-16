@@ -35,3 +35,8 @@ mds <- cmdscale(comp)
 plot(mds*1.1, type = "n", xlab = "MDS1", ylab = "MDS2", main = "Microorganisms relation by function")
 text(mds[, 1], mds[, 2], labels = rownames(mds))
 dev.off()
+png(paste0("Figures/", today, "_microorganisms_MDS_zoom.png"))
+sub_mds <- mds[abs(mds[, 1]) < 0.1, ]
+plot(sub_mds, type = "n", xlab = "MDS1", ylab = "MDS2", main = "Microorganisms relation by function")
+text(sub_mds[, 1], sub_mds[, 2], labels = rownames(sub_mds))
+dev.off()
