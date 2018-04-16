@@ -108,21 +108,25 @@ otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 
 pos <- which(is.na(meta_r$Exact_location))
 
+meta_r$SEX <- as.factor(meta_r$SEX)
+
 library("globaltest") 
 # Only for one gene
 gt(t(expr)[-pos, 1]~Exact_location * IBD*ID + AGE_SAMPLE + diagTime, data = meta_r[-pos, ])
 
 library("vegan") # For all lthe matrice
-a <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-pos, ], method = "euclidean")
-# It captures the ~70% of the variation of the expression!!
-a2 <- adonis2(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-pos, ], method = "euclidean", by = "margin")
-a3 <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location:ID , meta_r[-pos, ], method = "euclidean", by = "margin")
-a4 <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location:IBD , meta_r[-pos, ], method = "euclidean", by = "margin")
-a5 <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location , meta_r[-pos, ], method = "euclidean", by = "margin")
-a6 <- adonis(as.data.frame(t(expr)) ~ IBD , meta_r, method = "euclidean", by = "margin")
-a7 <- adonis(as.data.frame(t(expr)) ~ AGE_SAMPLE , meta_r, method = "euclidean", by = "margin")
+all_RNA <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean")
+all_16S <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean", by = "margin")
 
-b2 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime , meta_r[-pos, ], method = "euclidean", by = "margin")
-b3 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location:ID , meta_r[-pos, ], method = "euclidean", by = "margin")
-b4 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location:IBD, meta_r[-pos, ], method = "euclidean", by = "margin")
-(b5 <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ IBD , meta_r[-pos, ], method = "euclidean", by = "margin"))
+# CONTROLS
+contr <- which(!is.na(meta_r$Exact_location) & meta_r$IBD == "CONTROL")
+
+c_RNA <- adonis(as.data.frame(t(expr))[contr, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[contr, ], method = "euclidean")
+c_16S <- adonis(as.data.frame(t(otus_table_i))[contr, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[contr, ], method = "euclidean", by = "margin")
+
+
+# IBD
+ibd <- which(!is.na(meta_r$Exact_location) & meta_r$IBD != "CONTROL")
+
+i_RNA <- adonis(as.data.frame(t(expr))[ibd, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local, meta_r[ibd, ], method = "euclidean")
+i_16S <- adonis(as.data.frame(t(otus_table_i))[ibd, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local, meta_r[ibd, ], method = "euclidean", by = "margin")
