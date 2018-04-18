@@ -33,6 +33,14 @@ meta_i <- meta_i_norm(meta_i)
 # Match the name of meta and rownames
 otus_table_i <- otus_table_i[, match(rownames(meta_i), colnames(otus_table_i))]
 
+# Subset only the involved
+involve <- meta_i$Involved_Healthy == "INVOLVED"
+
+otus_table_i <- otus_table_i[, involve]
+otus_tax_i <- otus_tax_i[rowSums(otus_table_i) != 0, ]
+otus_table_i <- otus_table_i[rowSums(otus_table_i) != 0, ]
+meta_i <- meta_i[involve, ]
+
 MR_i <- newMRexperiment(
   otus_table_i,
   phenoData = AnnotatedDataFrame(meta_i),
@@ -47,7 +55,8 @@ order_i <- aggTax(MR_i, lvl = "Order", out = "matrix")
 class_i <- aggTax(MR_i, lvl = "Class", out = "matrix")
 phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
 
-# # # Compare at the otus level the time and response effect
+# Old ####
+# # Compare at the otus level the time and response effect 
 # # otus <- response_time(otus_table_i, meta_i)
 # # write.csv(otus, "prevalence_otus.csv")
 # # genus <- response_time(genus_i, meta_i)
@@ -82,7 +91,7 @@ phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
 # 
 # # summary:  Not significative, IBD patients are as  likely to have one
 # # microorganism as the controls.
-# # Test the prevalence between non controls at times T0, T26, T52 ####
+# # Test the prevalence between non controls at times T0, T26, T52 #
 # removeControls <- meta_i$IBD == "CD"
 # removeTimes <- meta_i$Time %in% c("T0", "T26", "T52")
 # keep <- removeControls & removeTimes
@@ -98,7 +107,7 @@ phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
 # 
 # # Test if the responders and the non responders behave differently along time
 # # If the presence of microorganisms thorough time is different in responders
-# # than in non-responders ####
+# # than in non-responders #
 # otus <- comp(otus_table_i, meta_i)
 # write.csv(otus, "otus_time.csv")
 # species <- comp(species_i, meta_i)
