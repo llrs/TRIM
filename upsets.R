@@ -14,6 +14,7 @@ otus_table_i <- read.csv(
 )
 otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 
+
 # Read the stools OTUs
 otus_table_s <- read.delim(
   file.path(stool, "OTUs-Table-refined-stools.tab"),
@@ -113,13 +114,14 @@ df <- df[!grepl("^(JR|NP)$", rownames(df)), ]
 
 metadata <- data.frame(sets = colnames(df), "Type" = c("Biopsies", "Biopsies", "Stools", "Depends"))
 library("UpSetR")
+text_sizes <- c(1.3, 1.3, 1, 1, 1.5, 1.5)
 pdf("Figures/patients_dataset.pdf")
 upset(df, order.by = "freq", line.size = NA, sets.x.label = "Patients samples",
       mainbar.y.label = "Patients intersection", 
       set.metadata = list(data = metadata, plots = list(list(type = "matrix_rows", 
                                                              column = "Type", 
                                                              colors = c(Biopsies = "green", Stools = "blue", Depends = "Grey"), 
-                                                alpha = 0.25))))
+                                                alpha = 0.25))), text.scale = text_sizes)
 dev.off()
 
 # Then by biopsies
@@ -159,23 +161,23 @@ location <- location[c(1, 4, 6, 5, 2, 3)]
 
 
 pdf("Figures/samples_dataset.pdf")
-upset(m_IBD, order.by = "freq", sets = st, line.size = NA)
+upset(m_IBD, order.by = "freq", sets = st, line.size = NA, text.scale = text_sizes)
 grid.text("TRIM", x = 0.65, y=0.95, gp=gpar(fontsize=20))
-upset(m_IBD, order.by = "freq", sets = location, line.size = NA, keep.order = TRUE)
+upset(m_IBD, order.by = "freq", sets = location, line.size = NA, keep.order = TRUE, text.scale = text_sizes)
 grid.text("Localization", x = 0.65, y=0.95, gp=gpar(fontsize=20))
-upset(m_IBD, order.by = "freq", sets = time, line.size = NA, keep.order = TRUE)
+upset(m_IBD, order.by = "freq", sets = time, line.size = NA, keep.order = TRUE, text.scale = text_sizes)
 grid.text("Time", x = 0.65, y=0.95, gp=gpar(fontsize=20))
-upset(m_IBD, order.by = "freq", sets = c(st, location), line.size = NA)
-upset(m_IBD, order.by = "freq", sets = c(st, time), line.size = NA)
-upset(m_IBD, order.by = "freq", sets = c(st, location, time), line.size = NA)
+upset(m_IBD, order.by = "freq", sets = c(st, location), line.size = NA, text.scale = text_sizes)
+upset(m_IBD, order.by = "freq", sets = c(st, time), line.size = NA, text.scale = text_sizes)
+upset(m_IBD, order.by = "freq", sets = c(st, location, time), line.size = NA, text.scale = text_sizes)
 
-upset(m_controls, sets = st, line.size = NA)
+upset(m_controls, sets = st, line.size = NA, text.scale = text_sizes)
 grid.text("Samples", x = 0.65, y = 0.95, gp=gpar(fontsize=15))
 keep <- sapply(location, function(x){any(m_controls[, x] != 0)})
-upset(m_controls, order.by = "freq", sets = location[keep], line.size = NA, keep.order = TRUE)
+upset(m_controls, order.by = "freq", sets = location[keep], line.size = NA, keep.order = TRUE, text.scale = text_sizes)
 grid.text("Localization", x = 0.65, y=0.95, gp=gpar(fontsize=20))
 grid.text("(Controls)", x = 0.79, y = 0.95, gp=gpar(fontsize=15))
-upset(m_controls, order.by = "freq", sets = c(st, location[keep]), line.size = NA)
+upset(m_controls, order.by = "freq", sets = c(st, location[keep]), line.size = NA, text.scale = text_sizes)
 grid.text("Controls", x = 0.670, y = 0.95, gp=gpar(fontsize=15))
 dev.off()
 
@@ -247,16 +249,16 @@ pdf("Figures/abundance.pdf")
 #       line.size = NA)
 upset(m_samples_biopsies, order.by = "freq", 
       sets = c("Colon", "Ileum", "s__prausnitzii"), 
-      line.size = NA)
+      line.size = NA, text.scale = text_sizes)
 grid.text("Prausnitzii", x = 0.65, y=0.95, gp=gpar(fontsize=20))
 upset(m_samples_biopsies, 
       sets = c("Colon", "Ileum", "g__Megasphaera"), order.by = "freq", 
-      line.size = NA)
+      line.size = NA, text.scale = text_sizes)
 grid.text("Megasphaera", x = 0.65, y=0.95, gp=gpar(fontsize=20))
 
 upset(m_samples_biopsies, 
       sets = c("Colon", "Ileum", "g__Streptococcus"), order.by = "freq", 
-      line.size = NA)
+      line.size = NA, text.scale = text_sizes)
 grid.text("Streptococcus", x = 0.65, y=0.95, gp=gpar(fontsize=20))
 
 
@@ -273,7 +275,7 @@ m_samples_stools <- as.data.frame(m_samples_stools)
 
 upset(m_samples_stools, 
       sets = colnames(m_samples_stools), order.by = "freq", 
-      line.size = NA)
+      line.size = NA, text.scale = text_sizes)
 grid.text("Taxas in stools", x = 0.65, y=0.95, gp=gpar(fontsize=20))
 
 
