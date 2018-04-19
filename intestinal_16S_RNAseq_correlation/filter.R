@@ -215,3 +215,39 @@ o <- apply(ibd_ensembl, 1, function(x) {
                   as.factor(meta_r$SEX[keep]), cor_val = cor_val)
 })
 dev.off()
+
+## Network representation
+# FIXME: Loaded but now it is not recognized as a network
+# https://www.biostars.org/p/80498/
+# bact <- all_samples_ensembl$Gene[all_samples_ensembl$Microorganism == "Bacteroides"]
+# M <- disease[, bact]
+# edges <- NULL
+# for (i in 1:nrow(M)) {
+#   for (j in 1:ncol(M)) {
+#     edges <- rbind(edges, c(rownames(M)[i], colnames(M)[j], M[i,j]))
+#   }
+# }
+# 
+# colnames(edges) <- c('node1', 'node2', 'value')
+# write.table(edges, 'edges.txt', row.names=FALSE, quote=FALSE, sep='\t')
+
+library("ggplot2")
+tab_names <- table(all_samples_symbol$Microorganism) > 60
+org <- names(tab_names[tab_names])
+org <- org[!org %in% "Peptostreptococcus"]
+graph_data <- all_samples_symbol[all_samples_symbol$Microorganism %in% org, ]
+colnames(graph_data) <- c("from", "to", "Correlation", "pvalue")
+name_node <- c(unique(graph_data$to), org)
+v_meta <- data.frame(from =  name_node, 
+                     pathway = c("path1", "path1", "path2", rep(NA, 1223)))
+rownames(v_meta) <- v_meta$from
+v_meta[org, "pathway"] <- NA
+
+graph <- graph_from_data_frame(graph_data, directed = FALSE)
+# V(graph)$names <- 
+ggraph(graph, layout = "lgl") +
+  scale_edge_colour_gradient2() +
+  geom_edge_link(aes(colour = Correlation)) +
+  geom_node_point(size = 1) +
+  geom_node_label(aes(label = ifelse(name %in% org, org[name %in% org], NA)), size = 4) +
+  theme_blank()
