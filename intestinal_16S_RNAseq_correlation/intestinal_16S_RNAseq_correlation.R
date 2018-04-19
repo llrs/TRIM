@@ -192,19 +192,3 @@ keep <-  meta_r$IBD == "CONTROL"
 # sum(keep)
 # cor_sign(sum(keep))
 cor2(genus_i[, keep], expr[, keep], "Controls")
-
-# keep <-  meta_r$IBD == "CD" & meta_r$Time == "T0"
-# sum(keep)
-# cor_sign(sum(keep))
-# cor2(genus_i[, keep], expr[, keep], "CD_T0")
-# 
-# keep <-  meta_r$IBD == "CD" & meta_r$Time == "T26"
-# sum(keep)
-# cor_sign(sum(keep))
-# cor2(genus_i[, keep], expr[, keep], "CD_T26")
-# 
-# keep <-  meta_r$IBD == "CD" & meta_r$Time == "T52"
-# sum(keep)
-# cor_sign(sum(keep))
-# cor2(genus_i[, keep], expr[, keep], "CD_T52")
-
