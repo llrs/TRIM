@@ -32,11 +32,11 @@ otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 rna <- "intestinal_RNAseq"
 expr <- as.matrix(read.delim(file.path(rna, "taula_sencera2.tsv"), 
                              check.names = FALSE))
-file_meta_r <- file.path(rna, "metadata_28032018.csv")
-meta_r <- read.table(
+file_meta_r <- file.path(rna, "metadata_25042018.csv")
+meta_r <- read.delim(
   file_meta_r, check.names = FALSE,
-  stringsAsFactors = FALSE, sep = ";",
-  na.strings = c(NA, ""), header = TRUE, dec = c(",", ".")
+  stringsAsFactors = FALSE, 
+  na.strings = c("NA", "")
 )
 
 setwd(cd)

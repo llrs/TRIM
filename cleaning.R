@@ -4,6 +4,7 @@ rna <- "intestinal_RNAseq"
 today <- format(Sys.time(), "%Y%m%d")
 library("integration")
 library("SummarizedExperiment")
+library("reshape")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(
@@ -43,14 +44,12 @@ meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
 )
-file_meta_r <- file.path(rna, "metadata_28032018.csv")
-meta_r <- read.table(
+file_meta_r <- file.path(rna, "metadata_25042018.csv")
+meta_r <- read.delim(
   file_meta_r, check.names = FALSE,
-  stringsAsFactors = FALSE, sep = ";",
+  stringsAsFactors = FALSE, 
   na.strings = c("NA", "")
 )
-colnames(meta_r) <- meta_r[1, ]
-meta_r <- meta_r[-1, ]
 
 # Correct the swapped samples
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
@@ -140,6 +139,10 @@ comTime <- intersect(meta_i$Time, meta_s$Time)
 # Keep only the common patients and times
 com_meta_i <- meta_i[meta_i$Patient_ID %in% comPatient & meta_i$Time %in% comTime, ]
 com_meta_s <- meta_s[meta_s$Patient_ID %in% comPatient & meta_s$Time %in% comTime, ]
+
+comPatient <- intersect(com_meta_i$Patient_ID, com_meta_s$Patient_ID)
+com_meta_i <- com_meta_i[com_meta_i$Patient_ID %in% comPatient, ]
+com_meta_s <- com_meta_s[com_meta_s$Patient_ID %in% comPatient, ]
 
 # Delete rows of patients which are not in common between the datasets
 keep_i <- rownames(meta_i)[meta_i$Patient_ID %in% comPatient &

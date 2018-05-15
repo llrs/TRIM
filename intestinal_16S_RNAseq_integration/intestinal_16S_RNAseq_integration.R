@@ -30,11 +30,11 @@ meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
 )
-file_meta_r <- file.path(rna, "metadata_28032018.csv")
-meta_r <- read.table(
+file_meta_r <- file.path(rna, "metadata_25042018.csv")
+meta_r <- read.delim(
   file_meta_r, check.names = FALSE,
-  stringsAsFactors = FALSE, sep = ";",
-  na.strings = c(NA, ""), header = TRUE
+  stringsAsFactors = FALSE, 
+  na.strings = c("NA", "")
 )
 
 setwd(cd)
@@ -44,34 +44,20 @@ position <- c(grep("33-T52-TTR-CIA", colnames(expr)),
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
 
-# Find the samples that we have microbiota and expression
-int <- intersect(
-  meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) &
-    !is.na(meta_r$`Sample Name_RNA`)],
-  meta_i$Sample_Code
-)
-# table(sapply(strsplit(int, "_"), "[", 1))
-
 # Correct metadata
 meta_i <- meta_i_norm(meta_i)
 meta_r <- meta_r_norm(meta_r)
 
-meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
-meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
-meta_r <- meta_r[meta_r$`Sample Name_RNA` %in% colnames(expr), ]
+# normalize names of samples
+colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
 
-# Match the labels and order to append the id
-meta_i <- meta_i[match(meta_r$Sample_Code_uDNA, meta_i$Sample_Code), ]
-meta_r$`Sample Name_Code` <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", rownames(meta_i))
+# Check metadata with the names present in both datas
+meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
+                   meta_r$`Sample Name_RNA` %in% colnames(expr), ]
 
-colnames(otus_table_i) <- gsub(
-  "([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1",
-  colnames(otus_table_i)
-)
-
-# Subset expression and outs and set in the same order between them
+# Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
-otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
+otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
 # Filter expression
 expr <- norm_RNAseq(expr)

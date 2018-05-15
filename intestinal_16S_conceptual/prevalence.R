@@ -20,30 +20,38 @@ otus_table_i <- otus_table_i[, -ncol(otus_table_i)]
 otus_tax_i <- taxonomy(tax_i, rownames(otus_table_i))
 
 # Read the metadata for each type of sample
-file_meta_i <- "intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt"
-meta_i <- read.delim(
-  file_meta_i, row.names = 1, check.names = FALSE,
-  stringsAsFactors = FALSE
+rna <- "intestinal_RNAseq"
+file_meta_r <- file.path(rna, "metadata_25042018.csv")
+meta_r <- read.delim(
+  file_meta_r, check.names = FALSE,
+  stringsAsFactors = FALSE, 
+  na.strings = c("NA", "")
 )
+
 setwd(wd)
 
 # Clean the metadata
-meta_i <- meta_i_norm(meta_i)
+meta_r <- meta_r_norm(meta_r)
 
-# Match the name of meta and rownames
-otus_table_i <- otus_table_i[, match(rownames(meta_i), colnames(otus_table_i))]
+# normalize names of samples
+colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
+
+# Subset and reorder
+meta_r <- meta_r[match(colnames(otus_table_i), meta_r$Seq_code_uDNA), ]
 
 # Subset only the involved
-involve <- meta_i$Involved_Healthy == "INVOLVED"
+involve <- meta_r$Involved_Healthy %in% "INVOLVED" | meta_r$IBD %in% "CONTROL"
 
 otus_table_i <- otus_table_i[, involve]
 otus_tax_i <- otus_tax_i[rowSums(otus_table_i) != 0, ]
 otus_table_i <- otus_table_i[rowSums(otus_table_i) != 0, ]
-meta_i <- meta_i[involve, ]
+meta_r <- meta_r[involve, ]
+
+rownames(meta_r) <- meta_r$Seq_code_uDNA
 
 MR_i <- newMRexperiment(
   otus_table_i,
-  phenoData = AnnotatedDataFrame(meta_i),
+  phenoData = AnnotatedDataFrame(meta_r),
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i))
 )
 
@@ -57,45 +65,45 @@ phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
 
 # Old ####
 # # Compare at the otus level the time and response effect 
-# # otus <- response_time(otus_table_i, meta_i)
+# # otus <- response_time(otus_table_i, meta_r)
 # # write.csv(otus, "prevalence_otus.csv")
-# # genus <- response_time(genus_i, meta_i)
+# # genus <- response_time(genus_i, meta_r)
 # # write.csv(genus, "prevalence_genus_i.csv")
-# # species <- response_time(species_i, meta_i)
+# # species <- response_time(species_i, meta_r)
 # # write.csv(species, "prevalence_species.csv")
-# # family <- response_time(family_i, meta_i)
+# # family <- response_time(family_i, meta_r)
 # # write.csv(family, "prevalence_family.csv")
-# # order <- response_time(order_i, meta_i)
+# # order <- response_time(order_i, meta_r)
 # # write.csv(order, "prevalence_order.csv")
-# # class <- response_time(class_i, meta_i)
+# # class <- response_time(class_i, meta_r)
 # # write.csv(class, "prevalence_class.csv")
-# phylum <- response_time(phylum_i, meta_i)
+# phylum <- response_time(phylum_i, meta_r)
 # write.csv(phylum, "prevalence_phylum.csv")
 # 
 # # Pairwise comparisons
-# otus <- comb_prevalence(otus_table_i, meta_i, c("Time", "HSCT_responder"))
+# otus <- comb_prevalence(otus_table_i, meta_r, c("Time", "HSCT_responder"))
 # write.csv(otus, "otus_pairwise.csv")
-# species <- comb_prevalence(species_i, meta_i, c("Time", "HSCT_responder"))
+# species <- comb_prevalence(species_i, meta_r, c("Time", "HSCT_responder"))
 # write.csv(species, "species_pairwise.csv")
-# genus <- comb_prevalence(genus_i, meta_i, c("Time", "HSCT_responder"))
+# genus <- comb_prevalence(genus_i, meta_r, c("Time", "HSCT_responder"))
 # write.csv(genus, "genus_pairwise.csv")
-# family <- comb_prevalence(family_i, meta_i, c("Time", "HSCT_responder"))
+# family <- comb_prevalence(family_i, meta_r, c("Time", "HSCT_responder"))
 # write.csv(family, "family_pairwise.csv")
-# order <- comb_prevalence(order_i, meta_i, c("Time", "HSCT_responder"))
+# order <- comb_prevalence(order_i, meta_r, c("Time", "HSCT_responder"))
 # write.csv(order, "order_pairwise.csv")
-# class <- comb_prevalence(class_i, meta_i, c("Time", "HSCT_responder"))
+# class <- comb_prevalence(class_i, meta_r, c("Time", "HSCT_responder"))
 # write.csv(class, "class_pairwise.csv")
-# phylum <- comb_prevalence(phylum_i, meta_i, c("Time", "HSCT_responder"))
+# phylum <- comb_prevalence(phylum_i, meta_r, c("Time", "HSCT_responder"))
 # write.csv(phylum, "phylum_pairwise.csv")
 # 
 # 
 # # summary:  Not significative, IBD patients are as  likely to have one
 # # microorganism as the controls.
 # # Test the prevalence between non controls at times T0, T26, T52 #
-# removeControls <- meta_i$IBD == "CD"
-# removeTimes <- meta_i$Time %in% c("T0", "T26", "T52")
+# removeControls <- meta_r$IBD == "CD"
+# removeTimes <- meta_r$Time %in% c("T0", "T26", "T52")
 # keep <- removeControls & removeTimes
-# Time_Responder <- comb_prevalence(otus_table_i[, keep], meta_i[keep, ],
+# Time_Responder <- comb_prevalence(otus_table_i[, keep], meta_r[keep, ],
 #   c("Time", "HSCT_responder"))
 # 
 # if (any(Time_Responder < 0.05)) {
@@ -108,69 +116,69 @@ phylum_i <- aggTax(MR_i, lvl = "Phylum", out = "matrix")
 # # Test if the responders and the non responders behave differently along time
 # # If the presence of microorganisms thorough time is different in responders
 # # than in non-responders #
-# otus <- comp(otus_table_i, meta_i)
+# otus <- comp(otus_table_i, meta_r)
 # write.csv(otus, "otus_time.csv")
-# species <- comp(species_i, meta_i)
+# species <- comp(species_i, meta_r)
 # write.csv(species, "species_time.csv")
-# genus <- comp(genus_i, meta_i)
+# genus <- comp(genus_i, meta_r)
 # write.csv(genus, "genus_time.csv")
-# family <- comp(family_i, meta_i)
+# family <- comp(family_i, meta_r)
 # write.csv(family, "family_time.csv")
-# order <- comp(order_i, meta_i)
+# order <- comp(order_i, meta_r)
 # write.csv(order, "order_time.csv")
-# class <- comp(class_i, meta_i)
+# class <- comp(class_i, meta_r)
 # write.csv(class, "class_time.csv")
-# phylum <- comp(phylum_i, meta_i)
+# phylum <- comp(phylum_i, meta_r)
 # write.csv(phylum, "phylum_time.csv")
 
 
 
 ## Time ####
-otus <- comb_prevalence(otus_table_i, meta_i, c("Time"))
+otus <- comb_prevalence(otus_table_i, meta_r, c("Time"))
 write.csv(otus, "prevalence_time_otus.csv")
-genus <- comb_prevalence(genus_i, meta_i, c("Time"))
+genus <- comb_prevalence(genus_i, meta_r, c("Time"))
 write.csv(genus, "prevalence_time_genus.csv")
-species <- comb_prevalence(species_i, meta_i, c("Time"))
+species <- comb_prevalence(species_i, meta_r, c("Time"))
 write.csv(species, "prevalence_time_species.csv")
-family <- comb_prevalence(family_i, meta_i, c("Time"))
+family <- comb_prevalence(family_i, meta_r, c("Time"))
 write.csv(family, "prevalence_time_family.csv")
-order <- comb_prevalence(order_i, meta_i, c("Time"))
+order <- comb_prevalence(order_i, meta_r, c("Time"))
 write.csv(order, "prevalence_time_order.csv")
-class <- comb_prevalence(class_i, meta_i, c("Time"))
+class <- comb_prevalence(class_i, meta_r, c("Time"))
 write.csv(class, "prevalence_time_class.csv")
-phylum <- comb_prevalence(phylum_i, meta_i, c("Time"))
+phylum <- comb_prevalence(phylum_i, meta_r, c("Time"))
 write.csv(phylum, "prevalence_time_phylum.csv")
 
 # Responders
-otus <- comb_prevalence(otus_table_i, meta_i, c("HSCT_responder"))
+otus <- comb_prevalence(otus_table_i, meta_r, c("HSCT_responder"))
 write.csv(otus, "prevalence_otus.csv")
-genus <- comb_prevalence(genus_i, meta_i, c("HSCT_responder"))
+genus <- comb_prevalence(genus_i, meta_r, c("HSCT_responder"))
 write.csv(genus, "prevalence_genus_i.csv")
-species <- comb_prevalence(species_i, meta_i, c("HSCT_responder"))
+species <- comb_prevalence(species_i, meta_r, c("HSCT_responder"))
 write.csv(species, "prevalence_species.csv")
-family <- comb_prevalence(family_i, meta_i, c("HSCT_responder"))
+family <- comb_prevalence(family_i, meta_r, c("HSCT_responder"))
 write.csv(family, "prevalence_family.csv")
-order <- comb_prevalence(order_i, meta_i, c("HSCT_responder"))
+order <- comb_prevalence(order_i, meta_r, c("HSCT_responder"))
 write.csv(order, "prevalence_order.csv")
-class <- comb_prevalence(class_i, meta_i, c("HSCT_responder"))
+class <- comb_prevalence(class_i, meta_r, c("HSCT_responder"))
 write.csv(class, "prevalence_class.csv")
-phylum <- comb_prevalence(phylum_i, meta_i, c("HSCT_responder"))
+phylum <- comb_prevalence(phylum_i, meta_r, c("HSCT_responder"))
 write.csv(phylum, "prevalence_phylum.csv")
 
 # Responders Time
-otus <- comb_prevalence(otus_table_i, meta_i, c("HSCT_responder", "Time"))
+otus <- comb_prevalence(otus_table_i, meta_r, c("HSCT_responder", "Time"))
 write.csv(otus, "prevalence_response_time_otus.csv")
-genus <- comb_prevalence(genus_i, meta_i, c("HSCT_responder", "Time"))
+genus <- comb_prevalence(genus_i, meta_r, c("HSCT_responder", "Time"))
 write.csv(genus, "prevalence_response_time_genus_i.csv")
-species <- comb_prevalence(species_i, meta_i, c("HSCT_responder", "Time"))
+species <- comb_prevalence(species_i, meta_r, c("HSCT_responder", "Time"))
 write.csv(species, "prevalence_response_time_species.csv")
-family <- comb_prevalence(family_i, meta_i, c("HSCT_responder", "Time"))
+family <- comb_prevalence(family_i, meta_r, c("HSCT_responder", "Time"))
 write.csv(family, "prevalence_response_time_family.csv")
-order <- comb_prevalence(order_i, meta_i, c("HSCT_responder", "Time"))
+order <- comb_prevalence(order_i, meta_r, c("HSCT_responder", "Time"))
 write.csv(order, "prevalence_response_time_order.csv")
-class <- comb_prevalence(class_i, meta_i, c("HSCT_responder", "Time"))
+class <- comb_prevalence(class_i, meta_r, c("HSCT_responder", "Time"))
 write.csv(class, "prevalence_response_time_class.csv")
-phylum <- comb_prevalence(phylum_i, meta_i, c("HSCT_responder", "Time"))
+phylum <- comb_prevalence(phylum_i, meta_r, c("HSCT_responder", "Time"))
 write.csv(phylum, "prevalence_response_time_phylum.csv")
 
 
@@ -178,107 +186,107 @@ write.csv(phylum, "prevalence_response_time_phylum.csv")
 
 # COLON ######
 
-colon <- !meta_i$CD_Aftected_area %in% "ILEUM"
+colon <- !meta_r$CD_Aftected_area %in% "ILEUM"
 
 ## Time ####
-otus <- comb_prevalence(otus_table_i[, colon], droplevels(meta_i[colon, ]), c("Time"))
+otus <- comb_prevalence(otus_table_i[, colon], droplevels(meta_r[colon, ]), c("Time"))
 write.csv(otus, "prevalence_colon_time_otus.csv")
-genus <- comb_prevalence(genus_i[, colon], droplevels(meta_i[colon, ]), c("Time"))
+genus <- comb_prevalence(genus_i[, colon], droplevels(meta_r[colon, ]), c("Time"))
 write.csv(genus, "prevalence_colon_time_genus.csv")
-species <- comb_prevalence(species_i[, colon], droplevels(meta_i[colon, ]), c("Time"))
+species <- comb_prevalence(species_i[, colon], droplevels(meta_r[colon, ]), c("Time"))
 write.csv(species, "prevalence_colon_time_species.csv")
-family <- comb_prevalence(family_i[, colon], droplevels(meta_i[colon, ]), c("Time"))
+family <- comb_prevalence(family_i[, colon], droplevels(meta_r[colon, ]), c("Time"))
 write.csv(family, "prevalence_colon_time_family.csv")
-order <- comb_prevalence(order_i[, colon], droplevels(meta_i[colon, ]), c("Time"))
+order <- comb_prevalence(order_i[, colon], droplevels(meta_r[colon, ]), c("Time"))
 write.csv(order, "prevalence_colon_time_order.csv")
-class <- comb_prevalence(class_i[, colon], droplevels(meta_i[colon, ]), c("Time"))
+class <- comb_prevalence(class_i[, colon], droplevels(meta_r[colon, ]), c("Time"))
 write.csv(class, "prevalence_colon_time_class.csv")
-phylum <- comb_prevalence(phylum_i[, colon], droplevels(meta_i[colon, ]), c("Time"))
+phylum <- comb_prevalence(phylum_i[, colon], droplevels(meta_r[colon, ]), c("Time"))
 write.csv(phylum, "prevalence_colon_time_phylum.csv")
 
 # Responders
-otus <- comb_prevalence(otus_table_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder"))
+otus <- comb_prevalence(otus_table_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder"))
 write.csv(otus, "prevalence_colon_otus.csv")
-genus <- comb_prevalence(genus_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder"))
+genus <- comb_prevalence(genus_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder"))
 write.csv(genus, "prevalence_colon_genus_i.csv")
-species <- comb_prevalence(species_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder"))
+species <- comb_prevalence(species_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder"))
 write.csv(species, "prevalence_colon_species.csv")
-family <- comb_prevalence(family_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder"))
+family <- comb_prevalence(family_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder"))
 write.csv(family, "prevalence_colon_family.csv")
-order <- comb_prevalence(order_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder"))
+order <- comb_prevalence(order_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder"))
 write.csv(order, "prevalence_colon_order.csv")
-class <- comb_prevalence(class_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder"))
+class <- comb_prevalence(class_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder"))
 write.csv(class, "prevalence_colon_class.csv")
-phylum <- comb_prevalence(phylum_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder"))
+phylum <- comb_prevalence(phylum_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder"))
 write.csv(phylum, "prevalence_colon_phylum.csv")
 
 # Responders Time
-otus <- comb_prevalence(otus_table_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder", "Time"))
+otus <- comb_prevalence(otus_table_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder", "Time"))
 write.csv(otus, "prevalence_colon_response_time_otus.csv")
-genus <- comb_prevalence(genus_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder", "Time"))
+genus <- comb_prevalence(genus_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder", "Time"))
 write.csv(genus, "prevalence_colon_response_time_genus_i.csv")
-species <- comb_prevalence(species_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder", "Time"))
+species <- comb_prevalence(species_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder", "Time"))
 write.csv(species, "prevalence_colon_response_time_species.csv")
-family <- comb_prevalence(family_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder", "Time"))
+family <- comb_prevalence(family_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder", "Time"))
 write.csv(family, "prevalence_colon_response_time_family.csv")
-order <- comb_prevalence(order_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder", "Time"))
+order <- comb_prevalence(order_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder", "Time"))
 write.csv(order, "prevalence_colon_response_time_order.csv")
-class <- comb_prevalence(class_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder", "Time"))
+class <- comb_prevalence(class_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder", "Time"))
 write.csv(class, "prevalence_colon_response_time_class.csv")
-phylum <- comb_prevalence(phylum_i[, colon], droplevels(meta_i[colon, ]), c("HSCT_responder", "Time"))
+phylum <- comb_prevalence(phylum_i[, colon], droplevels(meta_r[colon, ]), c("HSCT_responder", "Time"))
 write.csv(phylum, "prevalence_colon_response_time_phylum.csv")
 
 
 # ILEUM ####
 
-ileum <- meta_i$CD_Aftected_area %in% "ILEUM"
+ileum <- meta_r$CD_Aftected_area %in% "ILEUM"
   
 ## Time ####
-otus <- comb_prevalence(otus_table_i[, !colon], droplevels(meta_i[ileum, ]), c("Time"))
+otus <- comb_prevalence(otus_table_i[, !colon], droplevels(meta_r[ileum, ]), c("Time"))
 write.csv(otus, "prevalence_ileum_time_otus.csv")
-genus <- comb_prevalence(genus_i[, !colon], droplevels(meta_i[ileum, ]), c("Time"))
+genus <- comb_prevalence(genus_i[, !colon], droplevels(meta_r[ileum, ]), c("Time"))
 write.csv(genus, "prevalence_ileum_time_genus.csv")
-species <- comb_prevalence(species_i[, !colon], droplevels(meta_i[ileum, ]), c("Time"))
+species <- comb_prevalence(species_i[, !colon], droplevels(meta_r[ileum, ]), c("Time"))
 write.csv(species, "prevalence_ileum_time_species.csv")
-family <- comb_prevalence(family_i[, !colon], droplevels(meta_i[ileum, ]), c("Time"))
+family <- comb_prevalence(family_i[, !colon], droplevels(meta_r[ileum, ]), c("Time"))
 write.csv(family, "prevalence_ileum_time_family.csv")
-order <- comb_prevalence(order_i[, !colon], droplevels(meta_i[ileum, ]), c("Time"))
+order <- comb_prevalence(order_i[, !colon], droplevels(meta_r[ileum, ]), c("Time"))
 write.csv(order, "prevalence_ileum_time_order.csv")
-class <- comb_prevalence(class_i[, !colon], droplevels(meta_i[ileum, ]), c("Time"))
+class <- comb_prevalence(class_i[, !colon], droplevels(meta_r[ileum, ]), c("Time"))
 write.csv(class, "prevalence_ileum_time_class.csv")
-phylum <- comb_prevalence(phylum_i[, !colon], droplevels(meta_i[ileum, ]), c("Time"))
+phylum <- comb_prevalence(phylum_i[, !colon], droplevels(meta_r[ileum, ]), c("Time"))
 write.csv(phylum, "prevalence_ileum_time_phylum.csv")
 
 # Responders
-otus <- comb_prevalence(otus_table_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder"))
+otus <- comb_prevalence(otus_table_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder"))
 write.csv(otus, "prevalence_ileum_otus.csv")
-genus <- comb_prevalence(genus_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder"))
+genus <- comb_prevalence(genus_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder"))
 write.csv(genus, "prevalence_ileum_genus_i.csv")
-species <- comb_prevalence(species_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder"))
+species <- comb_prevalence(species_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder"))
 write.csv(species, "prevalence_ileum_species.csv")
-family <- comb_prevalence(family_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder"))
+family <- comb_prevalence(family_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder"))
 write.csv(family, "prevalence_ileum_family.csv")
-order <- comb_prevalence(order_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder"))
+order <- comb_prevalence(order_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder"))
 write.csv(order, "prevalence_ileum_order.csv")
-class <- comb_prevalence(class_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder"))
+class <- comb_prevalence(class_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder"))
 write.csv(class, "prevalence_ileum_class.csv")
-phylum <- comb_prevalence(phylum_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder"))
+phylum <- comb_prevalence(phylum_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder"))
 write.csv(phylum, "prevalence_ileum_phylum.csv")
 
 # Responders Time
-otus <- comb_prevalence(otus_table_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder", "Time"))
+otus <- comb_prevalence(otus_table_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder", "Time"))
 write.csv(otus, "prevalence_ileum_response_time_otus.csv")
-genus <- comb_prevalence(genus_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder", "Time"))
+genus <- comb_prevalence(genus_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder", "Time"))
 write.csv(genus, "prevalence_ileum_response_time_genus_i.csv")
-species <- comb_prevalence(species_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder", "Time"))
+species <- comb_prevalence(species_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder", "Time"))
 write.csv(species, "prevalence_ileum_response_time_species.csv")
-family <- comb_prevalence(family_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder", "Time"))
+family <- comb_prevalence(family_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder", "Time"))
 write.csv(family, "prevalence_ileum_response_time_family.csv")
-order <- comb_prevalence(order_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder", "Time"))
+order <- comb_prevalence(order_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder", "Time"))
 write.csv(order, "prevalence_ileum_response_time_order.csv")
-class <- comb_prevalence(class_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder", "Time"))
+class <- comb_prevalence(class_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder", "Time"))
 write.csv(class, "prevalence_ileum_response_time_class.csv")
-phylum <- comb_prevalence(phylum_i[, !colon], droplevels(meta_i[ileum, ]), c("HSCT_responder", "Time"))
+phylum <- comb_prevalence(phylum_i[, !colon], droplevels(meta_r[ileum, ]), c("HSCT_responder", "Time"))
 write.csv(phylum, "prevalence_ileum_response_time_phylum.csv")
 
 
@@ -290,7 +298,7 @@ write.csv(phylum, "prevalence_ileum_response_time_phylum.csv")
 # results <- boot(data = t(sweep(wocontrols, 2, colSums(wocontrols), `/`) > 0.005),
 #                 statistic = ratio,
 #                 R = 1000,
-#                 meta = meta_i[removeControls, ], columns = "Time",
+#                 meta = meta_r[removeControls, ], columns = "Time",
 #                 parallel = "multicore", ncpus = 4)
 #
 # # view results

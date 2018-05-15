@@ -9,11 +9,11 @@ meta_i <- read.delim(
   stringsAsFactors = FALSE
 )
 rna <- "intestinal_RNAseq"
-file_meta_r <- file.path(rna, "metadata_28032018.csv")
-meta_r <- read.table(
+file_meta_r <- file.path(rna, "metadata_25042018.csv")
+meta_r <- read.delim(
   file_meta_r, check.names = FALSE,
-  stringsAsFactors = FALSE, sep = ";",
-  na.strings = c(NA, ""), header = TRUE, dec = c(",", ".")
+  stringsAsFactors = FALSE, 
+  na.strings = c("NA", "")
 )
 
 
@@ -153,6 +153,7 @@ all_samples_symbol$Gene <- gsub("(.*)\\..*", "\\1", all_samples_ensembl$Gene)
 all_samples_symbol$Gene <- mapIds(org.Hs.eg.db, keys = all_samples_symbol$Gene, 
                                   keytype = "ENSEMBL", column = "SYMBOL")
 all_samples_symbol <- all_samples_symbol[!is.na(all_samples_symbol$Gene), ]
+all_samples_symbol <- all_samples_symbol[!duplicated(all_samples_symbol), ]
 write.csv(all_samples_symbol, file = "correlation_all.csv", row.names = FALSE, na = "")
 
 
@@ -185,23 +186,26 @@ plot_single_cor <- function(x, gene, y, microorganism, colr, case, cor_val) {
   
   y_s <- y[microorganism, ]
   y_s[y_s == 0] <- NA
+  pch_start <- 15
   
   # main <- cor(x_s, y_s, method = "spearman", use = "pairwise.complete.obs")
   plot(x_s, y_s, xlab = paste(symbol, collapse = " "), ylab = microorganism, main = cor_val, col = colr, 
-       pch = as.numeric(case))
+       pch = pch_start + as.numeric(case))
   legend("bottomleft", fill = as.factor(levels(colr)), legend = levels(colr))
-  legend("topright", pch = as.factor(levels(case)), 
+  legend("topright", pch = pch_start + as.numeric(as.factor(levels(case))), 
          legend = levels(case))
-  
+  # legend("topleft", lty = "solid", col = as.factor(levels(bg)), 
+         # legend = levels(bg), lwd = 2)
 }
 
-pdf("correlations_plot_all.pdf")
+pdf("correlations_plot_all_active.pdf")
 o <- apply(all_samples_ensembl, 1, function(x) {
   micro <- x[[1]]
   gene <- x[[2]]
   cor_val <- x[[3]]
-  plot_single_cor(expr, gene, genus_i, micro, as.factor(meta_r$Exact_location), 
-                  as.factor(meta_r$IBD), cor_val = cor_val)
+  plot_single_cor(expr, gene, genus_i, micro, as.factor(meta_r$Time), 
+                  as.factor(meta_r$Involved_Healthy), 
+                  cor_val = cor_val)
 })
 dev.off()
 
@@ -232,22 +236,37 @@ dev.off()
 # write.table(edges, 'edges.txt', row.names=FALSE, quote=FALSE, sep='\t')
 
 library("ggplot2")
+library("ggraph")
+library("tidygraph")
+library("ggnetwork")
 tab_names <- table(all_samples_symbol$Microorganism) > 60
 org <- names(tab_names[tab_names])
 org <- org[!org %in% "Peptostreptococcus"]
-graph_data <- all_samples_symbol[all_samples_symbol$Microorganism %in% org, ]
-colnames(graph_data) <- c("from", "to", "Correlation", "pvalue")
-name_node <- c(unique(graph_data$to), org)
-v_meta <- data.frame(from =  name_node, 
-                     pathway = c("path1", "path1", "path2", rep(NA, 1223)))
-rownames(v_meta) <- v_meta$from
-v_meta[org, "pathway"] <- NA
 
-graph <- graph_from_data_frame(graph_data, directed = FALSE)
-# V(graph)$names <- 
-ggraph(graph, layout = "lgl") +
+graph_data <- all_samples_symbol[all_samples_symbol$Microorganism %in% org, ]
+
+tg <- table(graph_data$Gene[graph_data$Microorganism %in% org])
+tm <- table(graph_data$Microorganism[graph_data$Microorganism %in% org])
+t_number <- c(tg, tm)
+
+colnames(graph_data) <- c("from", "to", "Correlation", "pvalue")
+tidyg <- as_tbl_graph(graph_data, directed = FALSE)
+
+# Add info about the nodes
+tidyg2 <- tidyg %>% 
+  activate(nodes) %>% 
+  mutate(Connections = t_number[name], 
+         Type = ifelse(name %in% org, "Microorganism", "Gene"),
+         Sth = c(""))
+
+p <- ggraph(tidyg2, layout = "lgl") +
   scale_edge_colour_gradient2() +
   geom_edge_link(aes(colour = Correlation)) +
-  geom_node_point(size = 1) +
-  geom_node_label(aes(label = ifelse(name %in% org, org[name %in% org], NA)), size = 4) +
+  geom_node_point(aes(filter = Type != "Microorganism" & Connections >= 2, size = Connections)) +
+  # geom_node_point(aes(filter = Type == "Microorganism", size = Connections)) +
+  geom_node_label(aes(filter = Type == "Microorganism", label = name), 
+                  size = 4, repel = TRUE) +
+  scale_size(range = c(0.5, 2)) +
   theme_blank()
+ggsave("Figures/connections.png")
+  
