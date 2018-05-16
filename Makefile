@@ -6,7 +6,7 @@ pre_files=stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt \
 					stools_16S/OTUs-Table-refined-stools.tab \
 					intestinal_16S/OTUs-Table-new-biopsies.csv \
 					intestinal_16S/db_biopsies_trim_seq16S_noBCN.txt \
-					intestinal_RNAseq/metadata_13032018.csv \
+					intestinal_RNAseq/metadata_25042018.csv \
 					intestinal_RNAseq/table.counts.results
 
 out_files=meta_coherent.csv \
@@ -19,7 +19,7 @@ out_files=meta_coherent.csv \
 
 .PHONY: all STATegRa eqSpecies eqGenus ileum_integration colon_integration PCA \
 stools_prevalence intestinal_prevalence prevalence upset intestinal_16S_RNAseq_correlation \
-alpha cleaning
+alpha cleaning variance
 
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
@@ -88,8 +88,7 @@ intestinal_16S_metadb: intestinal_16S_metadb/intestinal_16S_metadb.R $(pre_files
 # Handles the creation of PCA for biopsies RNAseq but controlling for clinical variables
 intestinal_RNAseq_metadb: intestinal_RNAseq_metadb/intestinal_RNAseq_metadb.R $(pre_files) 
 	@echo "PCAs controlling for clinical variables of RNAseq biopsies"
-	cd $(<D);\ 
-	R CMD BATCH $(R_OPTS) $(<F)
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 intestinal_16S_RNAseq_correlation: intestinal_16S_RNAseq_correlation/intestinal_16S_RNAseq_correlation.R intestinal_16S_RNAseq_correlation/filter.R intestinal_RNAseq_metadb
 	cd $(<D);\
@@ -99,6 +98,11 @@ intestinal_16S_RNAseq_correlation: intestinal_16S_RNAseq_correlation/intestinal_
 # Handles the integration between the biopsies
 intestinal_16S_RNAseq_integration: intestinal_16S_RNAseq_integration/intestinal_16S_RNAseq_integration.R $(pre_files) 
 	@echo "Relating the RNAseq with the microbiota"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+
+# Test which part of the variance is explained by what
+models.RData variance: intestinal_16S_RNAseq_metadb/variance.R $(pre_files)
+	@echo "Testing the variance on clinical data"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the integration between the biopsies taking into account the metadata
@@ -113,8 +117,7 @@ intestinal_16S_RNAseq_metadb/*.RData intestinal_16S_RNAseq_metadb: intestinal_16
 # Test which biological relation exists between the selected genes and microbiota
 intestinal_16S_RNAseq_metadb/*.csv biological_relations: intestinal_16S_RNAseq_metadb/biological_relations.R intestinal_16S_RNAseq_metadb
 	@echo "Finding the meaning of these relationships"
-	cd $(<D);\
-	R CMD BATCH $(R_OPTS) biological_relations.R
+	cd $(<D);	R CMD BATCH $(R_OPTS) $(<F)
 
 # Handles the calculation of the prevalence in intestinal 
 intestinal_prevalence: intestinal_16S_conceptual/prevalence.R $(pre_files)
