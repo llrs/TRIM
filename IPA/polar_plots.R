@@ -35,20 +35,19 @@ circular_plot <- function(x) {
   
   x$group <- "group_x"
   ggplot(x) + 
-    geom_line(aes(IPA, log10pvalue, group = group), col = "grey") +
+    geom_polygon(aes(IPA, log10pvalue, group = group), col = "grey", fill = NA) +
     geom_point(aes(IPA, log10pvalue, size = abs(zscore), col = color)) +
     coord_polar(theta = "x", direction = 1) +
     labs(x = "", y = "", color = "Sign", size = "z-score") +
-    # ylim(c(0, 3)) +
+    ylim(c(0, max(x$log10pvalue))) +
     theme_minimal()  %+replace%
     theme(
       axis.text.y = element_text(angle = 0),
       axis.text = element_text(margin = margin(t = 20, b = 10), size = 7),
-      axis.text.x = element_blank()
+      axis.text.x = element_blank() # element_text(angle = 0, colour = NULL)
     ) +
-    scale_alpha(range = c(0.5, 1))
-  
-  
+    # scale_alpha(range = c(0.5, 1)) +
+    scale_color_manual(values = c("positive" = "red", "negative" = "green"))
 }
 
 sapply(samples, function(x) {
