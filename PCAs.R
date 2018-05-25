@@ -103,26 +103,22 @@ pcas <- cbind(pca_s_x, meta_s)
 pdf(paste0("Figures/", today, "_PCA.pdf"))
 
 
-ggplot(pcas) +
-  geom_text(aes(PC1, PC2, col = ID, label = Time)) +
+p <- ggplot(pcas, aes(PC1, PC2)) +
   ggtitle("PCA stools") +
-  guides(col = guide_legend(title = "Patient ID")) +
   theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors_s) +
   xlab(paste("PC1", pca_s_var[1], "%")) +
   ylab(paste("PC2", pca_s_var[2], "%"))
 
-ggplot(pcas) +
-  geom_text(aes(
-    PC1, PC2, col = HSCT_responder,
+p +
+  scale_color_manual(values = colors_s) +
+  guides(col = guide_legend(title = "Patient ID")) +
+  geom_text(aes(col = ID, label = Time))
+p + 
+  geom_text(aes(col = HSCT_responder,
     label = paste(Time, ID, sep = "_")
   )) +
-  ggtitle("PCA stools") +
-  guides(col = guide_legend(title = "Responders")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_s_var[1], "%")) +
-  ylab(paste("PC2", pca_s_var[2], "%"))
-
+  guides(col = guide_legend(title = "Responders"))
+  
 # PCA intestinals
 
 pca_i <- prcomp(t(otus_table_i), scale. = TRUE)
@@ -145,14 +141,16 @@ meta_i <- cbind(meta_i, labels)
 
 pcai <- cbind(pca_i_x, meta_i)
 
-ggplot(pcai) +
-  geom_text(aes(PC1, PC2, col = ID, label = labels)) +
-  guides(col = guide_legend(title = "Patient")) +
+pi <- ggplot(pcai, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors_i) +
   xlab(paste("PC1", pca_i_var[1], "%")) +
   ylab(paste("PC2", pca_i_var[2], "%")) +
   ggtitle("PCA biopsies")
+
+pi +
+  geom_text(aes(col = ID, label = labels)) +
+  guides(col = guide_legend(title = "Patient")) +
+  scale_color_manual(values = colors_i)
 
 # Remove the patient We can see that there is out of the line
 keep <- !grepl("28_T52_T_DM_CH", meta_i$Sample_Code)
@@ -165,25 +163,23 @@ pca_i_var <- round(summary(pca_i)$importance[2, ] * 100, digits = 2)
 
 pcai <- cbind(pca_i_x, meta_i)
 
-ggplot(pcai) +
-  geom_text(aes(PC1, PC2, col = ID, label = labels)) +
-  guides(col = guide_legend(title = "Patient")) +
+pi2 <- ggplot(pcai, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors_i) +
   xlab(paste("PC1", pca_i_var[1], "%")) +
   ylab(paste("PC2", pca_i_var[2], "%")) +
   ggtitle("PCA biopsies")
 
-ggplot(pcai) +
-  geom_text(aes(
-    PC1, PC2, col = HSCT_responder,
+pi2 +
+  scale_color_manual(values = colors_i) +
+  geom_text(aes(col = ID, label = labels)) +
+  guides(col = guide_legend(title = "Patient")) 
+  
+
+pi2 +
+  geom_text(aes(col = HSCT_responder,
     label = paste(Time, ID, sep = "_")
   )) +
-  ggtitle("PCA biopsies") +
-  guides(col = guide_legend(title = "Responders")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_i_var[1], "%")) +
-  ylab(paste("PC2", pca_i_var[2], "%"))
+  guides(col = guide_legend(title = "Responders"))
 
 
 # PCA intestinal RNAseq with Barcelona
@@ -196,51 +192,33 @@ pca_ir_x <- pca_ir_x[rownames(pca_ir_x) %in% meta_r$`Sample Name_RNA`, ]
 meta_r_ord <- meta_r[meta_r$`Sample Name_RNA` %in% rownames(pca_ir_x), ]
 pcair <- cbind(pca_ir_x, meta_r_ord[match(rownames(pca_ir_x), meta_r_ord$`Sample Name_RNA`), ])
 
-ggplot(pcair) +
-  geom_text(aes(PC1, PC2, col = ID, label = paste(ID, Time, sep = "_"))) +
-  guides(col = guide_legend(title = "Patient")) +
+pir <- ggplot(pcair, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) +
+  ggtitle("PCA RNAseq biopsies")
+
+pir +
   scale_color_manual(values = colors_ir) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
+  guides(col = guide_legend(title = "Patient")) +
+  geom_text(aes(col = ID, label = paste(ID, Time, sep = "_")))
 
-ggplot(pcair) +
-  geom_text(aes(
-    PC1, PC2, col = HSCT_responder,
-    label = paste(Time, ID, sep = "_")
-  )) +
-  ggtitle("PCA RNAseq biopsies") +
-  guides(col = guide_legend(title = "Responders")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%"))
+pir <- geom_text(aes(col = HSCT_responder,
+    label = paste(Time, ID, sep = "_"))) +
+  guides(col = guide_legend(title = "Responders"))
 
-ggplot(pcair) +
-  geom_text(aes(PC1, PC2, col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) +
-  guides(col = guide_legend(title = "Afected area")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
+pir +
+  geom_text(aes(col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) +
+  guides(col = guide_legend(title = "Afected area"))
 
 
-ggplot(pcair) +
-  geom_text(aes(PC1, PC2, col = Exact_location, label = paste(ID, Time, sep = "_"))) +
-  guides(col = guide_legend(title = "Region")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
+pir +
+  geom_text(aes(col = Exact_location, label = paste(ID, Time, sep = "_"))) +
+  guides(col = guide_legend(title = "Region"))
 
-ggplot(pcair) +
-  geom_text(aes(PC1, PC2, col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) +
-  guides(col = guide_legend(title = "Involved area")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
-
+pir +
+  geom_text(aes(col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) +
+  guides(col = guide_legend(title = "Involved area"))
 
 # PCA TRIM (without barcelona)
 barcelona <- grepl("w", colnames(expr))
@@ -254,41 +232,28 @@ pca_ir_x <- pca_ir_x[rownames(pca_ir_x) %in% meta_r$`Sample Name_RNA`, ]
 meta_r_ord <- meta_r[meta_r$`Sample Name_RNA` %in% rownames(pca_ir_x), ]
 pcair <- cbind(pca_ir_x, meta_r_ord[match(rownames(pca_ir_x), meta_r_ord$`Sample Name_RNA`), ])
 
-# FIXME
-ggplot(pcair) +
-  geom_text(aes(PC1, PC2, col = ID, label = paste(ID, Time, sep = "_"))) +
-  guides(col = guide_legend(title = "Patient")) +
+pir_trim <- ggplot(pcair, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) +
+  ggtitle("PCA RNAseq biopsies")
+
+pir_trim +
+  geom_text(aes(col = ID, label = paste(ID, Time, sep = "_"))) +
   scale_color_manual(values = colors_ir) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
+  guides(col = guide_legend(title = "Patient"))
+  
+pir_trim +
+  geom_text(aes(col = HSCT_responder, label = paste(Time, ID, sep = "_"))) +
+  guides(col = guide_legend(title = "Responders"))
 
-ggplot(pcair) +
-  geom_text(aes(
-    PC1, PC2, col = HSCT_responder,
-    label = paste(Time, ID, sep = "_")
-  )) +
-  ggtitle("PCA RNAseq biopsies") +
-  guides(col = guide_legend(title = "Responders")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%"))
+pir_trim +
+  geom_text(aes(col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) +
+  guides(col = guide_legend(title = "Patient"))
+  
 
-ggplot(pcair) +
-  geom_text(aes(PC1, PC2, col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) +
-  guides(col = guide_legend(title = "Patient")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
-
-ggplot(pcair) +
-  geom_text(aes(PC1, PC2, col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) +
-  guides(col = guide_legend(title = "Patient")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_ir_var[1], "%")) +
-  ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
+pir_trim +
+  geom_text(aes(col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) +
+  guides(col = guide_legend(title = "Patient"))
 
 dev.off()
