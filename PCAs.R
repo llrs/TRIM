@@ -103,17 +103,17 @@ pcas <- cbind(pca_s_x, meta_s)
 pdf(paste0("Figures/", today, "_PCA.pdf"))
 
 
-p <- ggplot(pcas, aes(PC1, PC2)) +
+ps <- ggplot(pcas, aes(PC1, PC2)) +
   ggtitle("PCA stools") +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_s_var[1], "%")) +
   ylab(paste("PC2", pca_s_var[2], "%"))
 
-p +
+ps +
   scale_color_manual(values = colors_s) +
   guides(col = guide_legend(title = "Patient ID")) +
   geom_text(aes(col = ID, label = Time))
-p + 
+ps + 
   geom_text(aes(col = HSCT_responder,
     label = paste(Time, ID, sep = "_")
   )) +
@@ -256,4 +256,38 @@ pir_trim +
   geom_text(aes(col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) +
   guides(col = guide_legend(title = "Patient"))
 
+pcair[, 1, drop = FALSE]
+pcai[, 1, drop = FALSE]
+rownames(pcai) <- gsub("[0-9]+\\.", "", rownames(pcai))
+
+# Merge PCAS and plot
+meta_r <- meta_r[meta_r$Seq_code_uDNA %in% rownames(pcai) &
+                    meta_r$`Sample Name_RNA` %in% rownames(pcair) , ]
+pcai <- pcai[meta_r$Seq_code_uDNA, ]
+pcair <- pcair[meta_r$`Sample Name_RNA`, ]
+
+df <- cbind.data.frame("Micro" = pcai$PC1, "RNA" = pcair$PC1)
+df <- cbind(df, meta_r)
+mix <- ggplot(df, aes(RNA, Micro)) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("RNA", pca_ir_var[1], "%")) +
+  ylab(paste("16S", pca_i_var[1], "%")) +
+  ggtitle("Mixing PCAs")
+
+mix +
+  geom_point(aes(col = HSCT_responder, shape = SEX)) +
+  guides(col = guide_legend(title = "Responders"))
+mix +
+  geom_point(aes(col = Time, shape = SEX, size = AGE_SAMPLE)) +
+  guides(col = guide_legend(title = "Responders"))
+mix +
+  geom_point(aes(col = Active_area)) +
+  guides(col = guide_legend(title = "Activity"))
+mix +
+  geom_point(aes(col = Exact_location)) +
+  guides(col = guide_legend(title = "Location"))
+mix +
+  geom_point(aes(shape = Active_area, col = Exact_location)) +
+  guides(shape = guide_legend(title = "Responders"), 
+         col = guide_legend(title = "Location"))
 dev.off()
