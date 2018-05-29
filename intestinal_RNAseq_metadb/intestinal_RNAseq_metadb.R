@@ -14,7 +14,7 @@ expr <- read.delim(file.path(rna, "taula_sencera2.tsv"), check.names = FALSE)
 # Clean the RNAseq table
 expr <- expr[rowSums(expr) != 0, ]
 
-file_meta_r <- file.path(rna, "20171113_metadata.csv")
+file_meta_r <- file.path(rna, "metadata_25042018.csv")
 meta_r <- read.table(
   file_meta_r, check.names = FALSE,
   stringsAsFactors = FALSE, sep = ";",
