@@ -50,46 +50,36 @@ library("phyloseq")
 meta_i <- meta_i_norm(meta_i)
 meta_r <- meta_r_norm(meta_r)
 
+
+# Correct the swapped samples
+position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
+              grep("33-T52-TTR-IIA", colnames(expr)))
+colnames(expr)[position] <- colnames(expr)[rev(position)]
+colnames(expr) <- toupper(colnames(expr))
+
+colnames(otus_table_i) <- gsub("[0-9]+\\.", "", colnames(otus_table_i))
+
+meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
+                   meta_r$`Sample Name_RNA` %in% colnames(expr), ]
+
+# Subset expression and outs
+expr <- expr[, meta_r$`Sample Name_RNA`]
+otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
+
 # Create the objects to summarize data
 MR_i <- newMRexperiment(
   otus_table_i,
   # phenoData = AnnotatedDataFrame(meta_r),
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i))
 )
+
 MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+species_i <- aggTax(MR_i, lvl = "Species", out = "matrix", norm = TRUE, log = TRUE)
 genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix", norm = TRUE, log = TRUE)
 
-# Correct the swapped samples
-position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
-              grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- colnames(expr)[rev(position)]
-
-# Find the samples that we have microbiota and expression
-int <- intersect(
-  meta_r$Sample_Code_uDNA[!is.na(meta_r$Sample_Code_uDNA) &
-    !is.na(meta_r$`Sample Name_RNA`)],
-  meta_i$Sample_Code
-)
-
-meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
-meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
-meta_r <- meta_r[meta_r$`Sample Name_RNA` %in% colnames(expr), ]
-
-# Match the labels and order to append the id
-meta_i <- meta_i[match(meta_r$Sample_Code_uDNA, meta_i$Sample_Code), ]
-meta_r$`Sample Name_Code` <- gsub("([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1", rownames(meta_i))
-
-colnames(genus_i) <- gsub(
-  "([0-9]{2,3}\\.B[0-9]+)\\..+", "\\1",
-  colnames(genus_i)
-)
-
-# Subset expression and outs
-expr <- expr[, meta_r$`Sample Name_RNA`]
-genus_i <- genus_i[, meta_r$`Sample Name_Code`]
 
 # Subset if all the rows are 0 and if sd is 0
-genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
+species_i <- species_i[apply(species_i, 1, sd) != 0, ]
 expr <- expr[apply(expr, 1, sd) != 0, ]
 
 # Normalize expression
@@ -100,31 +90,30 @@ expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 # Filter expression
 expr <- norm_RNAseq(expr_norm)
 
-
 # Filter by those which have more than one data point
-genus_i <- genus_i[apply(genus_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
+species_i <- species_i[apply(species_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
 expr <- expr[apply(expr, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
 
 # Filter by abundance at 0.5%
 abundance <- 0.005 # 0.5%
-a <- prop.table(genus_i, 2)
+a <- prop.table(species_i, 2)
 b <- rowSums(a > abundance)
-genus_i <- genus_i[b != 0, ]
+species_i <- species_i[b != 0, ]
 
 saveRDS(expr, "expr.RDS")
-saveRDS(genus_i, "genus.RDS")
+saveRDS(species_i, "species.RDS")
 
 ## Functions ####
 #' Correlation matrix
 #' 
-#' Calculates the correlation between genus at 0.005
-#' @param x The genus table
+#' Calculates the correlation between species at 0.005
+#' @param x The species table
 #' @param y the expression matrix
 #' @param label The label of the correlation
 #' @param abundance The proportion below to filter out
 #' @return A file of correlations
 cor2 <- function(x, y, label, abundance = 0.005){
-  genus_i <- as.matrix(x)
+  species_i <- as.matrix(x)
   expr <- as.matrix(y)
   
   # Filter by sex
@@ -134,25 +123,25 @@ cor2 <- function(x, y, label, abundance = 0.005){
   expr <- expr[!sexual_related, ]
   
   expr[expr == 0] <- NA
-  genus_i[genus_i == 0] <- NA
+  species_i[species_i == 0] <- NA
 
-  r <- matrix(NA, nrow = nrow(genus_i), ncol = nrow(expr), 
-              dimnames = list(rownames(genus_i), rownames(expr)))
-  pval <- matrix(NA, nrow = nrow(genus_i), ncol = nrow(expr), 
-                 dimnames = list(rownames(genus_i), rownames(expr)))
+  r <- matrix(NA, nrow = nrow(species_i), ncol = nrow(expr), 
+              dimnames = list(rownames(species_i), rownames(expr)))
+  pval <- matrix(NA, nrow = nrow(species_i), ncol = nrow(expr), 
+                 dimnames = list(rownames(species_i), rownames(expr)))
   
   for (gene in rownames(expr)) {
     if (sum(!is.na(y)) < 3 | sum(!is.na(y))/length(y) < 0.15) {
       next
     }
     gene_expr <- expr[gene, ]
-    for (micro in rownames(genus_i)) {
+    for (micro in rownames(species_i)) {
       if (sum(!is.na(x)) < 3 | sum(!is.na(x))/length(x) < 0.15) {
         next
       }
-      genus_expr <- genus_i[micro, ]
+      species_expr <- species_i[micro, ]
       # Join all the data
-      d <- rbind(gene_expr, genus_expr)
+      d <- rbind(gene_expr, species_expr)
       pairwise <- apply(d, 2, function(z){all(!is.na(z))})
       k <- sum(pairwise, na.rm = TRUE)
       if (k/length(pairwise) < 0.15 & k < 4) {
@@ -161,7 +150,7 @@ cor2 <- function(x, y, label, abundance = 0.005){
       
       # Errors because they don't match up to three points
       try({
-        cors <- cor.test(gene_expr, genus_expr, use = "spearman", 
+        cors <- cor.test(gene_expr, species_expr, use = "spearman", 
                          use = "pairwise.complete.obs")
         pval[micro, gene] <- cors$p.value
         r[micro, gene] <- cors$estimate},
@@ -178,17 +167,17 @@ cor2 <- function(x, y, label, abundance = 0.005){
 
 ## All samples ####
 # ncol(expr)
-cor2(genus_i, expr, "all")
+cor2(species_i, expr, "all")
 
 
 ## CD ####
 keep <- meta_r$IBD == "CD"
 # sum(keep)
 # cor_sign(sum(keep))
-cor2(genus_i[, keep], expr[, keep], "CD")
+cor2(species_i[, keep], expr[, keep], "CD")
 
 ## Healthy ####
 keep <-  meta_r$IBD == "CONTROL"
 # sum(keep)
 # cor_sign(sum(keep))
-cor2(genus_i[, keep], expr[, keep], "Controls")
+cor2(species_i[, keep], expr[, keep], "Controls")

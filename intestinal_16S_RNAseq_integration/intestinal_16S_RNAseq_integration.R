@@ -43,6 +43,7 @@ setwd(cd)
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
+colnames(expr) <- toupper(colnames(expr))
 
 # Correct metadata
 meta_i <- meta_i_norm(meta_i)

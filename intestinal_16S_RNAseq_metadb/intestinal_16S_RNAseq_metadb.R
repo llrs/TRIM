@@ -31,11 +31,11 @@ meta_i <- read.delim(
   file_meta_i, row.names = 1, check.names = FALSE,
   stringsAsFactors = FALSE
 )
-file_meta_r <- file.path(rna, "metadata_28032018.csv")
-meta_r <- read.table(
+file_meta_r <- file.path(rna, "metadata_25042018.csv")
+meta_r <- read.delim(
   file_meta_r, check.names = FALSE,
-  stringsAsFactors = FALSE, sep = ";",
-  na.strings = c(NA, ""), header = TRUE, dec = c(",", ".")
+  stringsAsFactors = FALSE, 
+  na.strings = c("NA", "")
 )
 
 setwd(cd)
@@ -44,7 +44,10 @@ setwd(cd)
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
+colnames(expr) <- toupper(colnames(expr))
 
+# normalize names of samples
+colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
 
 # Normalize the RNA metadata
 meta_r <- meta_r_norm(meta_r)
@@ -52,43 +55,13 @@ meta_r <- meta_r_norm(meta_r)
 # Normalize the 16S intestinal metadata
 meta_i <- meta_i_norm(meta_i)
 
-# Find the samples that we have microbiota and expression in the metadata
-int <- intersect(meta_r$Sample_Code_uDNA, meta_i$Sample_Code)
-
-# Subset metadata
-meta_i <- meta_i[meta_i$Sample_Code %in% int, ]
-meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int, ]
-# Duplicate label! the one we don't know if it is colon or ileum
-
-# Match the labels and order to append the id
-meta_i <- meta_i[match(meta_r$Sample_Code_uDNA, meta_i$Sample_Code), ]
-
-# Add sample name
-pattern <- "([0-9]{2,3}\\.B[0-9]+)\\..+"
-
-meta_r$`Sample Name_Code` <- gsub(pattern, "\\1", rownames(meta_i))
-colnames(otus_table_i) <- gsub(pattern, "\\1", colnames(otus_table_i))
-
-# Intersect between sequencing and metadata
-int_16S <- intersect(meta_r$`Sample Name_Code`, colnames(otus_table_i))
-int_RNAseq <- intersect(meta_r$`Sample Name_RNA`, colnames(expr))
-
-# Check that metadata for the samples match
-int2 <- intersect(
-  meta_r[
-    meta_r$`Sample Name_RNA` %in% int_RNAseq,
-    "Sample_Code_uDNA"
-  ],
-  meta_i[int_16S, "Sample_Code"]
-)
-# Subset metadata
-meta_i <- meta_i[meta_i$Sample_Code %in% int2, ]
-meta_r <- meta_r[meta_r$Sample_Code_uDNA %in% int2, ]
-# Still carring the duplicate label!
+# Check metadata with the names present in both datas
+meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
+                   meta_r$`Sample Name_RNA` %in% colnames(expr), ]
 
 # Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
-otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
+otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
 # Normalize expression
 expr_edge <- edgeR::DGEList(expr)
@@ -117,7 +90,7 @@ nam <- c(
   "Exact_location", # Segment of the sample
   # superseeded by SESCD 
   # "Active_area", # Health stage of the sample
-  "IBD", # Disease or control
+  # "IBD", # Disease or control
   "AGE_SAMPLE", # Age
   "diagTime", # Time with disease
   # Not really needed induced by diagTime and age sample

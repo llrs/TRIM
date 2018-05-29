@@ -35,6 +35,7 @@ setwd(cd)
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
+colnames(expr) <- toupper(colnames(expr))
 
 # normalize names of samples
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
@@ -85,24 +86,25 @@ gsl <- gsl[l_class]
 gsc <- GeneSetCollection(gsl)
 rownames(expr) <- gsub("(.*)\\..*", "\\1", rownames(expr))
 gsv <- gsva(expr, gset.idx.list = gsc)
-save(gsv, file = "GSV.RData")
+saveRDS(gsv, file = "GSV.RDS")
+# save(gsv, file = "GSV.RData")
 
-
-su <- apply(meta_r[, c("ID", "Exact_location", "AGE_SAMPLE", "diagTime", "SESCD_local", "SEX")], 2, is.na)
-pos <- which(rowSums(su) == 1, arr.ind = TRUE)
-
-meta_r$SEX <- as.factor(meta_r$SEX)
-
-library("vegan") # For all the matrice
-all_RNA <- adonis(as.data.frame(t(gsv))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean")
-
-# CONTROLS
-contr <- setdiff(which(meta_r$IBD == "CONTROL"), pos)
-
-c_RNA <- adonis(as.data.frame(t(gsv))[contr, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[contr, ], method = "euclidean")
-
-
-# IBD
-ibd <- setdiff(which(meta_r$IBD != "CONTROL"), pos)
-
-i_RNA <- adonis(as.data.frame(t(gsv))[ibd, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local, meta_r[ibd, ], method = "euclidean")
+# 
+# su <- apply(meta_r[, c("ID", "Exact_location", "AGE_SAMPLE", "diagTime", "SESCD_local", "SEX")], 2, is.na)
+# pos <- which(rowSums(su) == 1, arr.ind = TRUE)
+# 
+# meta_r$SEX <- as.factor(meta_r$SEX)
+# 
+# library("vegan") # For all the matrice
+# all_RNA <- adonis(as.data.frame(t(gsv))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean")
+# 
+# # CONTROLS
+# contr <- setdiff(which(meta_r$IBD == "CONTROL"), pos)
+# 
+# c_RNA <- adonis(as.data.frame(t(gsv))[contr, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[contr, ], method = "euclidean")
+# 
+# 
+# # IBD
+# ibd <- setdiff(which(meta_r$IBD != "CONTROL"), pos)
+# 
+# i_RNA <- adonis(as.data.frame(t(gsv))[ibd, ] ~ Exact_location * ID + AGE_SAMPLE + diagTime + SESCD_local, meta_r[ibd, ], method = "euclidean")
