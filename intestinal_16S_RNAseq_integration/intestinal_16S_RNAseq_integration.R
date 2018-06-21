@@ -55,6 +55,7 @@ colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
 # Check metadata with the names present in both datas
 meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
                    meta_r$`Sample Name_RNA` %in% colnames(expr), ]
+meta_r <- droplevels(meta_r)
 
 # Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
@@ -83,7 +84,7 @@ C <- subSymm(C, "16S", "RNAseq", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.1, 0) # We guess a 0.5
+shrinkage <- c(0.1, 0) # We guess a 0.1
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))
@@ -138,10 +139,10 @@ sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 
 samples <- data.frame(
-  Stools = sgcca.centroid$Y[[1]][, 1],
-  Intestinal = sgcca.centroid$Y[[2]][, 1]
+  RNAseq = sgcca.centroid$Y[[1]][, 1],
+  Micro = sgcca.centroid$Y[[2]][, 1]
 )
-lmt <- lm(Intestinal ~ Stools, data = samples)
+lmt <- lm(Micro ~ RNAseq, data = samples)
 
 if (lmt$coefficients[2] > 0) {
   d <- c(1, 1)
@@ -180,41 +181,41 @@ labels <- sapply(label, function(x) {
 
 samples <- cbind(samples, labels)
 samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 4, 5, 3, 6, 7, 8)])
+
+# Some common structure of plots
+comm <- ggplot(samples, aes(RNAseq, Micro)) + # It is really biopsies
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") +
+  xlab("RNAseq (component 1)") +
+  ylab("16S (component 1)") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_abline(intercept = 0, slope = d[1], linetype = 2)
+
 for (p in seq_along(levels(samples$Time))) {
-  a <- ggplot(samples, aes(Stools, Intestinal)) +
+  a <- comm +
     geom_text(aes(color = ID, label = ID)) +
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
-    ggtitle(paste0("Samples by time")) +
-    xlab("RNAseq (component 1)") +
-    ylab("16S (component 1)") +
     guides(col = guide_legend(title = "Patient")) +
-    theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_manual(values = colors) +
-    geom_abline(intercept = 0, slope = d[1], linetype = 2) +
     facet_wrap_paginate(~Time, ncol = 1, nrow = 1, page = p)
   print(a)
 }
 
 for (p in seq_along(levels(samples$ID))) {
-  a <- ggplot(samples, aes(Stools, Intestinal)) +
+  a <- comm +
     geom_text(aes(color = ID, label = ifelse(!is.na(labels),
       paste(Time, labels, sep = "_"),
       as.character(Time)
     ))) +
-    geom_vline(xintercept = 0) +
-    geom_hline(yintercept = 0) +
-    ggtitle(paste0("Samples by patient")) +
-    xlab("RNAseq (component 1)") +
-    ylab("16S (component 1)") +
     guides(col = guide_legend(title = "Patient")) +
-    theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_manual(values = colors) +
-    geom_abline(intercept = 0, slope = d[1], linetype = 2) +
     facet_wrap_paginate(~ID, ncol = 1, nrow = 1, page = p)
   print(a)
 }
-ggplot(samples, aes(Stools, Intestinal)) +
+
+comm +
   geom_text(aes(
     color = ID,
     label = ifelse(!is.na(labels),
@@ -222,18 +223,11 @@ ggplot(samples, aes(Stools, Intestinal)) +
       as.character(Time)
     )
   )) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  xlab("RNAseq (component 1)") +
-  ylab("16S (component 1)") +
   guides(col = guide_legend(title = "Patient")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = colors) +
-  geom_abline(intercept = 0, slope = d[1], linetype = 2)
+  scale_color_manual(values = colors)
 
 
-ggplot(samples, aes(Stools, Intestinal)) +
+comm +
   geom_text(aes(
     color = HSCT_responder,
     label = ifelse(!is.na(labels),
@@ -241,17 +235,10 @@ ggplot(samples, aes(Stools, Intestinal)) +
       as.character(Time)
     )
   )) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  xlab("RNAseq (component 1)") +
-  ylab("16S (component 1)") +
-  guides(col = guide_legend(title = "Responders")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  geom_abline(intercept = 0, slope = d[1], linetype = 2)
+  guides(col = guide_legend(title = "Responders"))
 
 
-ggplot(samples, aes(Stools, Intestinal)) +
+comm +
   geom_text(aes(
     color = Endoscopic_Activity,
     label = ifelse(!is.na(labels),
@@ -259,28 +246,18 @@ ggplot(samples, aes(Stools, Intestinal)) +
       as.character(ID)
     )
   )) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  xlab("RNAseq (component 1)") +
-  ylab("16S (component 1)") +
-  guides(col = guide_legend(title = "Endoscopic Activity")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  geom_abline(intercept = 0, slope = d[1], linetype = 2)
+  guides(col = guide_legend(title = "Endoscopic Activity"))
 
-ggplot(samples, aes(Stools, Intestinal)) +
+comm +
   geom_text(aes(color = Time, label = ifelse(!is.na(labels),
-    paste(ID, labels, sep = "_"),
-    as.character(ID)
+                                             paste(ID, labels, sep = "_"),
+                                             as.character(ID)
   ))) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  xlab("RNAseq (component 1)") +
-  ylab("16S (component 1)") +
-  guides(col = guide_legend(title = "Time")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  geom_abline(intercept = 0, slope = d[1], linetype = 2)
+  guides(col = guide_legend(title = "Time"))
+
+comm +
+  geom_text(aes(color = IBD, label = as.character(ID))) +
+  guides(col = guide_legend(title = "Type"))
 
 variables <- data.frame(
   comp1 = unlist(sapply(
