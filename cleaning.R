@@ -55,7 +55,7 @@ meta_r <- read.delim(
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
-
+colnames(expr) <- toupper(colnames(expr))
 
 pdf(paste0("Figures/", today, "_quality.pdf"))
 counts <- colSums(otus_table_i)
