@@ -26,23 +26,24 @@ library("org.Hs.eg.db")
 today <- format(Sys.time(), "%Y%m%d")
 
 expr <- readRDS("expr.RDS")
-genus_i <- readRDS("genus.RDS")
-
 meta_r <- droplevels(meta_r[meta_r$`Sample Name_RNA` %in% colnames(expr), ])
 
-all_s <- readRDS("correlations_all.RDS")
-disease <- readRDS("correlations_CD.RDS")
-controls <- readRDS("correlations_Controls.RDS")
+# Change each time: species or genus
+type <- "genus"
+genus_i <- readRDS(paste0(type, ".RDS"))
 
-pall_s <- readRDS("padj_all.RDS")
-pdisease <- readRDS("padj_CD.RDS")
-pcontrols <- readRDS("padj_Controls.RDS")
+all_s <- readRDS(paste0("correlations_all_", type,".RDS"))
+disease <- readRDS(paste0("correlations_CD_", type,".RDS"))
+controls <- readRDS(paste0("correlations_Controls_", type,".RDS"))
 
+pall_s <- readRDS(paste0("padj_all_", type, ".RDS"))
+pdisease <- readRDS(paste0("padj_CD_", type, ".RDS"))
+pcontrols <- readRDS(paste0("padj_Controls_", type, ".RDS"))
 
 select_genes_int <- function(file, expr) {
   # Load data from all the patients
   pre <- "../intestinal_16S_RNAseq_metadb"
-  load(file.path(pre, file))
+  sgcca.centroid <- readRDS(file.path(pre, file))
   
   # Find outliers/important genes
   comp1 <- sgcca.centroid$a$RNAseq[, 1]
@@ -61,17 +62,19 @@ filter_sexual <- function(expr) {
   expr[!sexual_related, ]
 }
 
-# Functions ####
-filter_values <- function(file, cors, pval, threshold) {
 
+readSGCCA <- function(file){
   # Load data from all the patients
-  pre <- "../intestinal_16S_RNAseq_metadb"
-  load(file.path(pre, file))
+  sgcca.centroid <- readRDS(file)
   
   # Find outliers/important genes
   comp1 <- sgcca.centroid$a$RNAseq[, 1]
   outliers <- comp1 != 0
-  comp1 <- comp1[outliers]
+  comp1[outliers]
+}
+
+# Functions ####
+filter_values <- function(comp1, cors, pval, threshold) {
   
   keepGenes <- colnames(cors) %in% names(comp1)
   cors <- cors[, keepGenes]
@@ -103,8 +106,8 @@ filter_values <- function(file, cors, pval, threshold) {
   list(cors = cors, pval = pval)
 }
 
-relevant <- function(file, cors, pval, threshold = 0.05) {
-  l <- filter_values(file, cors, pval, threshold)
+relevant <- function(comp1, cors, pval, threshold = 0.05) {
+  l <- filter_values(comp1, cors, pval, threshold)
   pval <- l$pval
   cors <- l$cors
   if (ncol(pval) == 0) {
@@ -147,31 +150,50 @@ plot_cor <- function(file, cors, pval, threshold, label) {
 # Output ####
 #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
-all_samples_ensembl <- relevant("sgcca.RData", all_s, pall_s, threshold)
+all_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/sgcca.RDS")
+all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
 all_samples_symbol <- all_samples_ensembl
-all_samples_symbol$Gene <- gsub("(.*)\\..*", "\\1", all_samples_ensembl$Gene)
+all_samples_symbol$Gene <- trimVer(all_samples_ensembl$Gene)
 all_samples_symbol$Gene <- mapIds(org.Hs.eg.db, keys = all_samples_symbol$Gene, 
                                   keytype = "ENSEMBL", column = "SYMBOL")
 all_samples_symbol <- all_samples_symbol[!is.na(all_samples_symbol$Gene), ]
 all_samples_symbol <- all_samples_symbol[!duplicated(all_samples_symbol), ]
-write.csv(all_samples_symbol, file = "correlation_all.csv", row.names = FALSE, na = "")
+write.csv(all_samples_symbol, file = paste0(today, "_species_correlation_all.csv"), row.names = FALSE, na = "")
 
 
-ibd_ensembl <- relevant("IBD.RData", disease, pdisease, threshold)
+disease_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/IBD.RDS")
+ibd_ensembl <- relevant(disease_comp, disease, pdisease, threshold)
 ibd_symbol <- ibd_ensembl
-ibd_symbol$Gene <- gsub("(.*)\\..*", "\\1", ibd_symbol$Gene)
+ibd_symbol$Gene <- trimVer(ibd_symbol$Gene)
 ibd_symbol$Gene <- mapIds(org.Hs.eg.db, keys = ibd_symbol$Gene, 
                                   keytype = "ENSEMBL", column = "SYMBOL")
 ibd_symbol <- ibd_symbol[!is.na(ibd_symbol$Gene), ]
-write.csv(ibd_symbol, file = "correlation_CD.csv", row.names = FALSE, na = "")
+write.csv(ibd_symbol, file = paste0(today, "_species_correlation_CD.csv"), row.names = FALSE, na = "")
 
-contr <- relevant("Controls.RData", controls, pcontrols, threshold)
-contr$Gene <- gsub("(.*)\\..*", "\\1", contr$Gene)
+contr_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/Controls.RDS")
+contr <- relevant(contr_comp, controls, pcontrols, threshold)
+contr$Gene <- trimVer(contr$Gene)
 contr$Gene <- mapIds(org.Hs.eg.db, keys = contr$Gene, keytype = "ENSEMBL", column = "SYMBOL")
-write.csv(contr, file = "correlation_Controls.csv", row.names = FALSE, na = "")
+write.csv(contr, file = paste0(today, "_species_correlation_Controls.csv"), row.names = FALSE, na = "")
+
+
+# Bootstrapping to asses how probable is to have such enrichment in those p-values matrix
+boots_corr <- function(pvalues, component, iter = 10000) {
+  b <- vapply(seq_len(iter), function(x){
+    sel <- sample(x = seq_len(ncol(pvalues)), size = length(component))
+    sum(pvalues[, sel] < 0.05, na.rm = TRUE)
+  }, numeric(1L))
+  n <- sum(pvalues[, colnames(pvalues) %in% names(component)] < 0.05, na.rm = TRUE)
+  sum(b >= n)/length(b)  
+}
+
+boots_corr(pdisease, disease_comp)
+boots_corr(pall_s, all_comp)
+boots_corr(pcontrols, contr_comp)
+
 
 plot_single_cor <- function(x, gene, y, microorganism, colr, case, cor_val) {
-  genes <- gsub("(.*)\\..*", "\\1", gene)
+  genes <- trimVer(gene)
   symbol <- tryCatch({mapIds(
     org.Hs.eg.db, key = genes, keytype = "ENSEMBL",
     column = "SYMBOL"
@@ -198,7 +220,7 @@ plot_single_cor <- function(x, gene, y, microorganism, colr, case, cor_val) {
          # legend = levels(bg), lwd = 2)
 }
 
-pdf("correlations_plot_all_active.pdf")
+pdf(paste0(today, "_correlations_species_plot_all_active.pdf"))
 o <- apply(all_samples_ensembl, 1, function(x) {
   micro <- x[[1]]
   gene <- x[[2]]
@@ -209,7 +231,7 @@ o <- apply(all_samples_ensembl, 1, function(x) {
 })
 dev.off()
 
-pdf("correlations_plot_ibd.pdf")
+pdf(paste0(today, "_correlations_species_plot_ibd.pdf"))
 o <- apply(ibd_ensembl, 1, function(x) {
   micro <- x[[1]]
   gene <- x[[2]]
