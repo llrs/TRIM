@@ -80,6 +80,7 @@ genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix", norm = TRUE, log = TRUE)
 
 # Subset if all the rows are 0 and if sd is 0
 species_i <- species_i[apply(species_i, 1, sd) != 0, ]
+genus_i <- genus_i[apply(genus_i, 1, sd) != 0, ]
 expr <- expr[apply(expr, 1, sd) != 0, ]
 
 # Normalize expression
@@ -92,6 +93,7 @@ expr <- norm_RNAseq(expr_norm)
 
 # Filter by those which have more than one data point
 species_i <- species_i[apply(species_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
+genus_i <- genus_i[apply(genus_i, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
 expr <- expr[apply(expr, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
 
 # Filter by abundance at 0.5%
@@ -102,6 +104,7 @@ species_i <- species_i[b != 0, ]
 
 saveRDS(expr, "expr.RDS")
 saveRDS(species_i, "species.RDS")
+saveRDS(genus_i, "genus.RDS")
 
 ## Functions ####
 #' Correlation matrix
@@ -167,17 +170,19 @@ cor2 <- function(x, y, label, abundance = 0.005){
 
 ## All samples ####
 # ncol(expr)
-cor2(species_i, expr, "all")
-
+cor2(species_i, expr, "all_species")
+cor2(genus_i, expr, "all_genus")
 
 ## CD ####
 keep <- meta_r$IBD == "CD"
 # sum(keep)
 # cor_sign(sum(keep))
-cor2(species_i[, keep], expr[, keep], "CD")
+cor2(species_i[, keep], expr[, keep], "CD_species")
+cor2(genus_i[, keep], expr[, keep], "CD_genus")
 
 ## Healthy ####
 keep <-  meta_r$IBD == "CONTROL"
 # sum(keep)
 # cor_sign(sum(keep))
-cor2(species_i[, keep], expr[, keep], "Controls")
+cor2(species_i[, keep], expr[, keep], "Controls_species")
+cor2(genus_i[, keep], expr[, keep], "Controls_genus")
