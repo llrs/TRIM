@@ -32,8 +32,8 @@ library("org.Hs.eg.db") # To get the names to entrez from the ensembl
 library("data.table")
 
 # Load previous data
-load("IBD.RData")
-load("bootstrap_IBD.RData")
+sgcca.centroid <- readRDS("IBD.RDS")
+STAB <- readRDS("bootstrap_IBD.RDS")
 
 # RNAseq ####
 b <- STAB[["RNAseq"]]

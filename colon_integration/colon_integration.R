@@ -60,7 +60,7 @@ C <- subSymm(C, "intestinal", "stools", 1)
 shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # shrinkage <- rep(1, length(A))
 
-ncomp <- c(2, 2)
+ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
   A, C, c1 = shrinkage,
@@ -236,7 +236,7 @@ variables_weight(comp2)
 
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-save(STAB, file = "bootstrap.RData")
+saveRDS(STAB, file = "bootstrap.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)

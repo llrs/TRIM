@@ -147,7 +147,7 @@ shrinkage[2] <- tau.estimate(A[[2]])
 (shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage))
 # shrinkage <- rep(1, length(A))
 
-ncomp <- c(2, 2, 2)
+ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
   A, C, c1 = shrinkage,
@@ -190,7 +190,7 @@ sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
-save(sgcca.centroid, file = "IBD.RData")
+saveRDS(sgcca.centroid, file = "IBD.RDS")
 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
@@ -432,7 +432,7 @@ variables_weight(comp2)
 # Bootstrap of sgcca
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-save(STAB, file = "bootstrap_IBD.RData")
+saveRDS(STAB, file = "bootstrap_IBD.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)

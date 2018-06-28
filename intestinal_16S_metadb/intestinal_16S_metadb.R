@@ -73,7 +73,7 @@ C <- subSymm(C, "intestinal", "meta", 1)
 # Keep the covariance between them
 shrinkage <- rep(1, length(A))
 
-ncomp <- c(2, 2)
+ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
   A, C, c1 = shrinkage,

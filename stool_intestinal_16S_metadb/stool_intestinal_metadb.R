@@ -66,7 +66,6 @@ shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # We want to keep the covariance of the metadata, hence forcing the 1:
 shrinkage[length(shrinkage)] <- 1
 
-ncomp <- 2
 ncomp <- rep(ncomp, length(A))
 
 sgcca.centroid <- sgcca(
@@ -246,7 +245,7 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
 # Bootstrap of sgcca
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-save(STAB, file = "bootstrap.RData")
+saveRDS(STAB, file = "bootstrap.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)

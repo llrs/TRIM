@@ -31,7 +31,7 @@ meta_r <- read.delim(
 
 setwd(cd)
 
-load("GSV.RData")
+gsv <- readRDS("GSV.RDS")
 
 # normalize names of samples
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
@@ -171,7 +171,7 @@ sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
-save(sgcca.centroid, file = "Controls.RData")
+saveRDS(sgcca.centroid, file = "Controls.RDS")
 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
@@ -405,7 +405,7 @@ variables_weight(comp2)
 # Bootstrap of sgcca
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-save(STAB, file = "bootstrap_Controls.RData")
+saveRDS(STAB, file = "bootstrap_Controls.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)

@@ -25,43 +25,43 @@ epithelium <- epithelium$Epithelium
 setwd(wd)
 
 # Do the biological analysis of all the samples
-load("bootstrap.RData", verbose = TRUE)
-load("sgcca.RData", verbose = TRUE)
-write.csv(integration::weights(sgcca.centroid), file = "RNAseq_weight_all.csv", na = "", row.names = FALSE)
-write.csv(integration::weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_all.csv", na = "", row.names = FALSE)
-biological_relationships(sgcca.centroid, STAB, "all", otus_tax_i, epithelium)
+all_bootstrap <- readRDS("bootstrap.RDS")
+all_sgcca <- readRDS("sgcca.RDS")
+write.csv(integration::weights(all_sgcca), file = "RNAseq_weight_all.csv", na = "", row.names = FALSE)
+write.csv(integration::weights_otus(all_sgcca, otus_tax_i), file = "16S_weight_all.csv", na = "", row.names = FALSE)
+biological_relationships(all_sgcca, all_bootstrap, "all", otus_tax_i, epithelium)
 
 # Controls
-load("bootstrap_Controls.RData", verbose = TRUE)
-load("Controls.RData", verbose = TRUE)
-write.csv(integration::weights(sgcca.centroid), file = "RNAseq_weight_controls.csv", na = "", row.names = FALSE)
-write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_controls.csv", na = "", row.names = FALSE)
-biological_relationships(sgcca.centroid, STAB, "controls", otus_tax_i, epithelium)
+controls_bootstrap <- readRDS("bootstrap_Controls.RDS")
+controls_sgcca <- readRDS("Controls.RDS")
+write.csv(integration::weights(controls_sgcca), file = "RNAseq_weight_controls.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(controls_sgcca, otus_tax_i), file = "16S_weight_controls.csv", na = "", row.names = FALSE)
+biological_relationships(controls_sgcca, controls_bootstrap, "controls", otus_tax_i, epithelium)
 
 # IBD
-load("bootstrap_IBD.RData", verbose = TRUE)
-load("IBD.RData", verbose = TRUE)
-write.csv(integration::weights(sgcca.centroid), file = "RNAseq_weight_IBD.csv", na = "", row.names = FALSE)
-write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_IBD.csv", na = "", row.names = FALSE)
-biological_relationships(sgcca.centroid, STAB, "IBD", otus_tax_i, epithelium)
+IBD_bootstrap <- readRDS("bootstrap_IBD.RDS")
+IBD_sgcca <- readRDS("IBD.RDS")
+write.csv(integration::weights(IBD_sgcca), file = "RNAseq_weight_IBD.csv", na = "", row.names = FALSE)
+write.csv(weights_otus(IBD_sgcca, otus_tax_i), file = "16S_weight_IBD.csv", na = "", row.names = FALSE)
+biological_relationships(IBD_sgcca, IBD_bootstrap, "IBD", otus_tax_i, epithelium)
 
 # # T0
-# load("bootstrap_IBD_T0.RData", verbose = TRUE)
-# load("IBD_T0.RData", verbose = TRUE)
+# readRDS("bootstrap_IBD_T0.RDS")
+# readRDS("IBD_T0.RDS")
 # write.csv(weights(sgcca.centroid), file = "RNAseq_weight_IBD_T0.csv", na = "", row.names = FALSE)
 # write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_T0.csv", na = "", row.names = FALSE)
 # biological_relationships(sgcca.centroid, STAB, "T0", otus_tax_i, epithelium)
 # 
 # # T26
-# load("bootstrap_IBD_T26.RData", verbose = TRUE)
-# load("IBD_T26.RData", verbose = TRUE)
+# readRDS("bootstrap_IBD_T26.RDS")
+# readRDS("IBD_T26.RDS")
 # write.csv(weights(sgcca.centroid), file = "RNAseq_weight_IBD_T26.csv", na = "", row.names = FALSE)
 # write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_T26.csv", na = "", row.names = FALSE)
 # biological_relationships(sgcca.centroid, STAB, "T26", otus_tax_i, epithelium)
 # 
 # # T52
-# load("bootstrap_IBD_T52.RData", verbose = TRUE)
-# load("IBD_T52.RData", verbose = TRUE)
+# readRDS("bootstrap_IBD_T52.RDS")
+# readRDS("IBD_T52.RDS")
 # write.csv(weights(sgcca.centroid), file = "RNAseq_weight_IBD_T52.csv", na = "", row.names = FALSE)
 # write.csv(weights_otus(sgcca.centroid, otus_tax_i), file = "16S_weight_T52.csv", na = "", row.names = FALSE)
 # biological_relationships(sgcca.centroid, STAB, "T52", otus_tax_i, epithelium)

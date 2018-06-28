@@ -49,7 +49,7 @@ meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
 
 # Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
-otus_table_i <- otus_table_i[, meta_r$`Sample Name_Code`]
+otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
 # Normalize expression
 expr_edge <- edgeR::DGEList(expr)
@@ -58,6 +58,8 @@ expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
 
 # Filter expression
 expr <- norm_RNAseq(expr_norm)
+
+otus_table_i <- otus_table_i[rowSums(otus_table_i) != 0, ]
 
 # Normalize OTUS
 library("metagenomeSeq")
@@ -87,7 +89,6 @@ gsc <- GeneSetCollection(gsl)
 rownames(expr) <- gsub("(.*)\\..*", "\\1", rownames(expr))
 gsv <- gsva(expr, gset.idx.list = gsc)
 saveRDS(gsv, file = "GSV.RDS")
-# save(gsv, file = "GSV.RData")
 
 # 
 # su <- apply(meta_r[, c("ID", "Exact_location", "AGE_SAMPLE", "diagTime", "SESCD_local", "SEX")], 2, is.na)
