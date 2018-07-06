@@ -31,7 +31,7 @@ meta_r <- read.delim(
 
 setwd(cd)
 
-load("GSV.RData")
+gsv <- readRDS("GSV.RDS")
 
 # normalize names of samples
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
@@ -66,14 +66,14 @@ nam <- c(
   "Exact_location", # Segment of the sample
   # superseeded by SESCD 
   # "Active_area", # Health stage of the sample
-  "IBD", # Disease or control
+  # "IBD", # Disease or control
   "AGE_SAMPLE", # Age
   "diagTime", # Time with disease
   # Not really needed induced by diagTime and age sample
   "AgeDiag", # Age at which the disease was diagnositcated
   "Transplant", # Stage of the treatment
   "ID", # Patient
-  "SESCD_local", # Clinical score
+  # "SESCD_local", # Clinical score
   "Treatment", # Further complications
   "Surgery", # Up to surgery?
   "SEX" # Male/female
@@ -164,7 +164,7 @@ names(sgcca.horst$astar) <- names(A)
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
-save(sgcca.centroid, file = "sgcca.RData")
+saveRDS(sgcca.centroid, file = "sgcca.RDS")
 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
@@ -219,39 +219,40 @@ labels <- sapply(label, function(x) {
 
 samples <- cbind(samples, labels)
 samples$Time <- factor(samples$Time, levels(as.factor(samples$Time))[c(1, 2, 4, 5, 3, 6, 7, 8)])
+
+# Some common structure of plots
+comm <- ggplot(samples, aes(RNAseq, microbiota)) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  ggtitle("All samples at all times ") +
+  xlab("RNAseq (component 1)") +
+  ylab("16S (component 1)") +
+  theme(plot.title = element_text(hjust = 0.5))
+
 for (p in seq_along(levels(samples$Time))) {
-  a <- ggplot(samples, aes(RNAseq, microbiota)) +
+  a <- comm +
     geom_text(aes(color = ID, label = ID)) +
-    geom_vline(xintercept = 0) +
-    geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by time")) +
-    xlab("RNAseq (component 1)") +
-    ylab("16S (component 1)") +
     guides(col = guide_legend(title = "Patient")) +
-    theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_manual(values = colors) +
     facet_wrap_paginate(~Time, ncol = 1, nrow = 1, page = p)
   print(a)
 }
 
 for (p in seq_along(levels(samples$ID))) {
-  a <- ggplot(samples, aes(RNAseq, microbiota)) +
+  a <- comm +
     geom_text(aes(color = ID, label = ifelse(!is.na(labels),
                                              paste(Time, labels, sep = "_"),
                                              as.character(Time)
     ))) +
-    geom_vline(xintercept = 0) +
-    geom_hline(yintercept = 0) +
     ggtitle(paste0("Samples by patient")) +
-    xlab("RNAseq (component 1)") +
-    ylab("16S (component 1)") +
     guides(col = guide_legend(title = "Patient")) +
-    theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_manual(values = colors) +
     facet_wrap_paginate(~ID, ncol = 1, nrow = 1, page = p)
   print(a)
 }
-ggplot(samples, aes(RNAseq, microbiota)) +
+
+comm +
   geom_text(aes(
     color = ID,
     label = ifelse(!is.na(labels),
@@ -259,17 +260,11 @@ ggplot(samples, aes(RNAseq, microbiota)) +
                    as.character(Time)
     )
   )) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  # xlab("RNAseq (component 1)") +
-  # ylab("16S (component 1)") +
   guides(col = guide_legend(title = "Patient")) +
-  theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = colors)
 
 
-ggplot(samples, aes(RNAseq, microbiota)) +
+comm +
   geom_text(aes(
     color = HSCT_responder,
     label = ifelse(!is.na(labels),
@@ -277,16 +272,10 @@ ggplot(samples, aes(RNAseq, microbiota)) +
                    as.character(Time)
     )
   )) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  xlab("RNAseq (component 1)") +
-  ylab("16S (component 1)") +
-  guides(col = guide_legend(title = "Responders")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  guides(col = guide_legend(title = "Responders"))
 
 
-ggplot(samples, aes(RNAseq, microbiota)) +
+comm +
   geom_text(aes(
     color = Endoscopic_Activity,
     label = ifelse(!is.na(labels),
@@ -294,26 +283,14 @@ ggplot(samples, aes(RNAseq, microbiota)) +
                    as.character(ID)
     )
   )) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  xlab("RNAseq (component 1)") +
-  ylab("16S (component 1)") +
-  guides(col = guide_legend(title = "Endoscopic Activity")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  guides(col = guide_legend(title = "Endoscopic Activity"))
 
-ggplot(samples, aes(RNAseq, microbiota)) +
+comm +
   geom_text(aes(color = Time, label = ifelse(!is.na(labels),
                                              paste(ID, labels, sep = "_"),
                                              as.character(ID)
   ))) +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  ggtitle("All samples at all times ") +
-  xlab("RNAseq (component 1)") +
-  ylab("16S (component 1)") +
-  guides(col = guide_legend(title = "Time")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  guides(col = guide_legend(title = "Time"))
 
 variables <- data.frame(
   Origin = rep(names(A), sapply(A, ncol)),
@@ -411,7 +388,7 @@ variables_weight(comp2)
 # Bootstrap of sgcca
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-save(STAB, file = "bootstrap.RData")
+saveRDS(STAB, file = "bootstrap.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)
