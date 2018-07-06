@@ -3,6 +3,7 @@ cd <- setwd("..")
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
 library("integration")
+library("RGCCA")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -72,7 +73,7 @@ A <- list("RNAseq" = t(expr), "16S" = t(otus_table_i))
 A <- sapply(A, function(x){
   x[, apply(x, 2, sd) != 0]
 }, simplify = FALSE)
-save(A, meta_i, file = "TRIM.RData")
+saveRDS(A, file = "TRIM.RDS")
 
 # The design
 C <- matrix(
@@ -93,7 +94,7 @@ shrinkage[2] <- tau.estimate(A[[2]])
 (shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage))
 # shrinkage <- rep(1, length(A))
 
-ncomp <- c(2, 2)
+ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
   A, C, c1 = shrinkage,
@@ -108,36 +109,10 @@ names(sgcca.centroid$astar) <- names(A)
 names(sgcca.centroid$AVE$AVE_X) <- names(A)
 sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
 
-sgcca.factorial <- sgcca(
-  A, C, c1 = shrinkage,
-  ncomp = ncomp,
-  scheme = "factorial",
-  scale = TRUE,
-  verbose = FALSE
-)
-names(sgcca.factorial$Y) <- names(A)
-names(sgcca.factorial$a) <- names(A)
-names(sgcca.factorial$astar) <- names(A)
-names(sgcca.factorial$AVE$AVE_X) <- names(A)
-sgcca.factorial$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
-sgcca.horst <- sgcca(
-  A, C, c1 = shrinkage,
-  ncomp = ncomp,
-  scheme = "horst",
-  scale = TRUE,
-  verbose = FALSE
-)
-names(sgcca.horst$Y) <- names(A)
-names(sgcca.horst$a) <- names(A)
-names(sgcca.horst$astar) <- names(A)
-names(sgcca.horst$AVE$AVE_X) <- names(A)
-sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
+saveRDS(sgcca.centroid, file = "sgcca.RDS")
 
-# list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
-# sgcca.factorial = sgcca.factorial)
-
-
+# Find the direction of the correlation
 samples <- data.frame(
   RNAseq = sgcca.centroid$Y[[1]][, 1],
   Micro = sgcca.centroid$Y[[2]][, 1]
@@ -322,14 +297,12 @@ comp2 <- sapply(sgcca.centroid$a, function(x) {
 })
 variables_weight(comp2)
 
-save(sgcca.centroid, file = "sgcca.RData")
-
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 # Bootstrap of sgcca
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-save(STAB, file = "bootstrap.RData")
+saveRDS(STAB, file = "bootstrap.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)
