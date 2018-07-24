@@ -53,8 +53,8 @@ meta_i <- meta_i_norm(meta_i)
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
 
 # Check metadata with the names present in both datas
-meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
-                   meta_r$`Sample Name_RNA` %in% colnames(expr), ]
+meta_r <- droplevels(meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
+                   meta_r$`Sample Name_RNA` %in% colnames(expr), ])
 
 # Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
@@ -87,11 +87,45 @@ meta_r$SEX <- as.factor(meta_r$SEX)
 
 library("globaltest") 
 # Only for one gene
-gt(t(expr)[-pos, 1]~Exact_location * IBD*ID + AGE_SAMPLE + diagTime, data = meta_r[-pos, ])
+out <- lapply(seq_len(5000), function(x){
+  gt(t(expr)[-pos, x]~Exact_location * IBD*ID*SEX + AGE_SAMPLE + diagTime, data = meta_r[-pos, ])
+})
+
+# Globaltest can be used in summarized experiment to asses if a whole SE is significant for a given relationship
+library("SummarizedExperiment")
+
+meta_r$Exact_location <- as.factor(meta_r$Exact_location)
+meta_r$Treatment <- as.factor(meta_r$Treatment)
+meta_r$Transplant <- as.factor(meta_r$Transplant)
+meta_r$Surgery <- as.factor(meta_r$Surgery)
+phenoData <- AnnotatedDataFrame(droplevels(meta_r))
+rownames(phenoData) <- colnames(expr)
+rna <- ExpressionSet(expr, phenoData = phenoData)
+otus <- as.matrix(otus_table_i)
+colnames(otus) <- colnames(expr)
+micro <- ExpressionSet(otus, phenoData = phenoData)
+
+gt(SEX, rna)
+gt(SEX, micro)
+gt(Exact_location, rna[, !is.na(rna$Exact_location)])
+gt(Exact_location, micro[, !is.na(micro$Exact_location)])
+gt(diagTime, rna)
+gt(diagTime, micro)
+gt(AgeDiag, rna[, !is.na(rna$AgeDiag)])
+gt(AgeDiag, micro[, !is.na(micro$AgeDiag)])
+gt(Surgery, rna[, !is.na(rna$Surgery)])
+gt(Surgery, micro[, !is.na(micro$Surgery)])
+gt(Transplant, rna)
+gt(Transplant, micro)
+gt(Transplant:SEX, rna)
+gt(Transplant:SEX, micro)
+gt(Transplant:SEX:Surgery, rna)
+gt(Transplant:SEX:Surgery, micro)
+
 
 library("vegan") # For all the matrice
-all_RNA <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean")
-all_16S <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean", by = "margin")
+all_RNA <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean", permutations = 5000)
+all_16S <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean", by = "margin", permutations = 5000)
 
 # CONTROLS
 contr <- setdiff(which(meta_r$IBD == "CONTROL"), pos)
