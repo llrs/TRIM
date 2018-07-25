@@ -4,6 +4,7 @@ rna <- "intestinal_RNAseq"
 
 today <- format(Sys.time(), "%Y%m%d")
 library("integration")
+library("ggplot2")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(
@@ -48,6 +49,8 @@ position <- c(grep("33-T52-TTR-CIA", colnames(expr)),
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
 colnames(expr) <- toupper(colnames(expr))
+#To match metadata
+colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
 
 # Clean the metadata
 meta_i <- meta_i_norm(meta_i)
@@ -104,7 +107,7 @@ pdf(paste0("Figures/", today, "_PCA.pdf"))
 
 
 ps <- ggplot(pcas, aes(PC1, PC2)) +
-  ggtitle("PCA stools") +
+  ggtitle("PCA 16S", subtitle = "Stools microbiome") +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_s_var[1], "%")) +
   ylab(paste("PC2", pca_s_var[2], "%"))
@@ -145,42 +148,17 @@ pi <- ggplot(pcai, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_i_var[1], "%")) +
   ylab(paste("PC2", pca_i_var[2], "%")) +
-  ggtitle("PCA biopsies")
+  ggtitle("PCA 16S", subtitle = "Intestinal microbiome")
 
 pi +
   geom_text(aes(col = ID, label = labels)) +
   guides(col = guide_legend(title = "Patient")) +
   scale_color_manual(values = colors_i)
 
-# Remove the patient We can see that there is out of the line
-keep <- !grepl("28_T52_T_DM_CH", meta_i$Sample_Code)
-meta_i <- meta_i[keep, ]
-otus_table_i <- otus_table_i[, keep]
-
-pca_i <- prcomp(t(otus_table_i), scale. = TRUE)
-pca_i_x <- as.data.frame(pca_i$x)
-pca_i_var <- round(summary(pca_i)$importance[2, ] * 100, digits = 2)
-
-pcai <- cbind(pca_i_x, meta_i)
-
-pi2 <- ggplot(pcai, aes(PC1, PC2)) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  xlab(paste("PC1", pca_i_var[1], "%")) +
-  ylab(paste("PC2", pca_i_var[2], "%")) +
-  ggtitle("PCA biopsies")
-
-pi2 +
-  scale_color_manual(values = colors_i) +
-  geom_text(aes(col = ID, label = labels)) +
-  guides(col = guide_legend(title = "Patient")) 
-  
-
-pi2 +
+pi + 
   geom_text(aes(col = HSCT_responder,
-    label = paste(Time, ID, sep = "_")
-  )) +
+                label = paste(Time, ID, sep = "_"))) +
   guides(col = guide_legend(title = "Responders"))
-
 
 # PCA intestinal RNAseq with Barcelona
 
@@ -196,7 +174,7 @@ pir <- ggplot(pcair, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_ir_var[1], "%")) +
   ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
+  ggtitle("PCA RNAseq")
 
 pir +
   scale_color_manual(values = colors_ir) +
@@ -221,7 +199,7 @@ pir +
   guides(col = guide_legend(title = "Involved area"))
 
 # PCA TRIM (without barcelona)
-barcelona <- grepl("w", colnames(expr))
+barcelona <- grepl("w", colnames(expr), ignore.case = TRUE)
 counts_woBarcelona <- expr[, !barcelona]
 counts_woBarcelona <- counts_woBarcelona[rowSums(counts_woBarcelona) != 0, ]
 pca_ir <- prcomp(t(counts_woBarcelona), scale. = FALSE)
@@ -236,7 +214,7 @@ pir_trim <- ggplot(pcair, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_ir_var[1], "%")) +
   ylab(paste("PC2", pca_ir_var[2], "%")) +
-  ggtitle("PCA RNAseq biopsies")
+  ggtitle("PCA RNAseq", subtitle = "without samples from BCN study")
 
 pir_trim +
   geom_text(aes(col = ID, label = paste(ID, Time, sep = "_"))) +
@@ -261,13 +239,13 @@ pcai[, 1, drop = FALSE]
 rownames(pcai) <- gsub("[0-9]+\\.", "", rownames(pcai))
 
 # Merge PCAS and plot
-meta_r <- meta_r[meta_r$Seq_code_uDNA %in% rownames(pcai) &
+meta_r_m <- meta_r[meta_r$Seq_code_uDNA %in% rownames(pcai) &
                     meta_r$`Sample Name_RNA` %in% rownames(pcair) , ]
-pcai <- pcai[meta_r$Seq_code_uDNA, ]
-pcair <- pcair[meta_r$`Sample Name_RNA`, ]
+pcai <- pcai[meta_r_m$Seq_code_uDNA, ]
+pcair <- pcair[meta_r_m$`Sample Name_RNA`, ]
 
 df <- cbind.data.frame("Micro" = pcai$PC1, "RNA" = pcair$PC1)
-df <- cbind(df, meta_r)
+df <- cbind(df, meta_r_m)
 mix <- ggplot(df, aes(RNA, Micro)) +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("RNA", pca_ir_var[1], "%")) +
