@@ -1,5 +1,6 @@
 cd <- setwd("..")
 library("ggforce")
+library("RGCCA")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
@@ -45,6 +46,8 @@ position <- c(grep("33-T52-TTR-CIA", colnames(expr)),
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
 colnames(expr) <- toupper(colnames(expr))
+#To match metadata
+colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
 
 # normalize names of samples
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))

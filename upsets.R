@@ -30,8 +30,9 @@ expr <- read.delim(file.path(rna, "taula_sencera2.tsv"), check.names = FALSE)
 position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
-
 colnames(expr) <- toupper(colnames(expr))
+#To match metadata
+colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
 
 # Read the metadata for each type of sample
 file_meta_s <- "stools_16S/db_stool_samples_microbiome_abstract_RUN3def.txt"
@@ -51,8 +52,6 @@ meta_r <- read.delim(
   stringsAsFactors = FALSE, 
   na.strings = c("NA", "")
 )
-colnames(meta_r) <- meta_r[1, ]
-meta_r <- meta_r[-1, ]
 
 # Clean the metadata
 meta_i <- meta_i_norm(meta_i)
@@ -75,7 +74,7 @@ if (nrow(meta_r[colnames(expr), ]) != nrow(meta_r)){
     missing <- colnames(expr)[!colnames(expr) %in% meta_r$`Sample Name_RNA`]
     if (all(grepl("-w[0-9]+", missing, ignore.case = TRUE))){
       missing <- missing[!grepl("-w[0-9]+", missing, ignore.case = TRUE)]
-      message("Barcelona samples")
+      message("Removing Barcelona samples")
     } else {
       stop("Missing metadata")
     }
@@ -98,7 +97,7 @@ df <- sapply(patient_name, function(x){
 
 df <- as.data.frame(t(df))
 
-# Controls from biopsies are not the same as controls from biopsies
+# Controls from biopsies are not the same as controls from RNAseq
 df <- cbind(df, Controls = as.numeric(grepl("^C|[A-Z]", rownames(df))))
 df$Controls[grepl("^C|[A-Z]", rownames(df))] <- 1
 subdf <- df[df$Controls == 1, ]
