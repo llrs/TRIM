@@ -118,8 +118,7 @@ ps +
   geom_text(aes(col = ID, label = Time))
 ps + 
   geom_text(aes(col = HSCT_responder,
-    label = paste(Time, ID, sep = "_")
-  )) +
+    label = paste(Time, ID, sep = "_"))) +
   guides(col = guide_legend(title = "Responders"))
   
 # PCA intestinals
@@ -160,6 +159,15 @@ pi +
                 label = paste(Time, ID, sep = "_"))) +
   guides(col = guide_legend(title = "Responders"))
 
+pi + 
+  geom_text(aes(col = Involved_Healthy,
+                label = paste(Time, ID, sep = "_"))) +
+  guides(col = guide_legend(title = "Involved"))
+pi + 
+  geom_text(aes(col = Active_area,
+                label = paste(Time, ID, sep = "_"))) +
+  guides(col = guide_legend(title = "Active"))
+
 # PCA intestinal RNAseq with Barcelona
 
 pca_ir <- prcomp(t(expr), scale. = FALSE)
@@ -189,6 +197,15 @@ pir +
   geom_text(aes(col = CD_Aftected_area, label = paste(ID, Time, sep = "_"))) +
   guides(col = guide_legend(title = "Afected area"))
 
+pir +
+  geom_text(aes(col = SESCD_local, label = paste(ID, Time, sep = "_"))) +
+  guides(col = guide_legend(title = "SESCD local")) +
+  scale_color_continuous(low = "#56B1F7", high = "#132B43")
+
+pir +
+  geom_text(aes(col = SESCD_global, label = paste(ID, Time, sep = "_"))) +
+  guides(col = guide_legend(title = "SESCD global")) +
+  scale_color_continuous(low = "#56B1F7", high = "#132B43")
 
 pir +
   geom_text(aes(col = Exact_location, label = paste(ID, Time, sep = "_"))) +
