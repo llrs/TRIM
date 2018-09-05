@@ -46,6 +46,8 @@ position <- c(grep("33-T52-TTR-CIA", colnames(expr)),
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
 colnames(expr) <- toupper(colnames(expr))
+#To match metadata
+colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
 
 # Correct the metadata
 meta_i <- meta_i_norm(meta_i)
@@ -58,8 +60,8 @@ colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
 meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
                    meta_r$`Sample Name_RNA` %in% colnames(expr), ]
 
-# Filter only the IBD patients
-meta_r <- meta_r[meta_r$IBD == "CD", ]
+# Filter only the CONTROLS
+meta_r <- meta_r[meta_r$IBD == "CONTROL", ]
 
 # Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
@@ -128,7 +130,7 @@ A <- sapply(A, function(x){
   x[, apply(x, 2, sd) != 0]
 }, simplify = FALSE)
 
-saveRDS(A, file = "TRIM_IBD_model2.RDS")
+saveRDS(A, file = "TRIM_Controls_model2.RDS")
 
 # The design
 C <- matrix(
@@ -194,7 +196,7 @@ sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
-saveRDS(sgcca.centroid, file = "IBD_model2.RDS")
+saveRDS(sgcca.centroid, file = "Controls_model2.RDS")
 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
@@ -213,16 +215,11 @@ names(RNAseq1) <- rownames(samples)
 names(microbiota1) <- rownames(samples)
 names(RNAseq2) <- rownames(samples)
 names(microbiota2) <- rownames(samples)
-groups <- split(rownames(samples), as.factor(meta_r$HSCT_responder))
-# First dimension seems to capture well the
-fgsea(groups, RNAseq1, nperm = 1000)
-fgsea(groups, microbiota1, nperm = 1000)
-# Further dimensions
-fgsea(groups, RNAseq2, nperm = 1000)
-fgsea(groups, microbiota2, nperm = 1000)
 
 km <- kmeans(samples[, c("RNAseq", "microbiota")], 2, nstart = 2)
+pdf(paste0("Figures/", today, "_RGCCA_plots_controls_model2.pdf"))
 plot(samples[, c("RNAseq", "microbiota")], col = km$cluster)
+dev.off()
 
 ## Plotting results ####
 # Colors for the plots
@@ -232,7 +229,7 @@ samples <- cbind(samples, droplevels(meta_r))
 samples$Patient_ID <- as.factor(samples$Patient_ID)
 samples$Sample_Code <- as.character(samples$Sample_Code)
 
-pdf(paste0("Figures/", today, "_RGCCA_plots_IBD_model2.pdf"))
+
 
 # Labels of the samples
 label <- strsplit(as.character(samples$`Sample Name_RNA`), split = "-")
@@ -265,8 +262,8 @@ for (p in seq_along(levels(samples$Time))) {
 for (p in seq_along(levels(samples$ID))) {
   a <- ggplot(samples, aes(RNAseq, microbiota)) +
     geom_text(aes(color = ID, label = ifelse(!is.na(labels),
-      paste(Time, labels, sep = "_"),
-      as.character(Time)
+                                             paste(Time, labels, sep = "_"),
+                                             as.character(Time)
     ))) +
     geom_vline(xintercept = 0) +
     geom_hline(yintercept = 0) +
@@ -283,8 +280,8 @@ ggplot(samples, aes(RNAseq, microbiota)) +
   geom_text(aes(
     color = ID,
     label = ifelse(!is.na(labels),
-      paste(Time, labels, sep = "_"),
-      as.character(Time)
+                   paste(Time, labels, sep = "_"),
+                   as.character(Time)
     )
   )) +
   geom_vline(xintercept = 0) +
@@ -299,7 +296,6 @@ ggplot(samples, aes(RNAseq, microbiota)) +
 
 ggplot(samples, aes(RNAseq, microbiota)) +
   geom_text(aes(
-    color = HSCT_responder,
     label = paste(ID, labels, sep = "_")
   )) +
   geom_vline(xintercept = 0) +
@@ -315,8 +311,8 @@ ggplot(samples, aes(RNAseq, microbiota)) +
   geom_text(aes(
     color = Endoscopic_Activity,
     label = ifelse(!is.na(labels),
-      paste(ID, labels, sep = "_"),
-      as.character(ID)
+                   paste(ID, labels, sep = "_"),
+                   as.character(ID)
     )
   )) +
   geom_vline(xintercept = 0) +
@@ -329,8 +325,8 @@ ggplot(samples, aes(RNAseq, microbiota)) +
 
 ggplot(samples, aes(RNAseq, microbiota)) +
   geom_text(aes(color = Time, label = ifelse(!is.na(labels),
-    paste(ID, labels, sep = "_"),
-    as.character(ID)
+                                             paste(ID, labels, sep = "_"),
+                                             as.character(ID)
   ))) +
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
@@ -402,9 +398,8 @@ rnaseq_i <- subVariables$var[subVariables$Origin == "RNAseq"]
 if (length(rnaseq_i) >= 2) {
   pr <- prcomp(t(expr[rnaseq_i, ]), scale. = TRUE)
   prS <- summary(pr)
-  ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
+  ggplot(as.data.frame(pr$x), aes(PC1, PC2)) +
     geom_point() +
-    guides(col = guide_legend(title = "Responder")) +
     xlab(paste("PC1", prS$importance[2, "PC1"] * 100)) +
     ylab(paste("PC2", prS$importance[2, "PC2"] * 100)) +
     ggtitle("RNAseq PCA from the important variables")
@@ -414,7 +409,7 @@ micro_i <- subVariables$var[subVariables$Origin == "16S"]
 if (length(micro_i) >= 2) {
   pr <- prcomp(t(otus_table_i[micro_i, ]), scale. = TRUE)
   prS <- summary(pr)
-  ggplot(as.data.frame(pr$x), aes(PC1, PC2, color = as.factor(meta_r$HSCT_responder))) +
+  ggplot(as.data.frame(pr$x), aes(PC1, PC2)) +
     geom_point() +
     guides(col = guide_legend(title = "Responder")) +
     xlab(paste("PC1", prS$importance[2, "PC1"] * 100)) +
@@ -436,7 +431,7 @@ variables_weight(comp2)
 # Bootstrap of sgcca
 STAB <- boot_sgcca(A, C, shrinkage, 1000)
 
-saveRDS(STAB, file = "bootstrap_IBD_model2.RDS")
+saveRDS(STAB, file = "bootstrap_Controls_model2.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(STAB)
