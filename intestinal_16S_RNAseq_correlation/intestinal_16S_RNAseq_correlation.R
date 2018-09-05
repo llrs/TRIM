@@ -56,6 +56,8 @@ position <- c(grep("33-T52-TTR-CIA", colnames(expr)),
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
 colnames(expr) <- toupper(colnames(expr))
+#To match metadata
+colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
 
 colnames(otus_table_i) <- gsub("[0-9]+\\.", "", colnames(otus_table_i))
 
@@ -73,9 +75,9 @@ MR_i <- newMRexperiment(
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i))
 )
 
-MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
-species_i <- aggTax(MR_i, lvl = "Species", out = "matrix", norm = TRUE, log = TRUE)
-genus_i <- aggTax(MR_i, lvl = "Genus", out = "matrix", norm = TRUE, log = TRUE)
+MR_in <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+species_i <- aggTax(MR_in, lvl = "Species", out = "matrix", norm = TRUE, log = TRUE)
+genus_i <- aggTax(MR_in, lvl = "Genus", out = "matrix", norm = TRUE, log = TRUE)
 
 
 # Subset if all the rows are 0 and if sd is 0
@@ -97,8 +99,23 @@ genus_i <- genus_i[apply(genus_i, 1, function(x) {sum(x != 0)/length(x) > 0.15})
 expr <- expr[apply(expr, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
 
 # Filter by abundance at 0.5%
+species_ie <- aggTax(MR_i, lvl = "Species", out = "matrix", norm = FALSE, log = FALSE)
+genus_ie <- aggTax(MR_i, lvl = "Genus", out = "matrix", norm = FALSE, log = FALSE)
+
+# Subset if all the rows are 0 and if sd is 0
+species_ie <- species_ie[apply(species_ie, 1, sd) != 0, ]
+genus_ie <- genus_ie[apply(genus_ie, 1, sd) != 0, ]
+
+# Filter by those which have more than one data point
+species_ie <- species_ie[apply(species_ie, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
+genus_ie <- genus_ie[apply(genus_ie, 1, function(x) {sum(x != 0)/length(x) > 0.15}), ]
+
 abundance <- 0.005 # 0.5%
-a <- prop.table(species_i, 2)
+a <- prop.table(genus_ie, 2)
+b <- rowSums(a > abundance)
+genus_i <- genus_i[b != 0, ]
+
+a <- prop.table(species_ie, 2)
 b <- rowSums(a > abundance)
 species_i <- species_i[b != 0, ]
 
@@ -120,7 +137,7 @@ cor2 <- function(x, y, label, abundance = 0.005){
   expr <- as.matrix(y)
   
   # Filter by sex
-  sexual_related <- gsub("(.+)\\..*", "\\1", rownames(expr)) %in% 
+  sexual_related <- trimVer(rownames(expr)) %in% 
     c(#bmX$ensembl_gene_id, 
       bmY$ensembl_gene_id)
   expr <- expr[!sexual_related, ]
@@ -134,15 +151,15 @@ cor2 <- function(x, y, label, abundance = 0.005){
                  dimnames = list(rownames(species_i), rownames(expr)))
   
   for (gene in rownames(expr)) {
-    if (sum(!is.na(y)) < 3 | sum(!is.na(y))/length(y) < 0.15) {
+    gene_expr <- expr[gene, ]
+    if (sum(!is.na(gene_expr)) < 3 | sum(!is.na(gene_expr))/length(gene_expr) < 0.15) {
       next
     }
-    gene_expr <- expr[gene, ]
     for (micro in rownames(species_i)) {
-      if (sum(!is.na(x)) < 3 | sum(!is.na(x))/length(x) < 0.15) {
+      species_expr <- species_i[micro, ]
+      if (sum(!is.na(species_expr)) < 3 | sum(!is.na(species_expr))/length(species_expr) < 0.15) {
         next
       }
-      species_expr <- species_i[micro, ]
       # Join all the data
       d <- rbind(gene_expr, species_expr)
       pairwise <- apply(d, 2, function(z){all(!is.na(z))})
@@ -166,6 +183,7 @@ cor2 <- function(x, y, label, abundance = 0.005){
   dimnames(padj) <- dimnames(pval)
   saveRDS(r, file = paste0("correlations_", label, ".RDS"))
   saveRDS(padj, file = paste0("padj_", label, ".RDS"))
+  saveRDS(pval, file = paste0("pval_", label, ".RDS"))
 }
 
 ## All samples ####
