@@ -19,7 +19,7 @@ out_files=meta_coherent.csv \
 
 .PHONY: all STATegRa eqSpecies eqGenus ileum_integration colon_integration PCA \
 stools_prevalence intestinal_prevalence prevalence upset intestinal_16S_RNAseq_correlation \
-alpha cleaning variance
+alpha cleaning variance GSV
 
 all: eqGenus eqSpecies \
 stool_intestinal_16S_integration/important_common_microrg.csv PCA Deconvolute \
@@ -131,6 +131,10 @@ stools_prevalence: stools_conceptual/prevalence.R $(pre_files)
 
 # Do both prevalences
 prevalence: intestinal_prevalence stools_prevalence
+
+# GSV scores for pathways
+GSV: intestinal_16S_pathways_metadb/GSVA_scores.R
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 # Analyse the data with PCA taking into account the categories
 Deconvolute: stool_metadb intestinal_RNAseq_metadb intestinal_16S_metadb
