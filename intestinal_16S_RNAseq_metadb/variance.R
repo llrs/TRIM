@@ -42,6 +42,8 @@ position <- c(grep("33-T52-TTR-CIA", colnames(expr)),
               grep("33-T52-TTR-IIA", colnames(expr)))
 colnames(expr)[position] <- colnames(expr)[rev(position)]
 colnames(expr) <- toupper(colnames(expr))
+#To match metadata
+colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
 
 # Normalize the RNA metadata
 meta_r <- meta_r_norm(meta_r)
@@ -120,8 +122,19 @@ gt(Transplant, micro)
 gt(Transplant:SEX, rna)
 gt(Transplant:SEX, micro)
 gt(Transplant:SEX:Surgery, rna)
+##   p-value Statistic Expected Std.dev  #Cov
+##1 1.34e-06      1.59    0.649  0.0888 37662
 gt(Transplant:SEX:Surgery, micro)
 
+gt(Transplant:SEX:Surgery:Exact_location, rna[, !is.na(rna$Exact_location)])
+##    p-value Statistic Expected Std.dev  #Cov
+## 1 2.55e-72      1.95    0.658  0.0419 37662
+gt(Transplant:SEX:Surgery:Exact_location, micro[, !is.na(micro$Exact_location)])
+##    p-value Statistic Expected Std.dev #Cov
+## 1 4.08e-10      1.14    0.658  0.0458  529
+
+saveRDS(rna, "rna_ES.RDS")
+saveRDS(micro, "micro_ES.RDS")
 
 library("vegan") # For all the matrice
 all_RNA <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean", permutations = 5000)
