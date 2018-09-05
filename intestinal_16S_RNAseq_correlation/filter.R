@@ -131,6 +131,29 @@ relevant <- function(comp1, cors, pval, threshold = 0.05) {
   ind
 }
 
+
+sign_cor <- function(cors, pval, threshold = 0.05) {
+  if (sum(pval < threshold, na.rm = TRUE) == 0) {
+    stop("No relevant correlations with this threshold")
+  }
+  
+  ind <- as.data.frame(which(pval < threshold, arr.ind = TRUE), 
+                       stringAsFactors = FALSE)
+  rownames(ind) <- seq_len(nrow(ind)) # TODO test
+  cor_pval <- apply(ind, 1, function(x){
+    c("cors" = cors[x[1], x[2]],
+      "pvalue" = pval[x[1], x[2]])
+  })
+  ind$row <- rownames(cors)[ind$row]
+  ind$col <- colnames(cors)[ind$col]
+  ind <- cbind(ind, t(cor_pval))
+  colnames(ind) <- c("Microorganism", "Gene", "Correlation", "pvalue")
+  
+  ind <- ind[!duplicated(ind), ]
+  ind <- ind[order(ind$Microorganism, ind$pvalue, decreasing = c(TRUE, FALSE)), ]
+  rownames(ind) <- seq_len(nrow(ind))
+  ind
+}
 # Expects genes in rows and species at the columns
 plot_cor <- function(file, cors, pval, threshold, label) {
   l <- filter_values(file, cors, pval, threshold)
@@ -144,38 +167,41 @@ plot_cor <- function(file, cors, pval, threshold, label) {
             xlab = "Genus",
             scale_fill_gradient_fun = colors_g,
             file = paste0("Figures/", today, "heatmap", label,".html"))
+  
+}
 
+
+write_cor <- function(x, file){
+  all_samples_symbol <- x
+  all_samples_symbol$Gene <- trimVer(all_samples_symbol$Gene)
+  all_samples_symbol$Gene <- mapIds(org.Hs.eg.db, keys = all_samples_symbol$Gene,
+                                    keytype = "ENSEMBL", column = "SYMBOL")
+  all_samples_symbol <- all_samples_symbol[!is.na(all_samples_symbol$Gene), ]
+  all_samples_symbol <- all_samples_symbol[!duplicated(all_samples_symbol), ]
+  write.csv(all_samples_symbol, file = file, row.names = FALSE, na = "")
 }
 
 # Output ####
-#  The numbers come from the number of samples in each correlation
+# #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
 all_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/sgcca.RDS")
 all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
-all_samples_symbol <- all_samples_ensembl
-all_samples_symbol$Gene <- trimVer(all_samples_ensembl$Gene)
-all_samples_symbol$Gene <- mapIds(org.Hs.eg.db, keys = all_samples_symbol$Gene, 
-                                  keytype = "ENSEMBL", column = "SYMBOL")
-all_samples_symbol <- all_samples_symbol[!is.na(all_samples_symbol$Gene), ]
-all_samples_symbol <- all_samples_symbol[!duplicated(all_samples_symbol), ]
-write.csv(all_samples_symbol, file = paste0(today, "_species_correlation_all.csv"), row.names = FALSE, na = "")
-
+all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
+write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all.csv"))
+# write_cor(all_samples_ensembl_cor, file = paste0(today, "_sign_", type, "_correlation_all.csv"))
 
 disease_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/IBD.RDS")
 ibd_ensembl <- relevant(disease_comp, disease, pdisease, threshold)
-ibd_symbol <- ibd_ensembl
-ibd_symbol$Gene <- trimVer(ibd_symbol$Gene)
-ibd_symbol$Gene <- mapIds(org.Hs.eg.db, keys = ibd_symbol$Gene, 
-                                  keytype = "ENSEMBL", column = "SYMBOL")
-ibd_symbol <- ibd_symbol[!is.na(ibd_symbol$Gene), ]
-write.csv(ibd_symbol, file = paste0(today, "_species_correlation_CD.csv"), row.names = FALSE, na = "")
+ibd_ensembl_cor <- sign_cor(disease, pdisease, threshold)
+write_cor(ibd_ensembl, file = paste0(today, "_", type, "_correlation_CD.csv"))
+# write_cor(ibd_ensembl_cor, file = paste0(today, "_sign_", type, "_correlation_CD.csv"))
+
 
 contr_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/Controls.RDS")
 contr <- relevant(contr_comp, controls, pcontrols, threshold)
-contr$Gene <- trimVer(contr$Gene)
-contr$Gene <- mapIds(org.Hs.eg.db, keys = contr$Gene, keytype = "ENSEMBL", column = "SYMBOL")
-write.csv(contr, file = paste0(today, "_species_correlation_Controls.csv"), row.names = FALSE, na = "")
-
+contr_cor <- sign_cor(controls, pcontrols, threshold)
+write_cor(contr, file = paste0(today, "_", type, "_correlation_Controls.csv"))
+# write_cor(contr_cor, file = paste0(today, "_sign_", type, "_correlation_Controls.csv"))
 
 # Bootstrapping to asses how probable is to have such enrichment in those p-values matrix
 boots_corr <- function(pvalues, component, iter = 10000) {
@@ -184,12 +210,12 @@ boots_corr <- function(pvalues, component, iter = 10000) {
     sum(pvalues[, sel] < 0.05, na.rm = TRUE)
   }, numeric(1L))
   n <- sum(pvalues[, colnames(pvalues) %in% names(component)] < 0.05, na.rm = TRUE)
-  sum(b >= n)/length(b)  
+  sum(b >= n)/length(b)
 }
 
-boots_corr(pdisease, disease_comp)
-boots_corr(pall_s, all_comp)
-boots_corr(pcontrols, contr_comp)
+c_disease <- boots_corr(pdisease, disease_comp)
+c_all <- boots_corr(pall_s, all_comp)
+c_controls <- boots_corr(pcontrols, contr_comp)
 
 
 plot_single_cor <- function(x, gene, y, microorganism, colr, case, cor_val) {
@@ -220,7 +246,7 @@ plot_single_cor <- function(x, gene, y, microorganism, colr, case, cor_val) {
          # legend = levels(bg), lwd = 2)
 }
 
-pdf(paste0(today, "_correlations_species_plot_all_active.pdf"))
+pdf(paste0(today, "_correlations_", type, "_plot_all_active.pdf"))
 o <- apply(all_samples_ensembl, 1, function(x) {
   micro <- x[[1]]
   gene <- x[[2]]
@@ -231,7 +257,7 @@ o <- apply(all_samples_ensembl, 1, function(x) {
 })
 dev.off()
 
-pdf(paste0(today, "_correlations_species_plot_ibd.pdf"))
+pdf(paste0(today, "_correlations_", type, "_plot_ibd.pdf"))
 o <- apply(ibd_ensembl, 1, function(x) {
   micro <- x[[1]]
   gene <- x[[2]]
