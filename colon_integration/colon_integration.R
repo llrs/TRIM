@@ -234,12 +234,12 @@ variables_weight(comp2)
 # this interval should reduce as we fit a better model/relationship
 #
 
-STAB <- boot_sgcca(A, C, shrinkage, 1000)
+boot <- boot_sgcca(A, C, shrinkage, 1000)
 
-saveRDS(STAB, file = "bootstrap.RDS")
+saveRDS(boot, file = "bootstrap.RDS")
 
 # Evaluate the boostrap effect and plot
-boot_evaluate(STAB)
+boot_evaluate(boot$STAB)
 
 nb_boot <- max(ncol(otus_i), ncol(otus_s)) # number of bootstrap samples
 

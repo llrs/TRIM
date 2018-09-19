@@ -243,12 +243,12 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 # Bootstrap of sgcca
-STAB <- boot_sgcca(A, C, shrinkage, 1000)
+boot <- boot_sgcca(A, C, shrinkage, 1000)
 
-saveRDS(STAB, file = "bootstrap.RDS")
+saveRDS(boot, file = "bootstrap.RDS")
 
 # Evaluate the boostrap effect and plot
-boot_evaluate(STAB)
+boot_evaluate(boot$STAB)
 
 # Select the most important variables of the bootstrap
 selectedVar <- sapply(consensus[1:2], selectVar)

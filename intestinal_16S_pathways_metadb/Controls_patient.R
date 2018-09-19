@@ -403,11 +403,11 @@ comp2 <- sapply(sgcca.centroid$a, function(x) {
 variables_weight(comp2)
 
 # Bootstrap of sgcca
-STAB <- boot_sgcca(A, C, shrinkage, 1000)
+boot <- boot_sgcca(A, C, shrinkage, 1000)
 
-saveRDS(STAB, file = "bootstrap_Controls.RDS")
+saveRDS(boot, file = "bootstrap_Controls.RDS")
 
 # Evaluate the boostrap effect and plot
-boot_evaluate(STAB)
+boot_evaluate(boot$STAB)
 
 dev.off()

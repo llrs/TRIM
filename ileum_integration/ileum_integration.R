@@ -232,12 +232,12 @@ variables_weight(comp2)
 # To calculate the conficence interval on selecting the variable
 # this interval should reduce as we fit a better model/relationship
 # Bootstrap of sgcca
-STAB <- boot_sgcca(A, C, shrinkage, 1000)
+boot <- boot_sgcca(A, C, shrinkage, 1000)
 
-saveRDS(STAB, file = "bootstrap.RDS")
+saveRDS(boot, file = "bootstrap.RDS")
 
 # Evaluate the boostrap effect and plot
-boot_evaluate(STAB)
+boot_evaluate(boot$STAB)
 
 ## Use the previously calculated table of equivalent OTUs
 u_i <- unique(eqOTUS$intestinal)
