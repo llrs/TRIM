@@ -1,5 +1,6 @@
 cd <- setwd("..")
 library("integration")
+library("metagenomeSeq")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -55,32 +56,58 @@ meta_i <- meta_i_norm(meta_i)
 meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
                    meta_r$`Sample Name_RNA` %in% colnames(expr), ]
 
+
+
 # Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
+ctrls_expr <- expr[, meta_r$IBD == "CONTROL"]
+ctrls_otus_table_i <- otus_table_i[, meta_r$IBD == "CONTROL"]
+
+IBD_expr <- expr[, meta_r$IBD != "CONTROL"]
+IBD_otus_table_i <- otus_table_i[, meta_r$IBD != "CONTROL"]
+
 # Normalize expression
-expr_edge <- edgeR::DGEList(expr)
-expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
-expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
+
+norm_edgeR <- function(expr){
+  expr_edge <- edgeR::DGEList(expr)
+  expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
+  edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
+}
+
+expr_norm <- norm_edgeR(expr)
+ctrls_expr_norm <- norm_edgeR(ctrls_expr)
+IBD_expr_norm <- norm_edgeR(IBD_expr)
 
 # Filter expression
 expr <- norm_RNAseq(expr_norm)
+ctrls_expr <- norm_RNAseq(ctrls_expr_norm)
+IBD_expr <- norm_RNAseq(IBD_expr_norm)
 
 # Normalize OTUS
-library("metagenomeSeq")
-MR_i <- newMRexperiment(
-  otus_table_i, 
-  featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
-)
-MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
-otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
+norm_otus <- function(otus_tax_i, otus_table_i){
+  MR_i <- newMRexperiment(
+    otus_table_i, 
+    featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
+  )
+  MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
+  otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
+  
+  # Subset if all the rows are 0 and if sd is 0
+  otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
+}
 
-# Subset if all the rows are 0 and if sd is 0
-otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
+otus_table_i <- norm_otus(otus_tax_i, otus_table_i)
+ctrls_otus_table_i <- norm_otus(otus_tax_i, ctrls_otus_table_i)
+IBD_otus_table_i <- norm_otus(otus_tax_i, IBD_otus_table_i)
 
 # Save
 saveRDS(otus_table_i, "otus_table.RDS")
+saveRDS(ctrls_otus_table_i, "ctrls_otus_table.RDS")
+saveRDS(IBD_otus_table_i, "IBD_otus_table.RDS")
 saveRDS(otus_tax_i, "otus_tax.RDS")
 saveRDS(expr, "expr.RDS")
+saveRDS(ctrls_expr, "ctrls_expr.RDS")
+saveRDS(IBD_expr, "IBD_expr.RDS")
 saveRDS(droplevels(meta_r), "meta.RDS")
