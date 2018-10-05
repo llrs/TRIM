@@ -8,7 +8,6 @@ library("fgsea")
 
 # Load data
 otus_table_i <- readRDS("otus_table.RDS")
-otus_tax_i <- readRDS("otus_tax.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS("meta.RDS")
 
@@ -97,6 +96,27 @@ sgcca.centroid$AVE
 # sgcca.factorial = sgcca.factorial)
 saveRDS(sgcca.centroid, file = "sgcca_model2.RDS")
 
+designs <- weight_design(11, length(A))
+designs_rank <- vapply(designs, function(x){
+  Matrix::rankMatrix(x)
+}, numeric(1L))
+library("BiocParallel")
+designs <- designs[designs_rank == length(A)]
+sgcca_custom <- function(x, ...) {
+  sgcca.centroid <- RGCCA::sgcca(
+    C = x,
+    scheme = "centroid",
+    scale = TRUE,
+    verbose = FALSE, ...)
+  sgcca.centroid$AVE[c("AVE_inner", "AVE_outer")]
+}
+ncomp <- rep(1, length(A))
+# design_boot <- bplapply(designs, sgcca_custom, ncomp = ncomp, 
+# shrinkage = shrinkage, A = A, BPPARAM = bpparam())
+design_boot <- lapply(designs, sgcca_custom, ncomp = ncomp, 
+                      c1 = shrinkage, A = A)
+saveRDS(design_boot, "designs_boot_model2.RDS")
+# 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
   "microbiota" = sgcca.centroid$Y[["16S"]][, 1],
