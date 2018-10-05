@@ -107,8 +107,9 @@ sgcca_custom <- function(x, ...) {
     verbose = FALSE, ...)
   sgcca.centroid$AVE[c("AVE_inner", "AVE_outer")]
 }
-  
-# design_boot <- bplapply(designs, , ncomp = ncomp, shrinkage = shrinkage, A = A, BPPARAM = bpparam())
+ncomp <- rep(1, length(A))
+# design_boot <- bplapply(designs, sgcca_custom, ncomp = ncomp,
+#                         c1 = shrinkage, A = A, BPPARAM = bpparam())
 # saveRDS(design_boot, "designs_boot_model3.RDS")
 
 samples <- data.frame(
