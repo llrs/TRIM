@@ -8,7 +8,6 @@ library("fgsea")
 
 # Load data
 otus_table_i <- readRDS("otus_table.RDS")
-otus_tax_i <- readRDS("otus_tax.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS("meta.RDS")
 
