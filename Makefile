@@ -54,6 +54,12 @@ eqGenus: stool_intestinal_16S_correlation/stool_intestinal_16S_genus.R equivalen
 	@echo "Analyse the microorganisms in common between stools and biopsies"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
+# Save
+FOLDER=intestinal_RNAseq_metadb
+$(FOLDER)/otus_table.RDS $(FOLDER)/otus_tax.RDS $(FOLDER)/expr.RDS $(FOLDER)/meta.RDS: $(FOLDER)/preprocessing.R
+	@echo "Preprocessing"
+	cd $(FOLDER); R CMD BATCH $(R_OPTS)/preprocessing.R
+
 # Code to integrate clinical variables, biopsies 16S and stools 16S
 stool_intestinal_metadb/*.csv: stool_intestinal_metadb/stool_intestinal_metadb.R $(out_files) 
 	@echo "Integrating stools and biopsies 16S data \
@@ -96,7 +102,16 @@ intestinal_16S_RNAseq_correlation: intestinal_16S_RNAseq_correlation/intestinal_
 	
 	
 # Handles the integration between the biopsies
-intestinal_16S_RNAseq_integration: intestinal_16S_RNAseq_integration/intestinal_16S_RNAseq_integration.R $(pre_files) 
+i16S_integration=intestinal_16S_RNAseq_integration
+$(i16S_integration)/intestinal_16S_RNAseq_integration.R: $(i16S_integration)/preprocessing.R
+	@echo "Preprocessing"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	
+$(i16S_integration)/sgcca.RDS: $(i16S_integration)/intestinal_16S_RNAseq_integration.R
+	@echo "Integrating"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	
+intestinal_16S_RNAseq_integration: $(i16S_integration)/intestinal_16S_RNAseq_integration.R $(pre_files) 
 	@echo "Relating the RNAseq with the microbiota"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
@@ -105,8 +120,10 @@ models.RData variance: intestinal_16S_RNAseq_metadb/variance.R $(pre_files)
 	@echo "Testing the variance on clinical data"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
+$(FOLDER)/otus_table.RDS $(FOLDER)/otus_tax.RDS $(FOLDER)/expr.RDS $(FOLDER)/meta.RDS: $(FOLDER)/intestinal_16S_RNAseq_metadb.R
+
 # Handles the integration between the biopsies taking into account the metadata
-intestinal_16S_RNAseq_metadb/*.RData intestinal_16S_RNAseq_metadb: intestinal_16S_RNAseq_metadb/intestinal_16S_RNAseq_metadb.R intestinal_16S_RNAseq_metadb/IBD_patients.R $(pre_files) 
+$(FOLDER)/*.RData intestinal_16S_RNAseq_metadb: $(FOLDER)/intestinal_16S_RNAseq_metadb.R $(FOLDER)/IBD_patients.R $(pre_files) 
 	@echo "Relating the RNAseq with the microbiota"
 	cd $(<D);\
 	R CMD BATCH $(R_OPTS) $(<F);\
