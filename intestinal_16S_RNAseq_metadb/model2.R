@@ -97,11 +97,9 @@ sgcca.centroid$AVE
 saveRDS(sgcca.centroid, file = "sgcca_model2.RDS")
 
 designs <- weight_design(11, length(A))
-designs_rank <- vapply(designs, function(x){
-  Matrix::rankMatrix(x)
-}, numeric(1L))
+keep <- check_design(designs)
 library("BiocParallel")
-designs <- designs[designs_rank == length(A)]
+designs <- designs[keep]
 sgcca_custom <- function(x, ...) {
   sgcca.centroid <- RGCCA::sgcca(
     C = x,
@@ -116,7 +114,21 @@ ncomp <- rep(1, length(A))
 design_boot <- lapply(designs, sgcca_custom, ncomp = ncomp, 
                       c1 = shrinkage, A = A)
 saveRDS(design_boot, "designs_boot_model2.RDS")
-# 
+
+# Modify for a better usage
+w <- t(vapply(designs, function(x){x[upper.tri(x)]}, numeric(3L)))
+ind <- apply(which(upper.tri(designs[[1]]), arr.ind = TRUE), 1, 
+             paste0, collapse = "")
+colnames(w) <- paste0("var", ind)
+db <- t(simplify2array(design_boot))
+db2 <- cbind(db, w)
+db3 <- as.data.frame(sapply(db2, as.numeric))
+library("broom")
+lmM <- lm(AVE_inner~0+var12+var13+var23, data = db3)
+glance(lmM)
+tidy(lmM)
+
+# Continue with the normal model 2
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
   "microbiota" = sgcca.centroid$Y[["16S"]][, 1],
@@ -232,13 +244,33 @@ comm +
     )
   )) +
   guides(col = guide_legend(title = "Endoscopic Activity"))
+comm +
+  geom_text(aes(
+    color = SESCD_local,
+    label = ifelse(!is.na(labels),
+                   paste(ID, labels, sep = "_"),
+                   as.character(ID)
+    )
+  )) +
+  guides(col = guide_legend(title = "SESCD (local)")) +
+  scale_color_viridis_c()
+
 
 comm +
   geom_text(aes(color = Time, label = ifelse(!is.na(labels),
                                              paste(ID, labels, sep = "_"),
                                              as.character(ID)
   ))) +
-  guides(col = guide_legend(title = "Time"))
+  guides(col = guide_legend(title = "Time")) +
+  scale_color_viridis_d()
+
+comm +
+  geom_text(aes(color = Exact_location, label = ifelse(!is.na(labels),
+                                             paste(ID, labels, sep = "_"),
+                                             as.character(ID)
+  ))) +
+  guides(col = guide_legend(title = "Exact_location")) +
+  scale_color_viridis_d()
 
 variables <- data.frame(
   Origin = rep(names(A), sapply(A, ncol)),
