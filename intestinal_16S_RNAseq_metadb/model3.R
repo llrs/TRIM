@@ -94,11 +94,9 @@ sgcca.centroid$AVE
 saveRDS(sgcca.centroid, file = "sgcca_model3.RDS")
 
 designs <- weight_design(3, 5)
-designs_rank <- sapply(designs, function(x){
-  Matrix::rankMatrix(x)
-})
+keep <- check_design(designs)
 library("BiocParallel")
-designs <- designs[designs_rank == 5]
+designs <- designs[keep]
 sgcca_custom <- function(x, ...) {
   sgcca.centroid <- RGCCA::sgcca(
     C = x,
