@@ -96,7 +96,7 @@ sgcca.centroid$AVE
 # sgcca.factorial = sgcca.factorial)
 saveRDS(sgcca.centroid, file = "sgcca_model2.RDS")
 
-designs <- weight_design(11, length(A))
+designs <- weight_design(weights = 11, size = length(A))
 keep <- check_design(designs)
 library("BiocParallel")
 designs <- designs[keep]
@@ -120,9 +120,9 @@ w <- t(vapply(designs, function(x){x[upper.tri(x)]}, numeric(3L)))
 ind <- apply(which(upper.tri(designs[[1]]), arr.ind = TRUE), 1, 
              paste0, collapse = "")
 colnames(w) <- paste0("var", ind)
-db <- t(simplify2array(design_boot))
+db <- t(vapply(design_boot, unlist, numeric(2L)))
 db2 <- cbind(db, w)
-db3 <- as.data.frame(sapply(db2, as.numeric))
+db3 <- as.data.frame(db2)
 library("broom")
 lmM <- lm(AVE_inner~0+var12+var13+var23, data = db3)
 glance(lmM)
