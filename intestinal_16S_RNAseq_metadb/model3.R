@@ -93,7 +93,7 @@ sgcca.centroid$AVE
 # sgcca.factorial = sgcca.factorial)
 saveRDS(sgcca.centroid, file = "sgcca_model3.RDS")
 
-designs <- weight_design(3, 5)
+designs <- weight_design(weights = 3, size = 5)
 keep <- check_design(designs)
 library("BiocParallel")
 designs <- designs[keep]
@@ -109,6 +109,19 @@ ncomp <- rep(1, length(A))
 # design_boot <- bplapply(designs, sgcca_custom, ncomp = ncomp,
 #                         c1 = shrinkage, A = A, BPPARAM = bpparam())
 # saveRDS(design_boot, "designs_boot_model3.RDS")
+
+# Modify for a better usage
+w <- t(vapply(designs, function(x){x[upper.tri(x)]}, numeric(3L)))
+ind <- apply(which(upper.tri(designs[[1]]), arr.ind = TRUE), 1, 
+             paste0, collapse = "")
+colnames(w) <- paste0("var", ind)
+db <- t(vapply(design_boot, unlist, numeric(2L)))
+db2 <- cbind(db, w)
+db3 <- as.data.frame(db2)
+library("broom")
+lmM <- lm(AVE_inner~0+var12+var13+var23, data = db3)
+glance(lmM)
+tidy(lmM)
 
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
