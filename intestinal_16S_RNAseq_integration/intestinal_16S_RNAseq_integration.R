@@ -177,6 +177,13 @@ comm +
   guides(col = guide_legend(title = "Time"))
 
 comm +
+  geom_text(aes(color = SESCD_local, label = ifelse(!is.na(labels),
+                                             paste(ID, labels, sep = "_"),
+                                             as.character(ID)
+  ))) +
+  guides(col = guide_legend(title = "SESCD (local)"))
+
+comm +
   geom_text(aes(color = IBD, label = as.character(ID))) +
   guides(col = guide_legend(title = "Type"))
 
