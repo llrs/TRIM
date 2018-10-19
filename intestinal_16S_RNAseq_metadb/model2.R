@@ -56,13 +56,13 @@ A <- sapply(A, function(x){
 }, simplify = FALSE)
 
 # The design
-C <- matrix(
+model <- matrix(
   0, ncol = length(A), nrow = length(A),
   dimnames = list(names(A), names(A))
 )
-C <- subSymm(C, "16S", "metadata", 1)
-C <- subSymm(C, "RNAseq", "metadata", 1)
-C <- subSymm(C, "RNAseq", "16S", 1)
+model1 <- subSymm(model, "16S", "metadata", 1)
+model1 <- subSymm(model1, "RNAseq", "metadata", 1)
+model2 <- subSymm(model1, "RNAseq", "16S", 1)
 
 
 # We cannnot comput eht tau.estimate for A[[1]]
@@ -79,7 +79,7 @@ shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
-  A, C, c1 = shrinkage,
+  A, model2, c1 = shrinkage,
   ncomp = ncomp,
   scheme = "centroid",
   scale = TRUE,
@@ -124,7 +124,7 @@ db <- t(vapply(design_boot, unlist, numeric(2L)))
 db2 <- cbind(db, w)
 db3 <- as.data.frame(db2)
 library("broom")
-lmM <- lm(AVE_inner~0+var12+var13+var23, data = db3)
+lmM <- lm(AVE_inner~0+var12*var13*var23, data = db3)
 glance(lmM)
 tidy(lmM)
 

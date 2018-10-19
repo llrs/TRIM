@@ -57,13 +57,12 @@ A <- sapply(A, function(x){
 saveRDS(A, file = "TRIM.RDS")
 
 # The design
-C <- matrix(
+model <- matrix(
   0, ncol = length(A), nrow = length(A),
   dimnames = list(names(A), names(A))
 )
-C <- subSymm(C, "16S", "metadata", 1)
-C <- subSymm(C, "RNAseq", "metadata", 1)
-
+model1 <- subSymm(model, "16S", "metadata", 1)
+model1 <- subSymm(model1, "RNAseq", "metadata", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
@@ -79,7 +78,7 @@ shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
-  A, C, c1 = shrinkage,
+  A, C = model1, c1 = shrinkage,
   ncomp = ncomp,
   scheme = "centroid",
   scale = TRUE,
@@ -236,6 +235,16 @@ comm +
   guides(col = guide_legend(title = "Endoscopic Activity"))
 
 comm +
+  geom_text(aes(
+    color = Exact_location,
+    label = ifelse(!is.na(labels),
+                   paste(ID, labels, sep = "_"),
+                   as.character(ID)
+    )
+  )) +
+  guides(col = guide_legend(title = "Location"))
+
+comm +
   geom_text(aes(color = Time, label = ifelse(!is.na(labels),
     paste(ID, labels, sep = "_"),
     as.character(ID)
@@ -291,7 +300,7 @@ ggplot(subVariables, aes(comp1, comp2), color = Origin) +
   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.2, npoints = 100)) +
   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.3, npoints = 100)) +
   geom_path(aes(x, y), data = circleFun(c(0, 0), 0.4, npoints = 100)) +
-  geom_text(aes(color = Origin, label = var)) +
+  geom_text(aes(color = Origin, label = trimVer(var))) +
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   coord_cartesian() +
