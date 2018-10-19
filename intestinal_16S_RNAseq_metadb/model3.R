@@ -42,6 +42,7 @@ A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "Demographics" = Demographi
           "Location" = Localization, "Time" = Time)
 
 stopifnot(length(unique(vapply(A, nrow, numeric(1L)))) == 1)
+saveRDS(A, "model3_TRIM.RDS")
 
 # The design of model 3
 C <- matrix(
@@ -108,7 +109,7 @@ sgcca_custom <- function(x, ...) {
 ncomp <- rep(1, length(A))
 # design_boot <- bplapply(designs, sgcca_custom, ncomp = ncomp,
 #                         c1 = shrinkage, A = A, BPPARAM = bpparam())
-# saveRDS(design_boot, "designs_boot_model3.RDS")
+# saveRDS(design_boot, "TRIM/intestinal_16S_RNAseq_metadb/sgcca_model3.RDS")
 
 # Modify for a better usage
 w <- t(vapply(designs, function(x){x[upper.tri(x)]}, numeric(3L)))
