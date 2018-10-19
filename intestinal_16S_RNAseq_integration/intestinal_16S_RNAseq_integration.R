@@ -9,7 +9,6 @@ library("fgsea")
 
 # Save
 otus_table_i <- readRDS("otus_table.RDS")
-otus_tax_i <- readRDS("otus_tax.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS( "meta.RDS")
 
@@ -26,7 +25,7 @@ C <- matrix(
   0, ncol = length(A), nrow = length(A),
   dimnames = list(names(A), names(A))
 )
-C <- subSymm(C, "16S", "RNAseq", 1)
+model0 <- subSymm(C, "16S", "RNAseq", 1)
 
 
 # We cannnot comput eht tau.estimate for A[[1]]
@@ -43,7 +42,7 @@ shrinkage[2] <- tau.estimate(A[[2]])
 ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
-  A, C, c1 = shrinkage,
+  A, C = model0, c1 = shrinkage,
   ncomp = ncomp,
   scheme = "centroid",
   scale = TRUE,
@@ -168,19 +167,30 @@ comm +
     )
   )) +
   guides(col = guide_legend(title = "Endoscopic Activity"))
+comm +
+  geom_text(aes(
+    color = Exact_location,
+    label = ifelse(!is.na(labels),
+                   paste(ID, labels, sep = "_"),
+                   as.character(ID)
+    )
+  )) +
+  guides(col = guide_legend(title = "Location"))
 
 comm +
-  geom_text(aes(color = Time, label = ifelse(!is.na(labels),
-                                             paste(ID, labels, sep = "_"),
-                                             as.character(ID)
-  ))) +
+  geom_text(aes(color = Time, 
+                label = ifelse(!is.na(labels),
+                               paste(ID, labels, sep = "_"),
+                               as.character(ID)
+                ))) +
   guides(col = guide_legend(title = "Time"))
 
 comm +
-  geom_text(aes(color = SESCD_local, label = ifelse(!is.na(labels),
-                                             paste(ID, labels, sep = "_"),
-                                             as.character(ID)
-  ))) +
+  geom_text(aes(color = SESCD_local, 
+                label = ifelse(!is.na(labels),
+                               paste(ID, labels, sep = "_"),
+                               as.character(ID)
+                ))) +
   guides(col = guide_legend(title = "SESCD (local)"))
 
 comm +
