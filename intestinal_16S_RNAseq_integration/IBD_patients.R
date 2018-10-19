@@ -7,15 +7,10 @@ library("integration")
 library("fgsea")
 
 # Load data
-otus_table_i <- readRDS("otus_table.RDS")
-otus_tax_i <- readRDS("otus_tax.RDS")
-expr <- readRDS("expr.RDS")
+otus_table_i <- readRDS("IBD_otus_table.RDS")
+expr <- readRDS("IBD_expr.RDS")
 meta_r <- readRDS("meta.RDS")
-
-IBD <- meta_r$IBD == "CD"
-meta_r <- meta_r[IBD, ]
-expr <- expr[, IBD]
-otus_table_i <- otus_table_i[, IBD]
+meta_r <- meta_r[meta_r$IBD == "CD", ]
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i))
