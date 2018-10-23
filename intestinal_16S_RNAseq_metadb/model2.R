@@ -89,7 +89,7 @@ names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
 names(sgcca.centroid$AVE$AVE_X) <- names(A)
-sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
+sgcca.centroid <- aves(sgcca.centroid)
 sgcca.centroid$AVE
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
@@ -364,6 +364,28 @@ comp2 <- sapply(sgcca.centroid$a, function(x) {
   x[, 2]
 })
 variables_weight(comp2)
+
+# Validate ####
+
+model2_best <- matrix(0, nrow = 3, ncol = 3)
+model2_best[upper.tri(model2_best)] <- unlist(db3[which.max(db3$AVE_inner), 3:5])
+model2_best[lower.tri(model2_best)] <- unlist(db3[which.max(db3$AVE_inner), 3:5])
+
+l <- looIndex(size(A))
+loo_model <- function(x, model){
+  
+  RGCCA::sgcca(A = subsetData(B, x),
+               C = model, 
+               scheme = "centroid", 
+               verbose = FALSE, c1 = shrinkage
+  )
+}
+
+result.out <- lapply(l, loo_model, model = model2_best)
+saveRDS(result.out, "loo-model2_best.RDS")
+
+result.out <- lapply(l, loo_model, model = model2)
+saveRDS(result.out, "loo-model2.RDS")
 
 # Bootstrap of sgcca
 boot <- boot_sgcca(A, C, shrinkage, 1000)

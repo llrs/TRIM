@@ -52,7 +52,7 @@ names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
 names(sgcca.centroid$AVE$AVE_X) <- names(A)
-sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
+sgcca.centroid <- aves(sgcca.centroid)
 
 
 saveRDS(sgcca.centroid, file = "sgcca.RDS")
@@ -260,8 +260,17 @@ comp2 <- sapply(sgcca.centroid$a, function(x) {
 })
 variables_weight(comp2)
 
-# To calculate the conficence interval on selecting the variable
-# this interval should reduce as we fit a better model/relationship
+# Validate #### 
+l <- looIndex(size(A))
+result.out <- lapply(l, function(x){
+  
+  RGCCA::sgcca(A = subsetData(A, x),
+               C = model0, 
+               scheme = "centroid", 
+               verbose = FALSE, c1 = shrinkage
+  )}) # SGCCA of the selected model leaving one sample each time out of order.
+saveRDS(result.out, "loo-model0.RDS")
+
 # Bootstrap of sgcca
 boot <- boot_sgcca(A, C, shrinkage, 1000)
 

@@ -88,7 +88,7 @@ names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
 names(sgcca.centroid$AVE$AVE_X) <- names(A)
-sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
+sgcca.centroid <- aves(sgcca.centroid)
 sgcca.centroid$AVE
 # 
 # sgcca.factorial <- sgcca(
@@ -343,6 +343,20 @@ comp2 <- sapply(sgcca.centroid$a, function(x) {
   x[, 2]
 })
 variables_weight(comp2)
+
+
+# Validate ####
+
+l <- looIndex(size(A))
+result.out <- lapply(l, function(x){
+  
+  RGCCA::sgcca(A = subsetData(A, x),
+               C = model1, 
+               scheme = "centroid", 
+               verbose = FALSE, c1 = shrinkage
+  )}) # SGCCA of the selected model leaving one sample each time out of order.
+saveRDS(result.out, "loo-model1.RDS")
+
 
 # Bootstrap of sgcca
 boot <- boot_sgcca(A, C, shrinkage, 1000)
