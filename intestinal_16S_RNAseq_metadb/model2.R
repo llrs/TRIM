@@ -108,13 +108,12 @@ sgcca_custom <- function(x, ...) {
     verbose = FALSE, ...)
   sgcca.centroid$AVE[c("AVE_inner", "AVE_outer")]
 }
-ncomp <- rep(1, length(A))
 # design_boot <- bplapply(designs, sgcca_custom, ncomp = ncomp, 
 # shrinkage = shrinkage, A = A, BPPARAM = bpparam())
-design_boot <- lapply(designs, sgcca_custom, ncomp = ncomp, 
-                      c1 = shrinkage, A = A)
-saveRDS(design_boot, "designs_boot_model2.RDS")
-
+# design_boot <- lapply(designs, sgcca_custom, ncomp = ncomp, 
+#                       c1 = shrinkage, A = A)
+# saveRDS(design_boot, "designs_boot_model2.RDS")
+design_boot <- readRDS("designs_boot_model2.RDS")
 # Modify for a better usage
 w <- t(vapply(designs, function(x){x[upper.tri(x)]}, numeric(3L)))
 ind <- apply(which(upper.tri(designs[[1]]), arr.ind = TRUE), 1, 
@@ -368,13 +367,15 @@ variables_weight(comp2)
 # Validate ####
 
 model2_best <- matrix(0, nrow = 3, ncol = 3)
-model2_best[upper.tri(model2_best)] <- unlist(db3[which.max(db3$AVE_inner), 3:5])
-model2_best[lower.tri(model2_best)] <- unlist(db3[which.max(db3$AVE_inner), 3:5])
+model2_best <- symm(model2_best, unlist(db3[which.max(db3$AVE_inner), 3:5]))
+
+model2_best_sgcca <- sgcca(A, C = model2_best, verbose = FALSE, c1 = shrinkage, ncomp = ncomp)
+saveRDS(model2_best_sgcca, "model2_best.RDS")
 
 l <- looIndex(size(A))
 loo_model <- function(x, model){
   
-  RGCCA::sgcca(A = subsetData(B, x),
+  RGCCA::sgcca(A = subsetData(A, x),
                C = model, 
                scheme = "centroid", 
                verbose = FALSE, c1 = shrinkage
@@ -388,7 +389,7 @@ result.out <- lapply(l, loo_model, model = model2)
 saveRDS(result.out, "loo-model2.RDS")
 
 # Bootstrap of sgcca
-boot <- boot_sgcca(A, C, shrinkage, 1000)
+boot <- boot_sgcca(A, model2, shrinkage, 1000)
 
 saveRDS(boot, file = "bootstrap_model2.RDS")
 

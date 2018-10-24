@@ -44,11 +44,11 @@ tidy(lmM0)
 glance(lmM0)
 glance(lmM1)
 
+# Based on the top 4 of the random sample ie AVE_inner > 0.6
 keep2 <- vapply(designs[keep], function(x) {
-  x[4, 5] == 0 & x[1, 2] == 0 & x[1, 3] == 0
+  x[4, 5] == 0 & x[1, 2] == 0 & x[2, 5] != 0 & x[2, 3] == 1 & x[3, 5] != 0
 }, logical(1L))
 
-# TODO: Run this it should take 16 hours to complete
 out3 <- sapply(designs[keep][keep2], testing, 
                type = "centroid",
                A = A, c1 = shrinkage, 
@@ -65,24 +65,24 @@ filter <- vapply(designs, function(x){
 }, FUN.VALUE = logical(1L))
 
 out2 <- readRDS("sample_model3_boot.RDS")
-C <- designs[[1]]
-model3_best <- subSymm(C, 1, 5, 1)
-model3_best <- subSymm(model3_best, 2, 5, 1)
-model3_best <- subSymm(model3_best, 3, 5, 1)
-model3_best <- subSymm(model3_best, 2, 3, 1)
-model3_best <- subSymm(model3_best, 2, 4, .5)
+columns <- grep("var", colnames(out3))
+model3_best <- designs[[1]]
+model3_best[upper.tri(model3_best)] <- unlist(out3[which.max(out3$AVE_inner), columns])
+model3_best <- as.matrix(Matrix::forceSymmetric(model3_best))
+
 # Leave one out procedure ####
 # To asses if the selected model how well generalizes
 l <- looIndex(size(A))
 result.out <- lapply(l, function(x){
   
   RGCCA::sgcca(A = subsetData(A, x),
-               C = C, 
+               C = model3_best, 
                scheme = "centroid", 
                verbose = FALSE, c1 = shrinkage
   )}) # SGCCA of the selected model leaving one sample each time out of order.
-
-best <- sgcca(A, C = C, c1 = shrinkage, verbose = FALSE, ncomp = rep(2, length(A)))
+saveRDS(result.out, "loo-model3_best.RDS")
+best <- sgcca(A, C = model3_best, c1 = shrinkage, verbose = FALSE, ncomp = rep(2, length(A)))
+saveRDS(best, "model3_best.RDS")
 # The results should be summarized/compared
 # Which microorganisms are the same? Which genes are the same?
 # Which AVE compared to original how well?

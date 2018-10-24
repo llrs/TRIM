@@ -49,13 +49,13 @@ C <- matrix(
   0, ncol = length(A), nrow = length(A),
   dimnames = list(names(A), names(A))
 )
-C <- subSymm(C, "16S", "Demographics", 1)
-C <- subSymm(C, "16S", "Time", 1)
-C <- subSymm(C, "16S", "Location", 1)
-C <- subSymm(C, "RNAseq", "Demographics", 1)
-C <- subSymm(C, "RNAseq", "Time", 1)
-C <- subSymm(C, "RNAseq", "Location", 1)
-C <- subSymm(C, "RNAseq", "16S", 1)
+model3 <- subSymm(C, "16S", "Demographics", 1)
+model3 <- subSymm(model3, "16S", "Time", 1)
+model3 <- subSymm(model3, "16S", "Location", 1)
+model3 <- subSymm(model3, "RNAseq", "Demographics", 1)
+model3 <- subSymm(model3, "RNAseq", "Time", 1)
+model3 <- subSymm(model3, "RNAseq", "Location", 1)
+model3 <- subSymm(model3, "RNAseq", "16S", 1)
 # C <- subSymm(C, "16S", "16S", 0)
 # C <- subSymm(C, "RNAseq", "RNAseq", 0)
 
@@ -77,7 +77,7 @@ ncomp <- rep(2, length(A))
 
 # A[1:2] <- lapply(A[1:2], function(x){scale2(x, bias = TRUE)})
 sgcca.centroid <- sgcca(
-  A, C, c1 = shrinkage,
+  A, model3, c1 = shrinkage,
   ncomp = ncomp,
   scheme = "centroid",
   scale = TRUE,
@@ -87,7 +87,8 @@ names(sgcca.centroid$Y) <- names(A)
 names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
 names(sgcca.centroid$AVE$AVE_X) <- names(A)
-sgcca.centroid$AVE$AVE_X <- simplify2array(sgcca.centroid$AVE$AVE_X)
+sgcca.centroid <- aves(sgcca.centroid)
+saveRDS(sgcca.centroid, "sgcca_model3.RDS")
 sgcca.centroid$AVE
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
@@ -342,6 +343,19 @@ comp2 <- sapply(sgcca.centroid$a, function(x) {
   x[, 2]
 })
 variables_weight(comp2)
+
+l <- looIndex(size(A))
+loo_model <- function(x, model){
+  
+  RGCCA::sgcca(A = subsetData(A, x),
+               C = model, 
+               scheme = "centroid", 
+               verbose = FALSE, c1 = shrinkage
+  )
+}
+
+result.out <- lapply(l, loo_model, model = model3)
+saveRDS(result.out, "loo-model3.RDS")
 
 # Bootstrap of sgcca
 boot <- boot_sgcca(A, C, shrinkage, 1000)
