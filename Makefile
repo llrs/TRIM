@@ -107,13 +107,23 @@ intestinal_16S_RNAseq_correlation: intestinal_16S_RNAseq_correlation/intestinal_
 # Handles the integration between the biopsies
 i16S_integration=intestinal_16S_RNAseq_integration
 
+$(i16S_integration)/ctrls_%.RDS $(i16S_integration)/IBD_%.RDS: $(i16S_integration)/preprocessing.R $(pre_files)
+	@echo "Preprocessing integration"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+
 $(i16S_integration)/otus_table.RDS $(i16S_integration)/otus_tax.RDS $(i16S_integration)/expr.RDS $(i16S_integration)/meta.RDS: $(i16S_integration)/preprocessing.R $(pre_files)
 	@echo "Preprocessing integration"
-	cd : $(<D); R CMD BATCH $(R_OPTS) $(<F)
-
- $(i16S_integration)/sgcca.RDS $(i16S_integration)/loo-model0.RDS: $(i16S_integration)/intestinal_16S_RNAseq_integration.R $(i16S_integration)/otus_table.RDS $(i16S_integration)/otus_tax.RDS $(i16S_integration)/expr.RDS $(i16S_integration)/meta.RDS
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	
+$(i16S_integration)/sgcca.RDS $(i16S_integration)/loo-model0.RDS $(i16S_integration)/bootstrap.RDS: $(i16S_integration)/intestinal_16S_RNAseq_integration.R $(i16S_integration)/otus_table.RDS $(i16S_integration)/otus_tax.RDS $(i16S_integration)/expr.RDS $(i16S_integration)/meta.RDS
 	@echo "Integrating"
-	cd : $(<D); R CMD BATCH $(R_OPTS) $(<F)
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
+
+$(i16S_integration)/IBD_patients.R $(i16S_integration)/Controls_patients.R: $(i16S_integration)/ctrls_%.RDS $(i16S_integration)/IBD_%.RDS
+
+$(i16S_integration)/%.csv: $(i16S_integration)/biological_relations.R
+	@echo "Biological meaning of the integration"
+	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
 intestinal_16S_RNAseq_integration: $(i16S_integration)/sgcca.RDS
 
@@ -144,7 +154,7 @@ $(FOLDER2)/%.csv: $(FOLDER2)/biological_relations.R
 	@echo "Finding the meaning of these relationships"
 	cd $(<D); R CMD BATCH $(R_OPTS) $(<F)
 
-biological_relations: $(FOLDER2)/%.csv
+biological_relations: $(FOLDER2)/%.csv $(i16S_integration)/%.csv
 intestinal_16S_RNAseq_metadb: biological_relations
 
 
