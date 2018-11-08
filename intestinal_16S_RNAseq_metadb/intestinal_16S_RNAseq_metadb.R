@@ -63,6 +63,7 @@ model <- matrix(
 )
 model1 <- subSymm(model, "16S", "metadata", 1)
 model1 <- subSymm(model1, "RNAseq", "metadata", 1)
+model1i <- subSymm(model1, 1, 1, 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
@@ -76,7 +77,14 @@ shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # shrinkage <- rep(1, length(A))
 
 ncomp <- rep(2, length(A))
-
+sgcca.centroid <- sgcca(
+  A, C = model1i, c1 = shrinkage,
+  ncomp = ncomp,
+  scheme = "centroid",
+  scale = TRUE,
+  verbose = FALSE
+)
+saveRDS(sgcca.centroid, file = "sgccai.RDS")
 sgcca.centroid <- sgcca(
   A, C = model1, c1 = shrinkage,
   ncomp = ncomp,
@@ -356,10 +364,21 @@ result.out <- lapply(l, function(x){
                verbose = FALSE, c1 = shrinkage
   )}) # SGCCA of the selected model leaving one sample each time out of order.
 saveRDS(result.out, "loo-model1.RDS")
+result.out <- lapply(l, function(x){
+  
+  RGCCA::sgcca(A = subsetData(A, x),
+               C = model1i, 
+               scheme = "centroid", 
+               verbose = FALSE, c1 = shrinkage
+  )}) # SGCCA of the selected model leaving one sample each time out of order.
+saveRDS(result.out, "loo-model1i.RDS")
 
 
 # Bootstrap of sgcca
-boot <- boot_sgcca(A, C, shrinkage, 1000)
+boot <- boot_sgcca(A, model1, shrinkage, 1000)
+
+saveRDS(boot, file = "bootstrap.RDS")
+boot <- boot_sgcca(A, model1i, shrinkage, 1000)
 
 saveRDS(boot, file = "bootstrap.RDS")
 

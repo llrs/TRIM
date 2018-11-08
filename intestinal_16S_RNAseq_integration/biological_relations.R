@@ -24,7 +24,7 @@ all_bootstrap <- readRDS("bootstrap.RDS")
 all_sgcca <- readRDS("sgcca.RDS")
 write.csv(integration::weights(all_sgcca), file = "RNAseq_weight_all.csv", na = "", row.names = FALSE)
 write.csv(integration::weights_otus(all_sgcca, otus_tax_i), file = "16S_weight_all.csv", na = "", row.names = FALSE)
-biological_relationships(all_sgcca, all_bootstrap, "all", otus_tax_i, epithelium, today)
+biological_relationships(all_sgcca, all_bootstrap$STAB, "all", otus_tax_i, epithelium, today)
 
 # Controls
 controls_bootstrap <- readRDS("bootstrap_Controls.RDS")

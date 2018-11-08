@@ -122,10 +122,6 @@ colnames(w) <- paste0("var", ind)
 db <- t(vapply(design_boot, unlist, numeric(2L)))
 db2 <- cbind(db, w)
 db3 <- as.data.frame(db2)
-library("broom")
-lmM <- lm(AVE_inner~0+var12*var13*var23, data = db3)
-glance(lmM)
-tidy(lmM)
 
 # Continue with the normal model 2
 samples <- data.frame(
@@ -371,6 +367,9 @@ model2_best <- symm(model2_best, unlist(db3[which.max(db3$AVE_inner), 3:5]))
 
 model2_best_sgcca <- sgcca(A, C = model2_best, verbose = FALSE, c1 = shrinkage, ncomp = ncomp)
 saveRDS(model2_best_sgcca, "model2_best.RDS")
+model2_besti <- subSymm(model2_best, 1, 1, 1)
+model2_best_interaction_sgcca <- sgcca(A, C = model2_besti, verbose = FALSE, c1 = shrinkage, ncomp = ncomp)
+saveRDS(model2_best_interaction_sgcca, "model2_best_interaction.RDS")
 
 l <- looIndex(size(A))
 loo_model <- function(x, model){
@@ -384,6 +383,8 @@ loo_model <- function(x, model){
 
 result.out <- lapply(l, loo_model, model = model2_best)
 saveRDS(result.out, "loo-model2_best.RDS")
+result.out <- lapply(l, loo_model, model = model2_besti)
+saveRDS(result.out, "loo-model2_best_interaction.RDS")
 
 result.out <- lapply(l, loo_model, model = model2)
 saveRDS(result.out, "loo-model2.RDS")

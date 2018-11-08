@@ -9,17 +9,21 @@ library("fgsea")
 
 A <- readRDS("model3_TRIM.RDS")
 
-# We cannnot comput eht tau.estimate for A[[1]]
-shrinkage <- c(0.25670333, 0, 1, 1, 1) # We guess a 0.1 for the RNAseq expression
+# We cannnot comput eht tau.estimate for A[[1]] calculated on server
+shrinkage <- c(0.25670333, 0, 1, 1, 1) 
 shrinkage[[2]] <- tau.estimate(A[[2]])
 
-# Experiment design for the complicated cases with too many computations possible to perform
+# Experiment design for the complicated cases 
+# with too many computations possible to perform it only tests for 3 weighs per edge
 designs <- weight_design(weights = 3, size = 5)
-keep <- check_design(designs)
+keep <- vapply(designs, correct, logical(1L))
+designs <- designs[keep]
 
-# Random subsample of 10% of the tryals
+# Step 1 ####
+# Random subsample of 10% of the trials
 # Store all AVEs in the path so that it can be confirmed that it is the max value
-s <- sample(designs[keep], size = min(length(designs[keep])*.1, 5000))
+set.seed(4672679)
+s <- sample(designs, size = min(length(designs)*.1, 1000))
 # Perform the sgcca on these samples
 testing <- function(x, type, ...) {
   result.sgcca <- RGCCA::sgcca(C = x, 
@@ -30,46 +34,43 @@ testing <- function(x, type, ...) {
 }
 # Estimated time of 8 hours
 out <- sapply(s, testing, type = "centroid", A = A, c1 = shrinkage, USE.NAMES = FALSE)
-out2 <- t(out)
-saveRDS(as.data.frame(out2), "sample_model3_boot.RDS")
-# Linear model to see the weights and from there aim to the perfect AVE score
-lmM0 <- lm(var12*var13*var14*var15*var23*var24*var25*var34*var35*var45~0+AVE_inner, data = as.data.frame(out2))
-# Overfittin
-lmM1 <- lm(AVE_inner~0+var12*var13*var14*var15*var23*var24*var25*var34*var35*var45, data = as.data.frame(out2))
-library("broom")
+out2 <- as.data.frame(t(out))
+saveRDS(out2, "sample_model3_boot.RDS")
 library("dplyr")
-tidy(lmM1) %>% 
-  arrange(desc(abs(estimate)))
-tidy(lmM0)
-glance(lmM0)
-glance(lmM1)
+out2 %>% 
+  top_n(5, AVE_inner) %>% 
+  select(AVE_inner, AVE_outer, var12, var13, var23, 
+         var14, var24, var34, var15, var25, var35, var45) %>% 
+  arrange(desc(AVE_inner))
+stop("Visual inspection of the top 5")
+# step 2 ####
 
-# Based on the top 4 of the random sample ie AVE_inner > 0.6
-keep2 <- vapply(designs[keep], function(x) {
-  x[4, 5] == 0 & x[1, 2] == 0 & x[2, 5] != 0 & x[2, 3] == 1 & x[3, 5] != 0
+# Based on the top 5 of the random sample ie AVE_inner > 0.6
+# Select another range of 37000 of models and check which models are the best ones.
+best_keep <- vapply(designs, function(x) {
+  x[4, 5] == 0 & x[3, 4] == 0 & x[3, 5] != 0
 }, logical(1L))
 
-out3 <- sapply(designs[keep][keep2], testing, 
+out3 <- sapply(designs[best_keep], testing, 
                type = "centroid",
                A = A, c1 = shrinkage, 
                USE.NAMES = FALSE)
-out3 <- t(out3)
-saveRDS(as.data.frame(out3), "subset2_model3_boot.RDS")
-
-# Select another range of 1000 of models and check which models are the best ones.
-out <- predict(lmM0, data.frame(AVE_inner = seq(0.5, 1, by = 0.5)))
-# Perhaps by looking at the best models and then for surrounding results with more affine weights
-filter <- vapply(designs, function(x){
-  l <- x[upper.tri(x)]
-  all(l[c(3, 5, 8, 7, 9)] != 0) & all(l[c(1,2,4,6,10)] != 0)
-}, FUN.VALUE = logical(1L))
-
+out3 <- as.data.frame(t(out3))
+saveRDS(out3, "subset2_model3_boot.RDS")
+stop("Think again!")
+# Step 3 ####
 out2 <- readRDS("sample_model3_boot.RDS")
-columns <- grep("var", colnames(out3))
+out3 <- readRDS("subset2_model3_boot.RDS")
+out <- rbind(out2, out3)
+columns <- grep("var", colnames(out))
+out <- out[!duplicated(out), ]
 model3_best <- designs[[1]]
-model3_best[upper.tri(model3_best)] <- unlist(out3[which.max(out3$AVE_inner), columns])
-model3_best <- as.matrix(Matrix::forceSymmetric(model3_best))
-
+model3_best <- symm(model3_best, out[which.max(out$AVE_inner), columns])
+colnames(model3_best) <- names(A)
+rownames(model3_best) <- names(A)
+out4 <- out
+out4$weights <- as.factor(out4$weights)
+ggplot(out4) + geom_boxplot(aes(weights, AVE_inner))
 # Leave one out procedure ####
 # To asses if the selected model how well generalizes
 l <- looIndex(size(A))
@@ -86,3 +87,19 @@ saveRDS(best, "model3_best.RDS")
 # The results should be summarized/compared
 # Which microorganisms are the same? Which genes are the same?
 # Which AVE compared to original how well?
+
+model3_best2 <- subSymm(model3_best, 1, 1, 1)
+best_interaction <- sgcca(A, C = model3_best2, c1 = shrinkage, verbose = FALSE, ncomp = rep(2, length(A)))
+saveRDS(best_interaction, "model3_best_interaction.RDS")
+
+result.i <- lapply(l, function(x){
+  
+  RGCCA::sgcca(A = subsetData(A, x),
+               C = model3_best2, 
+               scheme = "centroid", 
+               verbose = FALSE, c1 = shrinkage
+  )}) # SGCCA of the selected model leaving one sample each time out of order.
+saveRDS(result.i, "loo-model3_best_interaction.RDS")
+a <- best$a[[1]][, 1]
+ai <-  best_interaction$a[[1]][, 1]
+hist(a[a != 0 | ai != 0] - ai[a != 0 | ai != 0]) # Normal distribution: randomness

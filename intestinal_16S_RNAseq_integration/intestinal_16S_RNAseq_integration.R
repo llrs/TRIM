@@ -26,7 +26,7 @@ C <- matrix(
   dimnames = list(names(A), names(A))
 )
 model0 <- subSymm(C, "16S", "RNAseq", 1)
-
+model0i <- subSymm(model0, 1, 1, 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
@@ -40,7 +40,14 @@ shrinkage[2] <- tau.estimate(A[[2]])
 # shrinkage <- rep(1, length(A))
 
 ncomp <- rep(2, length(A))
-
+sgcca.centroid <- sgcca(
+  A, C = model0i, c1 = shrinkage,
+  ncomp = ncomp,
+  scheme = "centroid",
+  scale = TRUE,
+  verbose = FALSE
+)
+saveRDS(sgcca.centroid, "sgcca_i.RDS")
 sgcca.centroid <- sgcca(
   A, C = model0, c1 = shrinkage,
   ncomp = ncomp,
@@ -56,6 +63,8 @@ sgcca.centroid <- aves(sgcca.centroid)
 
 
 saveRDS(sgcca.centroid, file = "sgcca.RDS")
+
+
 
 # Find the direction of the correlation
 samples <- data.frame(
@@ -262,21 +271,26 @@ variables_weight(comp2)
 
 # Validate #### 
 l <- looIndex(size(A))
-result.out <- lapply(l, function(x){
+loo_model <- function(x, model) {
   
   RGCCA::sgcca(A = subsetData(A, x),
-               C = model0, 
+               C = model, 
                scheme = "centroid", 
-               verbose = FALSE, c1 = shrinkage
-  )}) # SGCCA of the selected model leaving one sample each time out of order.
+               verbose = FALSE, c1 = shrinkage)
+}
+result.out <- lapply(l, loo_model, model = model0) # SGCCA of the selected model leaving one sample each time out of order.
 saveRDS(result.out, "loo-model0.RDS")
+result.out <- lapply(l, loo_model, model = model0i) # SGCCA of the selected model leaving one sample each time out of order.
+saveRDS(result.out, "loo-model0i.RDS")
 
 # Bootstrap of sgcca
-boot <- boot_sgcca(A, C, shrinkage, 1000)
-
+boot <- boot_sgcca(A, model0, shrinkage, 1000)
 saveRDS(boot, file = "bootstrap.RDS")
+booti <- boot_sgcca(A, model0i, shrinkage, 1000)
+saveRDS(booti, file = "bootstrapi.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(boot$STAB)
+boot_evaluate(booti$STAB)
 
 dev.off()
