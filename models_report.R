@@ -157,12 +157,14 @@ df %>%
 
 df %>% 
   filter(Component == "comp1") %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
   ggplot() +
-  geom_point(aes(GE, M, col = Exact_location)) +
+  geom_point(aes(GE, M, col = Ileum)) +
   facet_wrap(~Model, scales = "free") + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
-       col = "Exact location")
+       col = "Location")
 df %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
@@ -171,6 +173,14 @@ df %>%
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Patient ID")
+df %>% 
+  filter(Component == "comp1") %>% 
+  ggplot() +
+  geom_point(aes(GE, M, col = Time)) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "Time")
 df %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
