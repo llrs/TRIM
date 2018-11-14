@@ -310,11 +310,74 @@ keepM[is.na(keepM)] <- 0
 library("UpSetR")
 library("grid")
 text_sizes <- c(1.3, 1.3, 1, 1, 1.5, 1.5)
-upset(keepGE, order.by = "freq", nsets = 6, 
+dfGE %>% 
+  filter(Component == "V1" & GE != 0) %>% 
+  ggplot() +
+  geom_density(aes(GE)) +
+  facet_wrap("Model") +
+  labs(title = "Distribution of the weights", xlab = "weights", 
+       subtitle = "Gene expression")
+dfM %>% 
+  filter(Component == "V1" & M != 0) %>% 
+  ggplot() +
+  geom_density(aes(M)) +
+  facet_wrap("Model") +
+  labs(title = "Distribution of the weights", xlab = "weights", 
+       subtitle = "Microbiome")
+
+
+upset(keepGE, order.by = "freq", nsets = 6, nintersects = NA,
       sets = rev(colnames(keepGE)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 upset(keepM, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepM)), keep.order = TRUE,
-      line.size = NA, text.scale = text_sizes)
+      line.size = NA, text.scale = text_sizes, 
+      attribute.plots = list(gridrows = 50, 
+                             plots = list(),
+                             ncols = 2))
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+
+# Testing genes in model 1 to 3 best 
+se <- apply(keepGE, 1, function(x){all(x[2:6] != 0 & x[1] == 0)})
+library("org.Hs.eg.db")
+g <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
+g <- unique(g[!is.na(g)]) # Calco related S100A6
+int_genes <- "^S100A|^NOD|DUOX|^CA[1:9]+|^CEACAM|^REG"
+grep(int_genes, g, value = TRUE)
+
+# 0 to 3
+se <- apply(keepGE, 1, function(x){all(x[1:5] != 0 & x[6] == 0)})
+g2 <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
+g2 <- unique(g2[!is.na(g2)]) #
+grep(int_genes, g2, value = TRUE)
+
+# 0 to 2 best
+se <- apply(keepGE, 1, function(x){all(x[1:4] != 0 & x[5:6] == 0)})
+g3 <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
+g3 <- unique(g3[!is.na(g3)]) # DUOX1
+grep(int_genes, g3, value = TRUE)
+
+# Just 3 best
+se <- apply(keepGE, 1, function(x){all(x[6] != 0 & x[1:5] == 0)})
+g4 <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
+g4 <- unique(g4[!is.na(g4)]) # DUOX1
+grep(int_genes, g4, value = TRUE)
+
+# Looking for functional annotation 
+library("reactome.db")
+entrezID <- mapIds(org.Hs.eg.db, keys = trimVer(names(se[se])), keytype = "ENSEMBL", 
+                   column = "ENTREZID")
+genes2Pathways <- as.list(reactomeEXTID2PATHID)
+pathways <- unlist(genes2Pathways, use.names = FALSE)
+genes <- rep(names(genes2Pathways), lengths(genes2Pathways))
+paths2genes <- split(genes, pathways)
+human <- grep("R-HSA-", names(paths2genes))
+paths2genes <- paths2genes[human]
+genes <- unlist(paths2genes, use.names = FALSE)
+pathways <- rep(names(paths2genes), lengths(paths2genes))
+T2G <- cbind.data.frame(pathways, genes)
+enrich <- enricher(gene = entrezID, TERM2GENE = T2G)
+enrich <- as.data.frame(enrich)
+enrich$Description <- mapIds(reactome.db, keys = rownames(enrich), 
+                             keytype = "PATHID", column = "PATHNAME")
