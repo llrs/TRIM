@@ -77,10 +77,17 @@ library("tidyr")
 library("dplyr")
 
 tidyer <- function(data, model, type) {
-  d <- as.data.frame(data) %>% 
-    as_tibble() %>% 
-    mutate(Model = model) %>% 
-    gather(Component, !!type, comp1:comp2)
+  if ("comp1" %in% colnames(data)){
+    d <- as.data.frame(data) %>% 
+      as_tibble() %>% 
+      mutate(Model = model) %>% 
+      gather(Component, !!type, comp1:comp2)
+  } else {
+    d <- as.data.frame(data) %>% 
+      as_tibble() %>% 
+      mutate(Model = model) %>% 
+      gather(Component, !!type, 1:2)
+  }
   d$Rownames <- rep(rownames(data), 2)
   d
     # mutate(Sample = seq_len(n()))
@@ -124,14 +131,13 @@ df <- rbind(
 
 library("ggplot2")
 # Set theme without background on the labels
-th <- theme_bw() +
-  theme_update(strip.background = element_blank())
-theme_set(th)
+theme_set(theme_bw())
+theme_update(strip.background = element_blank())
 df <- as_tibble(df)
 df %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
-  geom_point(aes(GE, M, col = as.factor(Sample))) +
+  geom_point(aes(GE, M, col = as.factor(Sample_Code_uDNA))) +
   facet_wrap(~Model, scales = "free") + 
   guides(col = FALSE) +
   labs(title = "Samples by model", 
@@ -260,4 +266,55 @@ Ms %>%
   labs(title = "Samples by model",
        subtitle = "Microbiome dimensions",
        caption = "HSCT dataset")
-       
+
+
+a0GE <- tidyer(model0$a[[1]], "0", "GE")
+a0M <- tidyer(model0$a[[2]], "0", "M")
+a1GE <- tidyer(model1$a[[1]], "1", "GE")
+a1M <- tidyer(model1$a[[2]], "1", "M")
+a2GE <- tidyer(model2$a[[1]], "2", "GE")
+a2M <- tidyer(model2$a[[2]], "2", "M")
+a2bGE <- tidyer(model2_best$a[[1]], "2 best", "GE")
+a2bM <- tidyer(model2_best$a[[2]], "2 best", "M")
+a3GE <- tidyer(model3$a[[1]], "3", "GE")
+a3M <- tidyer(model3$a[[2]], "3", "M")
+a3bGE <- tidyer(model3_best$a[[1]], "3 best", "GE")
+a3bM <- tidyer(model3_best$a[[2]], "3 best", "M")
+
+dfGE <- rbind(a0GE, a1GE, a2GE, a2bGE, a3GE, a3bGE)
+dfM <- rbind(a0M, a1M, a2M, a2bM, a3M, a3bM)
+keepGE <- dfGE %>% 
+  filter(Component == "V1" & GE != 0) %>% 
+  mutate(Presence = if_else(GE != 0, 1, 0)) %>% 
+  select(-Component, -GE, Rownames) %>% 
+  group_by(Rownames) %>% 
+  spread(Model, Presence) %>% 
+  ungroup() %>% 
+  as.data.frame()
+rownames(keepGE) <- keepGE$Rownames
+keepGE <- keepGE[, -grep("Rownames", colnames(keepGE))]
+keepGE[is.na(keepGE)] <- 0
+
+keepM <- dfM %>% 
+  filter(Component == "V1" & M != 0) %>% 
+  mutate(Presence = if_else(M != 0, 1, 0)) %>% 
+  select(-Component, -M, Rownames) %>% 
+  group_by(Rownames) %>% 
+  spread(Model, Presence) %>% 
+  ungroup() %>% 
+  as.data.frame()
+rownames(keepM) <- keepM$Rownames
+keepM <- keepM[, -grep("Rownames", colnames(keepM))]
+keepM[is.na(keepM)] <- 0
+
+library("UpSetR")
+library("grid")
+text_sizes <- c(1.3, 1.3, 1, 1, 1.5, 1.5)
+upset(keepGE, order.by = "freq", nsets = 6, 
+      sets = rev(colnames(keepGE)), keep.order = TRUE,
+      line.size = NA, text.scale = text_sizes, scale.sets = "identity")
+grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+upset(keepM, order.by = "freq", nsets = 6, 
+      sets = rev(colnames(keepM)), keep.order = TRUE,
+      line.size = NA, text.scale = text_sizes)
+grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
