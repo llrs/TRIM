@@ -70,9 +70,13 @@ model1i$AVE$AVE_inner-model1$AVE$AVE_inner
 model2_besti$AVE$AVE_inner-model2_best$AVE$AVE_inner
 model3_besti$AVE$AVE_inner-model3_best$AVE$AVE_inner
 
-# Tidify all the data of models:
+# Tidify all the data of models
+names(model2_best$Y) <- names(model2$Y)
 names(model3_best$Y) <- names(model3$Y)
 names(model3_besti$Y) <- names(model3$Y)
+names(model2_best$a) <- names(model2$Y)
+names(model3_best$a) <- names(model3$Y)
+names(model3_besti$a) <- names(model3$Y)
 library("tidyr")
 library("dplyr")
 
@@ -173,12 +177,32 @@ df %>%
        col = "Location")
 df %>% 
   filter(Component == "comp1") %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(GE, M, col = Ileum)) +
+  stat_ellipse(aes(GE, M, col = Ileum, group = Ileum), type = "norm", show.legend = FALSE) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "Location")
+df %>% 
+  filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = ID)) +
   facet_wrap(~Model, scales = "free") + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Patient ID")
+df %>% 
+  filter(Component == "comp1") %>% 
+  ggplot() +
+  geom_point(aes(GE, M, col = IBD)) +
+  stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", show.legend = FALSE) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "IBD")
 df %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
@@ -190,7 +214,42 @@ df %>%
 df %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
+  geom_point(aes(GE, M, col = Time)) +
+  stat_ellipse(aes(GE, M, col = Time, group = Time), type = "norm", show.legend = FALSE) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "Time")
+df %>% 
+  filter(Component == "comp1") %>% 
+  ggplot() +
+  geom_point(aes(GE, M, col = Transplant)) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "Transplant")
+df %>% 
+  filter(Component == "comp1") %>% 
+  ggplot() +
+  geom_point(aes(GE, M, col = Transplant)) +
+  stat_ellipse(aes(GE, M, col = Transplant, group = Transplant), type = "norm", show.legend = FALSE) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "Transplant")
+df %>% 
+  filter(Component == "comp1") %>% 
+  ggplot() +
   geom_point(aes(GE, M, col = SEX)) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "Sex")
+df %>% 
+  filter(Component == "comp1") %>% 
+  ggplot() +
+  geom_point(aes(GE, M, col = SEX)) +
+  stat_ellipse(aes(GE, M, col = SEX, group = SEX), type = "norm", show.legend = FALSE) +
   facet_wrap(~Model, scales = "free") + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
@@ -267,7 +326,7 @@ Ms %>%
        subtitle = "Microbiome dimensions",
        caption = "HSCT dataset")
 
-
+# Look the weights ####
 a0GE <- tidyer(model0$a[[1]], "0", "GE")
 a0M <- tidyer(model0$a[[2]], "0", "M")
 a1GE <- tidyer(model1$a[[1]], "1", "GE")
@@ -325,17 +384,14 @@ dfM %>%
   labs(title = "Distribution of the weights", xlab = "weights", 
        subtitle = "Microbiome")
 
-
+## Upset plots ####
 upset(keepGE, order.by = "freq", nsets = 6, nintersects = NA,
       sets = rev(colnames(keepGE)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 upset(keepM, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepM)), keep.order = TRUE,
-      line.size = NA, text.scale = text_sizes, 
-      attribute.plots = list(gridrows = 50, 
-                             plots = list(),
-                             ncols = 2))
+      line.size = NA, text.scale = text_sizes)
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 
 # Testing genes in model 1 to 3 best 
@@ -344,40 +400,122 @@ library("org.Hs.eg.db")
 g <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
 g <- unique(g[!is.na(g)]) # Calco related S100A6
 int_genes <- "^S100A|^NOD|DUOX|^CA[1:9]+|^CEACAM|^REG"
-grep(int_genes, g, value = TRUE)
+grep(int_genes, g, value = TRUE) # S100A6
 
 # 0 to 3
 se <- apply(keepGE, 1, function(x){all(x[1:5] != 0 & x[6] == 0)})
 g2 <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
 g2 <- unique(g2[!is.na(g2)]) #
-grep(int_genes, g2, value = TRUE)
+grep(int_genes, g2, value = TRUE) # DUOXA[12] DUOX2 S100A11 S100A13
 
 # 0 to 2 best
 se <- apply(keepGE, 1, function(x){all(x[1:4] != 0 & x[5:6] == 0)})
 g3 <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
-g3 <- unique(g3[!is.na(g3)]) # DUOX1
-grep(int_genes, g3, value = TRUE)
+g3 <- unique(g3[!is.na(g3)]) 
+grep(int_genes, g3, value = TRUE) # S100A8 S100A9 S100A12
 
 # Just 3 best
 se <- apply(keepGE, 1, function(x){all(x[6] != 0 & x[1:5] == 0)})
 g4 <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
 g4 <- unique(g4[!is.na(g4)]) # DUOX1
-grep(int_genes, g4, value = TRUE)
+grep(int_genes, g4, value = TRUE) # Kevin genes
+
+g0 <- trimVer(rownames(keepGE))
+g0 <- mapIds(org.Hs.eg.db, keys = g0, column = "SYMBOL", keytype = "ENSEMBL")
+g0 <- unique(g0[!is.na(g0)])
 
 # Looking for functional annotation 
-library("reactome.db")
-entrezID <- mapIds(org.Hs.eg.db, keys = trimVer(names(se[se])), keytype = "ENSEMBL", 
+entrezID <- mapIds(org.Hs.eg.db, keys = trimVer(rownames(keepGE)), keytype = "ENSEMBL", 
                    column = "ENTREZID")
-genes2Pathways <- as.list(reactomeEXTID2PATHID)
-pathways <- unlist(genes2Pathways, use.names = FALSE)
-genes <- rep(names(genes2Pathways), lengths(genes2Pathways))
-paths2genes <- split(genes, pathways)
-human <- grep("R-HSA-", names(paths2genes))
-paths2genes <- paths2genes[human]
+
+paths2genes <- integration:::access_reactome()
 genes <- unlist(paths2genes, use.names = FALSE)
 pathways <- rep(names(paths2genes), lengths(paths2genes))
+desc <- mapIds(reactome.db, keys = pathways, column = "PATHNAME", keytype = "PATHID")
+desc <- gsub("Homo sapiens: ", "", desc)
+T2D <- unique(cbind.data.frame(pathways, desc))
 T2G <- cbind.data.frame(pathways, genes)
-enrich <- enricher(gene = entrezID, TERM2GENE = T2G)
-enrich <- as.data.frame(enrich)
-enrich$Description <- mapIds(reactome.db, keys = rownames(enrich), 
-                             keytype = "PATHID", column = "PATHNAME")
+library("clusterProfiler")
+enrichment_models <- lapply(keepGE, function(x){
+  y <- entrezID[x == 1]
+  enrich <- enricher(gene = y, TERM2GENE = T2G, TERM2NAME = T2D)
+  as.data.frame(enrich)
+})
+
+folder <- "Summary_out"
+sapply(names(enrichment_models), function(x) {
+  name <- paste0("enrichment_GE_model_", gsub(" ", "_", x), ".csv")
+  write.csv(enrichment_models[[x]], 
+            file = file.path(folder, name), 
+            row.names = FALSE)
+})
+a <- sapply(enrichment_models, function(x) {
+  x[, 1]
+})
+# Upset of the enrichment ####
+paths <- unique(unlist(a, use.names = FALSE))
+b <- sapply(a, function(x){
+  as.numeric(paths  %in% x)
+})
+rownames(b) <- paths
+upset(as.data.frame(b), order.by = "freq", nsets = 6, 
+      sets = rev(colnames(b)), keep.order = TRUE,
+      line.size = NA, text.scale = text_sizes)
+grid.text("Pathways shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+m <- list(model0, model1, model2, model2_best, model3, model3_best)
+names(m) <- colnames(keepGE)
+sapply(names(m), function(x) {
+  name <- paste0("weights_GE_model_", gsub(" ", "_", x), ".csv")
+  write.csv(integration::weights(m[[x]]), 
+            file = file.path(folder, name), 
+            row.names = FALSE)
+})
+taxa <- readRDS("intestinal_16S_RNAseq_metadb/otus_tax.RDS")
+sapply(names(m), function(x) {
+  name <- paste0("weights_M_model_", gsub(" ", "_", x), ".csv")
+  write.csv(integration::weights_otus(m[[x]], taxa), 
+            file = file.path(folder, name), 
+            row.names = FALSE, na = "")
+})
+# TODO look taxa of otus
+tax_i <- readRDS("intestinal_16S_RNAseq_metadb/otus_tax.RDS")
+# TODO use BioCor to compare subgroups
+library("BioCor")
+out <- dfGE %>% 
+  filter(GE != 0, Component == "V1") %>% 
+  mutate(Genes = mapIds(org.Hs.eg.db, keys = trimVer(Rownames), keytype = "ENSEMBL", column = "ENTREZID")) %>% 
+  as.data.frame()
+model2gene <- split(out$Genes, out$Model)
+model2gene <- lapply(model2gene, unique)
+gsc <- GSEAdv::as.GeneSetCollection(GSEAdv:::inverseList(paths2genes))
+o <- mclusterGeneSim(clusters = model2gene, info = gsc, method = c("max", "BMA"))
+saveRDS(model2gene, file = "models2genes.RDS")
+
+specificGenes <- lapply(seq_len(6), function(x){
+  specific <- keepGE[, x] != 0
+  others <- apply(keepGE[, seq_len(6)[-x]], 1, function(z){
+    all(z == 0)
+  })
+  y <- trimVer(rownames(keepGE)[specific & others])
+  y2 <- mapIds(org.Hs.eg.db, keys = y, keytype = "ENSEMBL", column = "ENTREZID")
+  y2 <- unique(y2)
+  y2[!is.na(y2)]
+})
+names(specificGenes) <- colnames(keepGE)
+o2 <- mclusterGeneSim(clusters = specificGenes[1:4], info = gsc, method = c("max", "BMA"))
+o3 <- mclusterGeneSim(clusters = specificGenes, info = gsc, method = c("max", "BMA"))
+o3 <- readRDS("compareClusters.RDS")
+o3
+o2 <- mclusterSim(clusters = specificGenes[1:4], info = gsc, method = "max")
+o3 <- mclusterSim(clusters = specificGenes, info = gsc, method = "max")
+save(specificGenes, gsc, file = "specificGenes_gsc_BioCor.RData")
+
+
+specificOTUs <- vapply(seq_len(6), function(x){
+  specific <- keepM[, x] != 0
+  others <- apply(keepM[, seq_len(6)[-x]], 1, function(z){
+    all(z == 0)
+  })
+  sum(specific & others)
+}, numeric(1L))
+names(specificOTUs) <- colnames(keepM)
