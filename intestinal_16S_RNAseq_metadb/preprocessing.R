@@ -55,8 +55,6 @@ meta_i <- meta_i_norm(meta_i)
 # Check metadata with the names present in both datas
 meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
                    meta_r$`Sample Name_RNA` %in% colnames(expr), ]
-
-
   
 # Subset the sequencing data
 expr <- expr[, meta_r$`Sample Name_RNA`]
@@ -69,7 +67,6 @@ IBD_expr <- expr[, meta_r$IBD != "CONTROL"]
 IBD_otus_table_i <- otus_table_i[, meta_r$IBD != "CONTROL"]
 
 # Normalize expression
-
 norm_edgeR <- function(expr){
   expr_edge <- edgeR::DGEList(expr)
   expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
