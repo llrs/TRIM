@@ -110,27 +110,36 @@ merger <- function(data) {
 
 m0GE <- merger(tidyer(model0$Y[[1]], "0", "GE"))
 m0M <- merger(tidyer(model0$Y[[2]], "0", "M"))
+m0iGE <- merger(tidyer(model0i$Y[[1]], "0 i", "GE"))
+m0iM <- merger(tidyer(model0i$Y[[2]], "0 i", "M"))
 m1GE <- merger(tidyer(model1$Y[[1]], "1", "GE"))
 m1M <- merger(tidyer(model1$Y[[2]], "1", "M"))
 m2GE <- merger(tidyer(model2$Y[[1]], "2", "GE"))
 m2M <- merger(tidyer(model2$Y[[2]], "2", "M"))
 m2bGE <- merger(tidyer(model2_best$Y[[1]], "2 best", "GE"))
 m2bM <- merger(tidyer(model2_best$Y[[2]], "2 best", "M"))
+m2biGE <- merger(tidyer(model2_besti$Y[[1]], "2 best i", "GE"))
+m2biM <- merger(tidyer(model2_besti$Y[[2]], "2 best i", "M"))
 m3GE <- merger(tidyer(model3$Y[[1]], "3", "GE"))
 m3M <- merger(tidyer(model3$Y[[2]], "3", "M"))
 m3bGE <- merger(tidyer(model3_best$Y[[1]], "3 best", "GE"))
 m3bM <- merger(tidyer(model3_best$Y[[2]], "3 best", "M"))
+m3biGE <- merger(tidyer(model3_besti$Y[[1]], "3 best i", "GE"))
+m3biM <- merger(tidyer(model3_besti$Y[[2]], "3 best i", "M"))
 
 inter <- intersect(colnames(m0GE), colnames(m0M))
 inter <- grep("Rownames", inter, invert = TRUE, value = TRUE)
 
 df <- rbind(
   merge(m0M, m0GE, all.x = TRUE, all.y = TRUE, by = inter),
+  merge(m0iM, m0iGE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m1M, m1GE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m2M, m2GE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m2bM, m2bGE, all.x = TRUE, all.y = TRUE, by = inter),
+  merge(m2biM, m2biGE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m3M, m3GE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m3bM, m3bGE, all.x = TRUE, all.y = TRUE, by = inter)
+  merge(m3bM, m3bGE, all.x = TRUE, all.y = TRUE, by = inter),
+  merge(m3biM, m3biGE, all.x = TRUE, all.y = TRUE, by = inter)
 )
 
 library("ggplot2")
@@ -139,6 +148,7 @@ theme_set(theme_bw())
 theme_update(strip.background = element_blank())
 df <- as_tibble(df)
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = as.factor(Sample_Code_uDNA))) +
@@ -150,6 +160,7 @@ df %>%
 
 # Check that the samples order doesn't change or something!! It doesn't look right
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
@@ -157,6 +168,7 @@ df %>%
   labs(title = "Samples by model",
        caption = "HSCT dataset")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = SESCD_local)) +
@@ -166,6 +178,7 @@ df %>%
        col = "SESCD (local)")
 
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
                            !is.na(Exact_location) ~ "Colon")) %>% 
@@ -176,6 +189,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Location")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
                            !is.na(Exact_location) ~ "Colon")) %>% 
@@ -187,6 +201,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Location")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = ID)) +
@@ -195,6 +210,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Patient ID")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
@@ -204,7 +220,8 @@ df %>%
        caption = "HSCT dataset", 
        col = "IBD")
 df %>% 
-  filter(Component == "comp1") %>% 
+  filter(!grepl(" i", Model)) %>% 
+  filter(Component == "comp1") %>%
   ggplot() +
   geom_point(aes(GE, M, col = Time)) +
   facet_wrap(~Model, scales = "free") + 
@@ -212,6 +229,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Time")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Time)) +
@@ -221,6 +239,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Time")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Transplant)) +
@@ -229,6 +248,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Transplant")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Transplant)) +
@@ -238,6 +258,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Transplant")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = SEX)) +
@@ -246,6 +267,7 @@ df %>%
        caption = "HSCT dataset", 
        col = "Sex")
 df %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = SEX)) +
@@ -263,6 +285,7 @@ sumDplyr <- function(x){
   unique(y)
 }
 GEs <- df %>% 
+  filter(!grepl(" i", Model)) %>% 
   spread(Component, GE) %>% 
   group_by(Model, Sample_Code_uDNA) %>% 
   summarise(GE1 = sum(comp1, na.rm = TRUE),
@@ -273,6 +296,7 @@ GEs <- df %>%
             IBD = unique(IBD)) %>% 
   ungroup()
 Ms <- df %>% 
+  filter(!grepl(" i", Model)) %>% 
   spread(Component, M) %>% 
   group_by(Model, Sample_Code_uDNA) %>% 
   summarise(M1 = sum(comp1, na.rm = TRUE),
@@ -329,32 +353,39 @@ Ms %>%
 # Look the weights ####
 a0GE <- tidyer(model0$a[[1]], "0", "GE")
 a0M <- tidyer(model0$a[[2]], "0", "M")
+a0iGE <- tidyer(model0i$a[[1]], "0 i", "GE")
+a0iM <- tidyer(model0i$a[[2]], "0 i", "M")
 a1GE <- tidyer(model1$a[[1]], "1", "GE")
 a1M <- tidyer(model1$a[[2]], "1", "M")
 a2GE <- tidyer(model2$a[[1]], "2", "GE")
 a2M <- tidyer(model2$a[[2]], "2", "M")
 a2bGE <- tidyer(model2_best$a[[1]], "2 best", "GE")
 a2bM <- tidyer(model2_best$a[[2]], "2 best", "M")
+a2biGE <- tidyer(model2_besti$a[[1]], "2 best i", "GE")
+a2biM <- tidyer(model2_besti$a[[2]], "2 best i", "M")
 a3GE <- tidyer(model3$a[[1]], "3", "GE")
 a3M <- tidyer(model3$a[[2]], "3", "M")
 a3bGE <- tidyer(model3_best$a[[1]], "3 best", "GE")
 a3bM <- tidyer(model3_best$a[[2]], "3 best", "M")
+a3biGE <- tidyer(model3_besti$a[[1]], "3 best i", "GE")
+a3biM <- tidyer(model3_besti$a[[2]], "3 best i", "M")
 
-dfGE <- rbind(a0GE, a1GE, a2GE, a2bGE, a3GE, a3bGE)
-dfM <- rbind(a0M, a1M, a2M, a2bM, a3M, a3bM)
+dfGE <- rbind(a0GE, a0iGE, a1GE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE)
+dfM <- rbind(a0M, a0iM, a1M, a2M, a2bM, a2biM, a3M, a3bM, a3biM)
 keepGE <- dfGE %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "V1" & GE != 0) %>% 
   mutate(Presence = if_else(GE != 0, 1, 0)) %>% 
   select(-Component, -GE, Rownames) %>% 
   group_by(Rownames) %>% 
   spread(Model, Presence) %>% 
-  ungroup() %>% 
   as.data.frame()
 rownames(keepGE) <- keepGE$Rownames
 keepGE <- keepGE[, -grep("Rownames", colnames(keepGE))]
 keepGE[is.na(keepGE)] <- 0
 
 keepM <- dfM %>% 
+  filter(!grepl(" i", Model)) %>% 
   filter(Component == "V1" & M != 0) %>% 
   mutate(Presence = if_else(M != 0, 1, 0)) %>% 
   select(-Component, -M, Rownames) %>% 
@@ -385,7 +416,7 @@ dfM %>%
        subtitle = "Microbiome")
 
 ## Upset plots ####
-upset(keepGE, order.by = "freq", nsets = 6, nintersects = NA,
+upset(keepGE, order.by = "freq", nsets = 6,
       sets = rev(colnames(keepGE)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
