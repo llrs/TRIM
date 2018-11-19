@@ -46,7 +46,7 @@ select_genes_int <- function(file, expr) {
   sgcca.centroid <- readRDS(file.path(pre, file))
   
   # Find outliers/important genes
-  comp1 <- sgcca.centroid$a$RNAseq[, 1]
+  comp1 <- sgcca.centroid$a[[1]][, 1]
   outliers <- comp1 != 0
   comp1 <- comp1[outliers]
   
@@ -68,7 +68,7 @@ readSGCCA <- function(file){
   sgcca.centroid <- readRDS(file)
   
   # Find outliers/important genes
-  comp1 <- sgcca.centroid$a$RNAseq[, 1]
+  comp1 <- sgcca.centroid$a[[1]][, 1]
   outliers <- comp1 != 0
   comp1[outliers]
 }
@@ -171,20 +171,23 @@ plot_cor <- function(file, cors, pval, threshold, label) {
 }
 
 
-write_cor <- function(x, file){
+ensembl2symbol <- function(x) {
   all_samples_symbol <- x
   all_samples_symbol$Gene <- trimVer(all_samples_symbol$Gene)
   all_samples_symbol$Gene <- mapIds(org.Hs.eg.db, keys = all_samples_symbol$Gene,
                                     keytype = "ENSEMBL", column = "SYMBOL")
   all_samples_symbol <- all_samples_symbol[!is.na(all_samples_symbol$Gene), ]
-  all_samples_symbol <- all_samples_symbol[!duplicated(all_samples_symbol), ]
+  all_samples_symbol[!duplicated(all_samples_symbol), ]
+}
+write_cor <- function(x, file){
+  all_samples_symbol <- ensembl2symbol(x)
   write.csv(all_samples_symbol, file = file, row.names = FALSE, na = "")
 }
 
 # Output ####
 # #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
-all_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/sgcca.RDS")
+all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/model2_best.RDS")
 all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
 all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
 write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all.csv"))
@@ -287,7 +290,8 @@ library("ggplot2")
 library("ggraph")
 library("tidygraph")
 library("ggnetwork")
-tab_names <- table(all_samples_symbol$Microorganism) > 60
+all_samples_symbol <- ensembl2symbol(all_samples_ensembl)
+tab_names <- table(all_samples_symbol$Microorganism) > 10
 org <- names(tab_names[tab_names])
 org <- org[!org %in% "Peptostreptococcus"]
 
@@ -316,5 +320,5 @@ p <- ggraph(tidyg2, layout = "lgl") +
                   size = 4, repel = TRUE) +
   scale_size(range = c(0.5, 2)) +
   theme_blank()
-ggsave("Figures/connections.png")
+ggsave(paste0("Figures/",today,"_connections.png"))
   
