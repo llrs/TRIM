@@ -114,6 +114,8 @@ m0iGE <- merger(tidyer(model0i$Y[[1]], "0 i", "GE"))
 m0iM <- merger(tidyer(model0i$Y[[2]], "0 i", "M"))
 m1GE <- merger(tidyer(model1$Y[[1]], "1", "GE"))
 m1M <- merger(tidyer(model1$Y[[2]], "1", "M"))
+m1iGE <- merger(tidyer(model1i$Y[[1]], "1 i", "GE"))
+m1iM <- merger(tidyer(model1i$Y[[2]], "1 i", "M"))
 m2GE <- merger(tidyer(model2$Y[[1]], "2", "GE"))
 m2M <- merger(tidyer(model2$Y[[2]], "2", "M"))
 m2bGE <- merger(tidyer(model2_best$Y[[1]], "2 best", "GE"))
@@ -134,6 +136,7 @@ df <- rbind(
   merge(m0M, m0GE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m0iM, m0iGE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m1M, m1GE, all.x = TRUE, all.y = TRUE, by = inter),
+  merge(m1iM, m1iGE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m2M, m2GE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m2bM, m2bGE, all.x = TRUE, all.y = TRUE, by = inter),
   merge(m2biM, m2biGE, all.x = TRUE, all.y = TRUE, by = inter),
@@ -160,7 +163,7 @@ df %>%
 
 # Check that the samples order doesn't change or something!! It doesn't look right
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  # filter(!grepl(" i", Model)) %>%
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
@@ -357,6 +360,8 @@ a0iGE <- tidyer(model0i$a[[1]], "0 i", "GE")
 a0iM <- tidyer(model0i$a[[2]], "0 i", "M")
 a1GE <- tidyer(model1$a[[1]], "1", "GE")
 a1M <- tidyer(model1$a[[2]], "1", "M")
+a1iGE <- tidyer(model1i$a[[1]], "1 i", "GE")
+a1iM <- tidyer(model1i$a[[2]], "1 i", "M")
 a2GE <- tidyer(model2$a[[1]], "2", "GE")
 a2M <- tidyer(model2$a[[2]], "2", "M")
 a2bGE <- tidyer(model2_best$a[[1]], "2 best", "GE")
@@ -370,10 +375,10 @@ a3bM <- tidyer(model3_best$a[[2]], "3 best", "M")
 a3biGE <- tidyer(model3_besti$a[[1]], "3 best i", "GE")
 a3biM <- tidyer(model3_besti$a[[2]], "3 best i", "M")
 
-dfGE <- rbind(a0GE, a0iGE, a1GE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE)
-dfM <- rbind(a0M, a0iM, a1M, a2M, a2bM, a2biM, a3M, a3bM, a3biM)
+dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE)
+dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM)
 keepGE <- dfGE %>% 
-  filter(!grepl(" i", Model)) %>% 
+  # filter(!grepl(" i", Model)) %>% 
   filter(Component == "V1" & GE != 0) %>% 
   mutate(Presence = if_else(GE != 0, 1, 0)) %>% 
   select(-Component, -GE, Rownames) %>% 
@@ -385,7 +390,7 @@ keepGE <- keepGE[, -grep("Rownames", colnames(keepGE))]
 keepGE[is.na(keepGE)] <- 0
 
 keepM <- dfM %>% 
-  filter(!grepl(" i", Model)) %>% 
+  # filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & M != 0) %>% 
   mutate(Presence = if_else(M != 0, 1, 0)) %>% 
   select(-Component, -M, Rownames) %>% 
