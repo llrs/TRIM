@@ -192,14 +192,18 @@ cor2(genus_i, expr, "all_genus")
 
 ## CD ####
 keep <- meta_r$IBD == "CD"
-# sum(keep)
-# cor_sign(sum(keep))
-cor2(species_i[, keep], expr[, keep], "CD_species")
 cor2(genus_i[, keep], expr[, keep], "CD_genus")
+cor2(species_i[, keep], expr[, keep], "CD_species")
 
 ## Healthy ####
 keep <-  meta_r$IBD == "CONTROL"
-# sum(keep)
-# cor_sign(sum(keep))
-cor2(species_i[, keep], expr[, keep], "Controls_species")
 cor2(genus_i[, keep], expr[, keep], "Controls_genus")
+cor2(species_i[, keep], expr[, keep], "Controls_species")
+
+# Location ####
+ileum <-  meta_r$Exact_location %in% "ILEUM"
+cor2(genus_i[, ileum], expr[, ileum], "Ileum_genus")
+cor2(species_i[, ileum], expr[, ileum], "Ileum_species")
+
+cor2(genus_i[, !ileum], expr[, !ileum], "Colon_genus")
+cor2(species_i[, !ileum], expr[, !ileum], "Colon_species")
