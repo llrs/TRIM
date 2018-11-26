@@ -19,7 +19,7 @@ meta_r <- read.delim(
 
 setwd(cd)
 
-# Libraries
+# Libraries ####
 library("integration")
 library("org.Hs.eg.db")
 
@@ -35,10 +35,14 @@ genus_i <- readRDS(paste0(type, ".RDS"))
 all_s <- readRDS(paste0("correlations_all_", type,".RDS"))
 disease <- readRDS(paste0("correlations_CD_", type,".RDS"))
 controls <- readRDS(paste0("correlations_Controls_", type,".RDS"))
+colon <- readRDS(paste0("correlations_Colon_", type,".RDS"))
+ileum <- readRDS(paste0("correlations_Ileum_", type,".RDS"))
 
 pall_s <- readRDS(paste0("padj_all_", type, ".RDS"))
 pdisease <- readRDS(paste0("padj_CD_", type, ".RDS"))
 pcontrols <- readRDS(paste0("padj_Controls_", type, ".RDS"))
+pcolon <- readRDS(paste0("padj_Colon_", type, ".RDS"))
+pileum <- readRDS(paste0("padj_Ileum_", type, ".RDS"))
 
 select_genes_int <- function(file, expr) {
   # Load data from all the patients
@@ -63,7 +67,7 @@ filter_sexual <- function(expr) {
 }
 
 
-readSGCCA <- function(file){
+readSGCCA <- function(file) {
   # Load data from all the patients
   sgcca.centroid <- readRDS(file)
   
@@ -184,14 +188,65 @@ write_cor <- function(x, file){
   write.csv(all_samples_symbol, file = file, row.names = FALSE, na = "")
 }
 
+#' Enrichment by microorganisms
+#' 
+#' Function to split by microorganism and compare if they are enriched in some 
+#' pathways
+#' @param all All the genes that are found relevant (weight != 0)
+#' @param x The table of microoganisms, genes, correlations and adjusted p-values.
+#' @return A table with the pathways enriched for every microorganism
+pathsPerMicro <- function(x, all_genes){
+  genesOrig <- trimVer(names(all_genes))
+  x[, "Gene"] <- trimVer(x[, "Gene"])
+  perMicro <- split(x, x[, "Microorganism"])
+  entrezID <- mapIds(org.Hs.eg.db, keys = genesOrig, keytype = "ENSEMBL", 
+                     column = "ENTREZID")
+  entrezID <- entrezID[!is.na(entrezID)]
+  paths2genes <- access_reactome()
+  genes <- unlist(paths2genes, use.names = FALSE)
+  pathways <- rep(names(paths2genes), lengths(paths2genes))
+  message("Calculating the enrichment")
+  T2G <- cbind.data.frame(pathways, genes)
+  lapply(perMicro, function(x) {
+    significant <- x$Gene
+    relevant <- entrezID[significant]
+    relevant <- relevant[!is.na(relevant)]
+    if (length(relevant) <= 10) {
+      return(NULL)
+    }
+    enrich <- clusterProfiler::enricher(gene = relevant , 
+                                        # universe = entrezID, 
+                                        TERM2GENE = T2G)
+    as.data.frame(enrich)
+    enrich <- as.data.frame(enrich)
+    if (nrow(enrich) >= 1) {
+      enrich$Description <- mapIds(reactome.db, keys = rownames(enrich), 
+                                   keytype = "PATHID", column = "PATHNAME")
+    }
+    enrich
+  })
+}
+
 # Output ####
 # #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
-all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/model2_best.RDS")
+all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/model3_best.RDS")
 all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
+o2 <- pathsPerMicro(all_samples_ensembl, all_comp)
 all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
-write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all.csv"))
+write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model3_best.csv"))
 # write_cor(all_samples_ensembl_cor, file = paste0(today, "_sign_", type, "_correlation_all.csv"))
+
+colon_samples_ensembl <- relevant(all_comp, colon, pcolon, threshold)
+o2 <- pathsPerMicro(colon_samples_ensembl, all_comp)
+colon_samples_ensembl_cor <- sign_cor(colon, pcolon, threshold)
+write_cor(colon_samples_ensembl, file = paste0(today, "_", type, "_correlation_colon_model3_best.csv"))
+
+ileum_samples_ensembl <- relevant(all_comp, ileum, pileum, threshold)
+o2 <- pathsPerMicro(ileum_samples_ensembl, all_comp)
+ileum_samples_ensembl_cor <- sign_cor(ileum, pileum, threshold)
+write_cor(ileum_samples_ensembl, file = paste0(today, "_", type, "_correlation_ileum_model3_best.csv"))
+
 
 disease_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/IBD.RDS")
 ibd_ensembl <- relevant(disease_comp, disease, pdisease, threshold)
@@ -249,8 +304,8 @@ plot_single_cor <- function(x, gene, y, microorganism, colr, case, cor_val) {
          # legend = levels(bg), lwd = 2)
 }
 
-pdf(paste0(today, "_correlations_", type, "_plot_all_active.pdf"))
-o <- apply(all_samples_ensembl, 1, function(x) {
+pdf(paste0(today, "_correlations_", type, "_plot_colon.pdf"))
+o <- apply(colon_samples_ensembl, 1, function(x) {
   micro <- x[[1]]
   gene <- x[[2]]
   cor_val <- x[[3]]
