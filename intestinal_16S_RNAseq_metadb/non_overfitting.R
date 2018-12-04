@@ -11,7 +11,7 @@ A <- readRDS("model3_TRIM.RDS")
 
 # We cannnot comput eht tau.estimate for A[[1]] calculated on server
 shrinkage <- c(0.25670333, 0, 1, 1, 1) 
-shrinkage[[2]] <- tau.estimate(A[[2]])
+shrinkage[[2]] <- tau.estimate(A[[2]]) # 0.286506412433534
 
 # Experiment design for the complicated cases 
 # with too many computations possible to perform it only tests for 3 weighs per edge
