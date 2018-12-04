@@ -80,7 +80,7 @@ o %>%
   mutate(Time = case_when(Time == "S0" ~ "T0", TRUE ~ Time)) %>% 
   droplevels() %>% 
   ggplot() +
-  geom_tile(aes(lvls_reorder(Time, c(1, 3, 4, 5, 6, 7, 8, 2)), Genus, fill = Abundance)) +
+  geom_tile(aes(lvls_reorder(Time, c(1, 3, 4, 2, 5, 6, 7, 8)), Genus, fill = Abundance)) +
   facet_wrap(~ID, nrow = 2) +
   scale_fill_gradient2() +
   labs(fill = "Abundance (%)", x = "Time") +
