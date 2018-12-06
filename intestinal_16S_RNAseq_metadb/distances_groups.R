@@ -1,3 +1,4 @@
+library("patchwork")
 library("gghighlight")
 library("org.Hs.eg.db")
 library("ggplot2")
@@ -24,7 +25,7 @@ levels(as.factor(meta_r$Location))
 levels(as.factor(meta_r$IBD))
 keep <- allComb(meta_r, c("Location", "IBD"))
 
-model <- readRDS("model3_best.RDS")
+model <- readRDS("model2_best.RDS")
 
 relevantOTUs <- rownames(model$a[[2]])[model$a[[2]][, 1] != 0]
 relevantGenes <- rownames(model$a[[1]])[model$a[[1]][, 1] != 0]
@@ -93,48 +94,12 @@ Ile_CD_vs_Ile_Ctr <- sapply(seq_len(nrow(p)), function(x) {
   redist(p[x, 2], p[x, 4])
 })
 
-# Some groups are like clusters
-plot(Ile_CD_vs_Co_Ctr, Co_CD_vs_Ile_Ctr)
-abline(a = 0, b = 1, col = "red")
-
-hist(Ile_CD_vs_Co_Ctr-Co_CD_vs_Ile_Ctr)
-# Normal distribution
-
 d <- cbind.data.frame(ICD_CCt = Ile_CD_vs_Co_Ctr,
                       CCD_ICt = Co_CD_vs_Ile_Ctr,
                       CCD_CCt = Co_CD_vs_Co_Ctr,
                       ICD_ICt = Ile_CD_vs_Ile_Ctr,
                       ICD_CCD = Co_CD_vs_Ile_CD,
                       CCt_ICt = Co_Ctr_vs_Ile_Ctr)
-saveRDS(d, "distance_centroids.RDS")
-
-ggplot(d) +
-  geom_density2d(aes(ICD_CCt, CCD_ICt)) +
-  geom_abline(slope = 1, intercept = 0)
-ggplot(d) +
-  geom_point(aes(ICD_CCt, CCD_ICt), alpha = 0.2) +
-  geom_abline(slope = 1, intercept = 0, col = "red")
-d2 <- d[, 1] - d[, 2]
-d4 <- d[, 3] - d[, 4]
-
-# Ok we believe that those around distance d2 ~= 0 are the nice ones
-# Also the ones with more distance between themselfs could be interesting
-# They follow like a pareto distribution:
-hist(rowSums(d))
-
-# Now retrieve the names!!
-picky <- pairs[abs(d2) < 0.002] # To be picky and "only" ~800 pairs
-pic <- simplify2array(picky)
-
-taxa <- otus_tax_i[pic[1, ], 6:7]
-taxa[is.na(taxa)] <- ""
-taxes <- apply(taxa, 1, paste0, collapse = " ")
-
-g <- trimVer(pic[2, ])
-g2 <- mapIds(org.Hs.eg.db, keys = g, keytype = "ENSEMBL", column = "SYMBOL")
-
-paired <- cbind.data.frame("Micro" = taxes, "Gene" = g2)
-saveRDS(paired, "gene_microorganism.RDS")
 
 genes <- vapply(pairs, function(x){
   x[2]
@@ -148,45 +113,79 @@ genus <- otus_tax_i[tax, 6:7]
 genus[is.na(genus)] <- ""
 genus <- apply(genus, 1, paste0, collapse = " ")
 denrich <- cbind(d, Micro = genus, Gene = ga, Ensembl = trimVer(genes))
-ggplot(denrich) +
+saveRDS(denrich, "distance_centroids_model2.RDS")
+
+m <- ceiling(max(d[, 1:6]))
+# Differences between Colon and Ileum
+crossed <- ggplot(denrich) +
   geom_point(aes(ICD_CCt, CCD_ICt, color = Micro), alpha = 0.1) +
   geom_abline(slope = 1, intercept = 0, col = "red") +
   # gghighlight(ICD_CCt > 10) +
-  guides(color = FALSE)
+  guides(color = FALSE) +
+  scale_color_viridis_d() +
+  xlim(0, m) +
+  ylim(0, m)
+# Differences between Controls and Patients
+loc <- ggplot(denrich) +
+  geom_point(aes(ICD_ICt, CCD_CCt, color = Micro), alpha = 0.1) +
+  geom_abline(slope = 1, intercept = 0, col = "red") +
+  # gghighlight(ICD_CCt > 10) +
+  guides(color = FALSE) +
+  xlim(0, m) +
+  ylim(0, m) +
+  scale_color_viridis_d()
+# Other comparisons
+stage <- ggplot(denrich) +
+  geom_point(aes(CCt_ICt, ICD_CCD, color = Micro), alpha = 0.1) +
+  geom_abline(slope = 1, intercept = 0, col = "red") +
+  xlim(0, m) +
+  ylim(0, m) +
+  # gghighlight(ICD_CCt > 10) +
+  guides(color = FALSE) +
+  scale_color_viridis_d()
 
-droplets <- denrich %>%
-  filter(ICD_CCt > 7.5 & CCD_ICt >7.5) %>% 
-  group_by(Gene) %>% 
-  summarise(ICD_CCt_max = max(ICD_CCt),
-            ICD_CCt_min = min(ICD_CCt),
-            CCD_ICt_max = max(CCD_ICt),
-            CCD_ICt_min = min(CCD_ICt)
-            )
-droplets2 <- denrich %>% 
-  filter(ICD_CCt > 7.5 | CCD_ICt > 7.5)
-write.csv(droplets2, file = "distancies_meteorits.csv")
+loc+crossed+stage
 
-a <- denrich %>% 
+o <- sapply(d[, 1:6], ecdf)
+plot(o$ICD_CCt)
+plot(o$CCD_ICt, add = TRUE, col = "red")
+plot(o$CCD_CCt, add = TRUE, col = "blue")
+plot(o$ICD_ICt, add = TRUE, col = "green")
+plot(o$ICD_CCD, add = TRUE, col = "pink")
+plot(o$CCt_ICt, add = TRUE, col = "brown")
+legend("bottomright", legend = names(o), 
+       fill = c("black", "red", "blue", "green", "pink", "brown"))
+
+isoforms <- denrich %>% 
+  add_count(Gene) %>% 
   group_by(Gene) %>% 
-  count(n_distinct(Ensembl)) %>% 
+  summarise(Isoforms = n_distinct(Ensembl)) %>% 
   ungroup()
 
 keep <- denrich$ICD_CCt > 7.5 | denrich$CCD_ICt > 7.5
-keep_f <- function(x){
+keep_f <- function(x) {
   denrich$ICD_CCt > x | denrich$CCD_ICt > x
 }
 sapply(1:13, function(x){length(unique(denrich$Gene[keep_f(x)]))})
 ggplot(droplevels(denrich)) +
   geom_point(aes(ICD_CCt, CCD_ICt, color = "grey"), alpha = 0.2) +
-  geom_point(data = denrich[keep, ], aes(ICD_CCt, CCD_ICt, color = Gene)) +
+  geom_point(data = denrich[keep, ], aes(ICD_CCt, CCD_ICt, color = Ensembl)) +
   geom_abline(slope = 1, intercept = 0, col = "red") +
   guides(color = FALSE)
-keep2 <- denrich$ICD_CCt > 10.5 & denrich$CCD_ICt < 5
+keep2 <- denrich$Gene %in% "REG1B"
 ggplot(droplevels(denrich)) +
   geom_point(aes(ICD_CCt, CCD_ICt, color = "grey"), alpha = 0.2) +
   geom_point(data = denrich[keep2, ], aes(ICD_CCt, CCD_ICt, color = Gene)) +
   geom_abline(slope = 1, intercept = 0, col = "red") +
   guides(color = FALSE)
+keep3 <- denrich$Gene %in% isoforms$Gene[isoforms$Isoforms != 1 & 
+                                           !is.na(isoforms$Gene)]
+ggplot(droplevels(denrich[!is.na(denrich$Gene), ])) +
+  geom_point(aes(ICD_CCt, CCD_ICt, color = "grey"), alpha = 0.2) +
+  geom_point(data = droplevels(denrich[keep3, ]), 
+             aes(ICD_CCt, CCD_ICt, color = Ensembl, shape = Gene)) +
+  geom_abline(slope = 1, intercept = 0, col = "red") +
+  guides(color = FALSE, shape = FALSE)
 
 rank <- rowSums(denrich[, 1:6])
 library("fgsea")
@@ -198,15 +197,16 @@ microEnrich %>%
   filter(padj < 0.05) %>% 
   arrange(padj, desc(abs(NES))) %>% 
   select(-leadingEdge, -size) %>% 
-  as_tibble()
-
-nam2 <- split(seq_along(rank), denrich$Gene)
+  View(title = "MicroErnich")
+data.table::fwrite(microEnrich, file = "microEnrich_model3_distances_rank.csv")
+nam2 <- split(seq_along(rank), denrich$Gene) # The genes without name are discarted
 geneEnrich <- fgsea(nam2, stats = rank, nperm = 10000)
 geneEnrich %>% 
   filter(padj < 0.05) %>% 
   arrange(padj, desc(abs(NES))) %>% 
   select(-leadingEdge, -size) %>% 
-  as_tibble()
+  View(title = "GeneErnich")
 si <- geneEnrich %>% 
   filter(padj < 0.05)
 hist(si$NES)
+data.table::fwrite(geneEnrich, file = "geneEnrich_model3_distances_rank.csv")
