@@ -71,18 +71,35 @@ topMicro <- out %>%
   summarise(mA=mean(Abundance)) %>% 
   arrange(desc(mA)) %>% 
   top_n(10, mA)
-
-m <- out[out$Genus %in% topMicro$Genus, ]
+top <- topMicro$Genus
+top <- grep("Anaerostipes", top, invert = TRUE, value = TRUE)
+m <- out[out$Genus %in% c(top, "Roseburia"), ]
 o <- merge(m, meta_r, by.x = "Sample", by.y = "Seq_code_uDNA", all.x = TRUE)
 
-o %>% 
-  filter(IBD != "CONTROL") %>% 
+theme_update(strip.background = element_blank())
+patients <- o %>% 
+  filter(IBD != "CONTROL",
+         !grepl("^TM", Time)) %>% 
   mutate(Time = case_when(Time == "S0" ~ "T0", TRUE ~ Time)) %>% 
   droplevels() %>% 
   ggplot() +
-  geom_tile(aes(lvls_reorder(Time, c(1, 3, 4, 2, 5, 6, 7, 8)), Genus, fill = Abundance)) +
+  geom_tile(aes(lvls_reorder(Time, c(1, 3, 4, 2)), Genus, fill = Abundance)) +
   facet_wrap(~ID, nrow = 2) +
+  guides(fill = FALSE) +
   scale_fill_gradient2() +
-  labs(fill = "Abundance (%)", x = "Time") +
+  labs(fill = "Abundance (%)", x = "Time", title = "Patients") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  
+
+
+ctrls <- o %>% 
+  filter(IBD == "CONTROL") %>% 
+  droplevels() %>% 
+  ggplot() +
+  geom_tile(aes(ID, Genus, fill = Abundance)) +
+  scale_fill_gradient2() +
+  labs(fill = "Abundance (%)", x = "Sample", title = "Controls") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+library("patchwork")
+patients / ctrls
+ctrls
