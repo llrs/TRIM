@@ -29,11 +29,13 @@ testing <- function(x, type, ...) {
   result.sgcca <- RGCCA::sgcca(C = x, 
                                scheme = type, 
                                verbose = FALSE, 
+                               scale = FALSE,
                                ...)
   analyze(result.sgcca)
 }
+Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
 # Estimated time of 8 hours
-out <- sapply(s, testing, type = "centroid", A = A, c1 = shrinkage, USE.NAMES = FALSE)
+out <- sapply(s, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
 out2 <- as.data.frame(t(out))
 saveRDS(out2, "sample_model3_boot.RDS")
 library("dplyr")
@@ -50,10 +52,9 @@ stop("Visual inspection of the top 5")
 best_keep <- vapply(designs, function(x) {
   x[4, 5] == 0 & x[3, 4] == 0 & x[3, 5] != 0
 }, logical(1L))
-
 out3 <- sapply(designs[best_keep], testing, 
                type = "centroid",
-               A = A, c1 = shrinkage, 
+               A = Ab, c1 = shrinkage, 
                USE.NAMES = FALSE)
 out3 <- as.data.frame(t(out3))
 saveRDS(out3, "subset2_model3_boot.RDS")
