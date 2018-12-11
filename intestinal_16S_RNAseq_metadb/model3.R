@@ -42,6 +42,11 @@ A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "Demographics" = Demographi
           "Location" = Localization, "Time" = Time)
 
 stopifnot(length(unique(vapply(A, nrow, numeric(1L)))) == 1)
+A <- lapply(A, function(x) {
+  k <- unlist(apply(x, 2, sd, na.rm = FALSE))
+  x[, k != 0]}
+)
+
 saveRDS(A, "model3_TRIM.RDS")
 
 # The design of model 3
