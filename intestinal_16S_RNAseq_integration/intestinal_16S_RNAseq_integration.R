@@ -15,9 +15,9 @@ meta_r <- readRDS( "meta.RDS")
 
 # Prepare input for the sgcca function
 A <- list("RNAseq" = t(expr), "16S" = t(otus_table_i))
-A <- sapply(A, function(x){
+A <- lapply(A, function(x){
   x[, apply(x, 2, sd) != 0]
-}, simplify = FALSE)
+})
 saveRDS(A, file = "TRIM.RDS")
 
 # The design
