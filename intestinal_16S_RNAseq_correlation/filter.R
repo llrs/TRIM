@@ -22,6 +22,7 @@ setwd(cd)
 # Libraries ####
 library("integration")
 library("org.Hs.eg.db")
+library("reactome.db")
 
 today <- format(Sys.time(), "%Y%m%d")
 
@@ -230,22 +231,22 @@ pathsPerMicro <- function(x, all_genes){
 # Output ####
 # #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
-all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/model3_best.RDS")
+all_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/sgcca.RDS")
 all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
 o2 <- pathsPerMicro(all_samples_ensembl, all_comp)
 all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
-write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model3_best.csv"))
+write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model0.csv"))
 # write_cor(all_samples_ensembl_cor, file = paste0(today, "_sign_", type, "_correlation_all.csv"))
 
 colon_samples_ensembl <- relevant(all_comp, colon, pcolon, threshold)
 o2 <- pathsPerMicro(colon_samples_ensembl, all_comp)
 colon_samples_ensembl_cor <- sign_cor(colon, pcolon, threshold)
-write_cor(colon_samples_ensembl, file = paste0(today, "_", type, "_correlation_colon_model3_best.csv"))
+write_cor(colon_samples_ensembl, file = paste0(today, "_", type, "_correlation_colon_model0.csv"))
 
 ileum_samples_ensembl <- relevant(all_comp, ileum, pileum, threshold)
 o2 <- pathsPerMicro(ileum_samples_ensembl, all_comp)
 ileum_samples_ensembl_cor <- sign_cor(ileum, pileum, threshold)
-write_cor(ileum_samples_ensembl, file = paste0(today, "_", type, "_correlation_ileum_model3_best.csv"))
+write_cor(ileum_samples_ensembl, file = paste0(today, "_", type, "_correlation_ileum_model0.csv"))
 
 
 disease_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/IBD.RDS")
