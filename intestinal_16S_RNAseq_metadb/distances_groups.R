@@ -25,7 +25,11 @@ levels(as.factor(meta_r$Location))
 levels(as.factor(meta_r$IBD))
 keep <- allComb(meta_r, c("Location", "IBD"))
 
-model <- readRDS("model2_best.RDS")
+model <- readRDS("model3_best.RDS")
+
+otus3 <- rownames(model3$a[[2]])[model3$a[[2]][, 1] != 0 ]
+otus2 <- rownames(model2$a[[2]])[model2$a[[2]][, 1] != 0 ]
+o <- intersect(otus3, otus2)
 
 relevantOTUs <- rownames(model$a[[2]])[model$a[[2]][, 1] != 0]
 relevantGenes <- rownames(model$a[[1]])[model$a[[1]][, 1] != 0]
@@ -113,36 +117,41 @@ genus <- otus_tax_i[tax, 6:7]
 genus[is.na(genus)] <- ""
 genus <- apply(genus, 1, paste0, collapse = " ")
 denrich <- cbind(d, Micro = genus, Gene = ga, Ensembl = trimVer(genes))
-saveRDS(denrich, "distance_centroids_model2.RDS")
+saveRDS(denrich, "distance_centroids_model3.RDS")
 
-m <- ceiling(max(d[, 1:6]))
+en <- intersect(denrich_model2$Ensembl, denrich_model3$Ensembl)
+su <- droplevels(denrich_model3[denrich_model3$Ensembl %in% en, ])
+m <- ceiling(max(denrich_model3[, 1:6]))
 # Differences between Colon and Ileum
-crossed <- ggplot(denrich) +
+crossed <- ggplot(su) +
   geom_point(aes(ICD_CCt, CCD_ICt, color = Micro), alpha = 0.1) +
   geom_abline(slope = 1, intercept = 0, col = "red") +
   # gghighlight(ICD_CCt > 10) +
   guides(color = FALSE) +
   scale_color_viridis_d() +
   xlim(0, m) +
-  ylim(0, m)
+  ylim(0, m) +
+  coord_fixed()
 # Differences between Controls and Patients
-loc <- ggplot(denrich) +
+loc <- ggplot(su) +
   geom_point(aes(ICD_ICt, CCD_CCt, color = Micro), alpha = 0.1) +
   geom_abline(slope = 1, intercept = 0, col = "red") +
   # gghighlight(ICD_CCt > 10) +
   guides(color = FALSE) +
   xlim(0, m) +
   ylim(0, m) +
-  scale_color_viridis_d()
+  scale_color_viridis_d() +
+  coord_fixed()
 # Other comparisons
-stage <- ggplot(denrich) +
+stage <- ggplot(su) +
   geom_point(aes(CCt_ICt, ICD_CCD, color = Micro), alpha = 0.1) +
   geom_abline(slope = 1, intercept = 0, col = "red") +
   xlim(0, m) +
   ylim(0, m) +
   # gghighlight(ICD_CCt > 10) +
   guides(color = FALSE) +
-  scale_color_viridis_d()
+  scale_color_viridis_d() +
+  coord_fixed()
 
 loc+crossed+stage
 
@@ -156,7 +165,8 @@ plot(o$CCt_ICt, add = TRUE, col = "brown")
 legend("bottomright", legend = names(o), 
        fill = c("black", "red", "blue", "green", "pink", "brown"))
 
-isoforms <- denrich %>% 
+isoforms <- su %>% 
+  filter(!is.na(Gene)) %>% 
   add_count(Gene) %>% 
   group_by(Gene) %>% 
   summarise(Isoforms = n_distinct(Ensembl)) %>% 
@@ -187,7 +197,7 @@ ggplot(droplevels(denrich[!is.na(denrich$Gene), ])) +
   geom_abline(slope = 1, intercept = 0, col = "red") +
   guides(color = FALSE, shape = FALSE)
 
-rank <- rowSums(denrich[, 1:6])
+rank <- rowSums(denrich_model3[, 1:6])
 library("fgsea")
 names(rank) <- as.character(seq_along(rank))
 nam <- split(seq_along(rank), denrich$Micro)
@@ -200,7 +210,8 @@ microEnrich %>%
   View(title = "MicroErnich")
 data.table::fwrite(microEnrich, file = "microEnrich_model3_distances_rank.csv")
 nam2 <- split(seq_along(rank), denrich$Gene) # The genes without name are discarted
-geneEnrich <- fgsea(nam2, stats = rank, nperm = 10000)
+nam3 <- append(nam2, list(intersect = names(rank)[denrich_model3$Gene %in% su$Gene]))
+geneEnrich <- fgsea(nam3, stats = rank, nperm = 10000)
 geneEnrich %>% 
   filter(padj < 0.05) %>% 
   arrange(padj, desc(abs(NES))) %>% 
