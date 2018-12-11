@@ -1,3 +1,6 @@
+library("tidyr")
+library("dplyr")
+library("ggplot2")
 
 # Evaluate all models ###
 # model 0
@@ -77,8 +80,6 @@ names(model3_besti$Y) <- names(model3$Y)
 names(model2_best$a) <- names(model2$Y)
 names(model3_best$a) <- names(model3$Y)
 names(model3_besti$a) <- names(model3$Y)
-library("tidyr")
-library("dplyr")
 
 tidyer <- function(data, model, type) {
   if ("comp1" %in% colnames(data)){
@@ -145,7 +146,6 @@ df <- rbind(
   merge(m3biM, m3biGE, all.x = TRUE, all.y = TRUE, by = inter)
 )
 
-library("ggplot2")
 # Set theme without background on the labels
 theme_set(theme_bw())
 theme_update(strip.background = element_blank())
