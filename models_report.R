@@ -1,6 +1,7 @@
 library("tidyr")
 library("dplyr")
 library("ggplot2")
+library("forcats")
 
 # Evaluate all models ###
 # model 0
@@ -93,7 +94,9 @@ tidyer <- function(data, model, type) {
       mutate(Model = model) %>% 
       gather(Component, !!type, 1:2)
   }
-  d$Rownames <- rep(rownames(data), 2)
+  if (!is.null(rownames(data))){
+    d$Rownames <- rep(rownames(data), 2)
+  }
   d
     # mutate(Sample = seq_len(n()))
   # Samples name could be important!!
@@ -103,12 +106,14 @@ meta <- readRDS("intestinal_16S_RNAseq_metadb/meta.RDS")
 
 merger <- function(data) {
   if ("GE" %in% colnames(data)) {
-    merge(data, meta, by.x = "Rownames", by.y = "Sample Name_RNA")
+    merge(meta, data, by.y = "Rownames", by.x = "Sample Name_RNA")
   } else {
-    merge(data, meta, by.x = "Rownames", by.y = "Seq_code_uDNA")
+    merge(meta, data, by.y = "Rownames", by.x = "Seq_code_uDNA")
   }
 }
 
+index <- c(seq(to = 2*nrow(model3_best$Y[[1]]), by = 2), #comp1
+           seq(from=2, to = 2*nrow(model3_best$Y[[1]]), by = 2)) # comp2
 m0GE <- merger(tidyer(model0$Y[[1]], "0", "GE"))
 m0M <- merger(tidyer(model0$Y[[2]], "0", "M"))
 m0iGE <- merger(tidyer(model0i$Y[[1]], "0 i", "GE"))
@@ -121,12 +126,17 @@ m2GE <- merger(tidyer(model2$Y[[1]], "2", "GE"))
 m2M <- merger(tidyer(model2$Y[[2]], "2", "M"))
 m2bGE <- merger(tidyer(model2_best$Y[[1]], "2 best", "GE"))
 m2bM <- merger(tidyer(model2_best$Y[[2]], "2 best", "M"))
+m2bP <- cbind(tidyer(model2_best$Y[[3]], "2 best", "P"), m2bGE[index, -c(1, 2, 3, 4)])
+
 m2biGE <- merger(tidyer(model2_besti$Y[[1]], "2 best i", "GE"))
 m2biM <- merger(tidyer(model2_besti$Y[[2]], "2 best i", "M"))
 m3GE <- merger(tidyer(model3$Y[[1]], "3", "GE"))
 m3M <- merger(tidyer(model3$Y[[2]], "3", "M"))
 m3bGE <- merger(tidyer(model3_best$Y[[1]], "3 best", "GE"))
 m3bM <- merger(tidyer(model3_best$Y[[2]], "3 best", "M"))
+
+m3bD <- cbind(tidyer(model3_best$Y[[3]], "3 best", "D"), m3bGE[index, -c(1, 2, 3, 4)])
+m3bL <- cbind(tidyer(model3_best$Y[[4]], "3 best", "L"), m3bGE[index, -c(1, 2, 3, 4)])
 m3biGE <- merger(tidyer(model3_besti$Y[[1]], "3 best i", "GE"))
 m3biM <- merger(tidyer(model3_besti$Y[[2]], "3 best i", "M"))
 
@@ -134,21 +144,67 @@ inter <- intersect(colnames(m0GE), colnames(m0M))
 inter <- grep("Rownames", inter, invert = TRUE, value = TRUE)
 
 df <- rbind(
-  merge(m0M, m0GE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m0iM, m0iGE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m1M, m1GE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m1iM, m1iGE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m2M, m2GE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m2bM, m2bGE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m2biM, m2biGE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m3M, m3GE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m3bM, m3bGE, all.x = TRUE, all.y = TRUE, by = inter),
-  merge(m3biM, m3biGE, all.x = TRUE, all.y = TRUE, by = inter)
+  merge(m0M, m0GE, all = TRUE, by = inter),
+  merge(m0iM, m0iGE, all = TRUE, by = inter),
+  merge(m1M, m1GE, all = TRUE, by = inter),
+  merge(m1iM, m1iGE, all = TRUE, by = inter),
+  merge(m2M, m2GE, all = TRUE, by = inter),
+  merge(m2bM, m2bGE, all = TRUE, by = inter),
+  merge(m2biM, m2biGE, all = TRUE, by = inter),
+  merge(m3M, m3GE, all.x = RUE, by = inter),
+  merge(m3bM, m3bGE, all = TRUE, by = inter),
+  merge(m3biM, m3biGE, all = TRUE, by = inter)
 )
+
+# Plot microbiome, phenotype of model2
+df2b <- cbind.data.frame(P = model2_best$Y[[3]][, 1], 
+                 M = model2_best$Y[[2]][, 1], 
+                 Rownames = rownames(model2_best$Y[[2]]))
+df2b <- merge(df2b, meta, by.x = "Rownames", by.y = "Seq_code_uDNA")
+ggplot(df2b) +
+  geom_point(aes(P, M, color = ID)) +
+  scale_color_viridis_d()
+df2b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(P, M, color = Ileum)) +
+  labs(color = "Location")
+
+ggplot(df2b) +
+  geom_point(aes(P, M, color = IBD))
+ggplot(df2b) +
+  geom_point(aes(P, M, color = Time)) +
+  labs(color = "Time")
+# Model3
+df3b <- cbind.data.frame(D = model3_best$Y[[3]][, 1], 
+                 M = model3_best$Y[[2]][, 1], 
+                 L = model3_best$Y[[4]][, 1], 
+                 R = model3_best$Y[[1]][, 1], 
+                 T = model3_best$Y[[5]][, 1], 
+                 Rownames = rownames(model2_best$Y[[2]]))
+
+df3b <- merge(df3b, meta, by.x = "Rownames", by.y = "Seq_code_uDNA")
+ggplot(df3b) +
+  geom_point(aes(D, M, color = ID)) +
+  scale_color_viridis_d()
+ggplot(df3b) +
+  geom_point(aes(D, M, color = IBD))
+df3b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(L, R, color = Ileum)) +
+  scale_color_viridis_d()
+ggplot(df3b) +
+  geom_point(aes(L, R, color = IBD))
+ggplot(df3b) +
+  geom_point(aes(T, D, color = Time))
 
 # Set theme without background on the labels
 theme_set(theme_bw())
 theme_update(strip.background = element_blank())
+
 df <- as_tibble(df)
 df %>% 
   filter(!grepl(" i", Model)) %>% 
