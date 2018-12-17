@@ -28,33 +28,19 @@ nam <- c(
   # "SESCD_local", # Clinical score
   "Treatment", # Further complications
   "Surgery", # Up to surgery?
-  "SEX" # Male/female
+  "SEX"#, # Male/female
+  # "Tobacco"
 ) 
 
-keepCol <- keepCol[nam]
-keepCol[nam] <- TRUE
-for (col in names(keepCol)) {
-  if (class(metadb[, col]) == "character") {
-    metadb[, col] <- as.factor(metadb[, col])
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "factor") {
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "numeric") {
-    next
-  }
-}
-metadb <- metadb[, names(keepCol)]
-
-# Set metadb with a sigle variable with several options
-metadb <- apply(metadb, 1:2, as.numeric)
-metadb[is.na(metadb)] <- 0
+metadb_0 <- model_RGCCA(meta_r, nam) 
+metadb_0$AgeDiag[is.na(metadb_0$AgeDiag)] <- metadb_0$AGE_SAMPLE[is.na(metadb_0$AgeDiag)]
 
 # Prepare input for the sgcca function
-A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
+A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb_0)
 A <- sapply(A, function(x){
   x[, apply(x, 2, sd) != 0]
 }, simplify = FALSE)
-saveRDS(A, file = "TRIM.RDS")
+# saveRDS(A, file = "TRIM.RDS")
 
 # The design
 model <- matrix(
@@ -77,14 +63,14 @@ shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # shrinkage <- rep(1, length(A))
 
 ncomp <- rep(2, length(A))
-sgcca.centroid <- sgcca(
-  A, C = model1i, c1 = shrinkage,
-  ncomp = ncomp,
-  scheme = "centroid",
-  scale = TRUE,
-  verbose = FALSE
-)
-saveRDS(sgcca.centroid, file = "sgccai.RDS")
+# sgcca.centroid <- sgcca(
+#   A, C = model1i, c1 = shrinkage,
+#   ncomp = ncomp,
+#   scheme = "centroid",
+#   scale = TRUE,
+#   verbose = FALSE
+# )
+# saveRDS(sgcca.centroid, file = "sgccai.RDS")
 sgcca.centroid <- sgcca(
   A, C = model1, c1 = shrinkage,
   ncomp = ncomp,
@@ -97,7 +83,7 @@ names(sgcca.centroid$a) <- names(A)
 names(sgcca.centroid$astar) <- names(A)
 names(sgcca.centroid$AVE$AVE_X) <- names(A)
 sgcca.centroid <- aves(sgcca.centroid)
-sgcca.centroid$AVE
+sgcca.centroid$AVE$AVE_inner
 # 
 # sgcca.factorial <- sgcca(
 #   A, C, c1 = shrinkage,
