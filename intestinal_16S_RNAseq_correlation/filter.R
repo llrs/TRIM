@@ -229,6 +229,7 @@ pathsPerMicro <- function(x, all_genes){
 }
 
 # Output ####
+library("reactome.db")
 # #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
 all_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/sgcca.RDS")
@@ -237,7 +238,12 @@ o2 <- pathsPerMicro(all_samples_ensembl, all_comp)
 all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
 write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model0.csv"))
 # write_cor(all_samples_ensembl_cor, file = paste0(today, "_sign_", type, "_correlation_all.csv"))
-
+lapply(names(o2), function(x) {
+  if (nrow(o2[[x]]) > 1 && !is.null(o2[[x]])) {
+    write.csv(o2[[x]], row.names = FALSE, na = "", 
+              file = paste0(x, "_pathways_by_cor_all.csv"))
+  }
+})
 colon_samples_ensembl <- relevant(all_comp, colon, pcolon, threshold)
 o2 <- pathsPerMicro(colon_samples_ensembl, all_comp)
 colon_samples_ensembl_cor <- sign_cor(colon, pcolon, threshold)
@@ -245,6 +251,12 @@ write_cor(colon_samples_ensembl, file = paste0(today, "_", type, "_correlation_c
 
 ileum_samples_ensembl <- relevant(all_comp, ileum, pileum, threshold)
 o2 <- pathsPerMicro(ileum_samples_ensembl, all_comp)
+lapply(names(o2), function(x) {
+  if (nrow(o2[[x]]) > 1 && !is.null(o2[[x]])) {
+    write.csv(o2[[x]], row.names = FALSE, na = "", 
+              file = paste0(x, "_pathways_by_cor_ileum.csv"))
+  }
+})
 ileum_samples_ensembl_cor <- sign_cor(ileum, pileum, threshold)
 write_cor(ileum_samples_ensembl, file = paste0(today, "_", type, "_correlation_ileum_model0.csv"))
 
@@ -349,7 +361,7 @@ library("ggnetwork")
 all_samples_symbol <- ensembl2symbol(all_samples_ensembl)
 tab_names <- table(all_samples_symbol$Microorganism) > 10
 org <- names(tab_names[tab_names])
-org <- org[!org %in% "Peptostreptococcus"]
+org <- org[!org %in% c("Peptostreptococcus", "Dialister")]
 
 graph_data <- all_samples_symbol[all_samples_symbol$Microorganism %in% org, ]
 
