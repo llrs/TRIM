@@ -14,28 +14,10 @@ meta_r <- readRDS("meta.RDS")
 
 # Select the features of metadata Time and Age_sample isn't the same?? perhaps removing them
 metadb <- meta_r
-keepCol <- sapply(metadb, is.factor)
-nam <- c(
-  "Exact_location", # Segment of the sample
-  # superseeded by SESCD 
-  # "Active_area", # Health stage of the sample
-  # "IBD", # Disease or control
-  "AGE_SAMPLE", # Age
-  # "diagTime", # Time with disease
-  # Not really needed induced by diagTime and age sample
-  "AgeDiag", # Age at which the disease was diagnositcated
-  "Transplant", # Stage of the treatment
-  "ID", # Patient
-  # "SESCD_local", # Clinical score
-  "Treatment", # Further complications
-  "Surgery", # Up to surgery?
-  "SEX" # Male/female
-) 
 
-Localization <- model_RGCCA(metadb, c("Exact_location")) # With SESCD local it increase the AVE_inner
-Time <- model_RGCCA(metadb, c("AgeDiag", "AGE_SAMPLE", "Transplant"))
-Demographics <- model_RGCCA(metadb, c("ID","SEX", "Surgery", "Treatment"))
-Time[is.na(Time)] <- 0
+Localization <- model_RGCCA(meta_r, c("Exact_location")) # With SESCD local it increase the AVE_inner
+Time <- model_RGCCA(meta_r, c("AgeDiag", "AGE_SAMPLE", "Transplant"))
+Demographics <- model_RGCCA(meta_r, c("ID","SEX", "Surgery", "Treatment"))
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "Demographics" = Demographics,

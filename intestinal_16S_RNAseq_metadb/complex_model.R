@@ -100,10 +100,7 @@ A <- list(RNAseq = t(expr), "16S" = t(otus_table_i),
           "Location" = Location, 
           "Time" = Time, 
           "Invariable" = Invariable)
-A <- sapply(A, function(x){
-  x[, apply(x, 2, sd) != 0]
-}, simplify = FALSE)
-
+A <- clean_unvariable(A)
 # The design
 C <- matrix(
   0, ncol = length(A), nrow = length(A),

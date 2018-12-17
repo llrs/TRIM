@@ -37,9 +37,7 @@ metadb_0$AgeDiag[is.na(metadb_0$AgeDiag)] <- metadb_0$AGE_SAMPLE[is.na(metadb_0$
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb_0)
-A <- sapply(A, function(x){
-  x[, apply(x, 2, sd) != 0]
-}, simplify = FALSE)
+A <- clean_unvariable(A)
 # saveRDS(A, file = "TRIM.RDS")
 
 # The design
@@ -62,7 +60,7 @@ shrinkage[2] <- tau.estimate(A[[2]])
 shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # shrinkage <- rep(1, length(A))
 
-ncomp <- rep(2, length(A))
+ncomp <- rep(1, length(A))
 # sgcca.centroid <- sgcca(
 #   A, C = model1i, c1 = shrinkage,
 #   ncomp = ncomp,

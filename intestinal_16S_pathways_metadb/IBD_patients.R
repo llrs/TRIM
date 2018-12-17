@@ -81,19 +81,7 @@ nam <- c(
   "Surgery", # Up to surgery?
   "SEX" # Male/female
 ) 
-keepCol <- keepCol[nam]
-keepCol[nam] <- TRUE
-for (col in names(keepCol)) {
-  if (class(metadb[, col]) == "character") {
-    metadb[, col] <- as.factor(metadb[, col])
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "factor") {
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "numeric") {
-    next
-  }
-}
-metadb <- metadb[, names(keepCol)]
+metadb <- model_RGCCA(meta_r, nam) 
 
 # Set metadb with a sigle variable with several options
 metadb <- apply(metadb, 1:2, as.numeric)
@@ -101,9 +89,7 @@ metadb[is.na(metadb)] <- 0
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(gsv), "16S" = t(otus_table_i), "metadata" = metadb)
-A <- sapply(A, function(x){
-  x[, apply(x, 2, sd) != 0]
-}, simplify = FALSE)
+A <- clean_unvariable(A)
 saveRDS(A, file = "TRIM.RDS")
 
 # The design

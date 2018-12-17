@@ -107,7 +107,7 @@ nam <- c(
 
 o <- sapply(nam[-c(2, 3)], allComb, data = droplevels(meta_r))
 ou <- sapply(meta_r[, nam[-c(2, 3)]], function(x){length(unique(x))})
-o[ou ==2] <- lapply(o[ou == 2], function(x){x[, 1]})
+o[ou == 2] <- lapply(o[ou == 2], function(x){x[, 1]})
 o2 <- do.call(base::cbind, o)
 o2[o2 == TRUE] <- 1
 o2[o2 == FALSE] <- 0
@@ -116,29 +116,14 @@ out[55, ][is.na(out[55, ])] <- c(1, 1, 0, 1, 1, 1)
 out[54, ][is.na(out[54, ])] <- c(0, 0, 1, 0, 0, 0)
 out[, 48][is.na(out[, 48])] <- out[, 47][is.na(out[, 48])]
 
-keepCol <- keepCol[nam]
-keepCol[nam] <- TRUE
-for (col in names(keepCol)) {
-  if (class(metadb[, col]) == "character") {
-    metadb[, col] <- as.factor(metadb[, col])
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "factor") {
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "numeric") {
-    next
-  }
-}
-metadb <- metadb[, names(keepCol)]
-
+metadb <- model_RGCCA(meta_r, nam) 
 # Set metadb with a sigle variable with several options
 metadb <- apply(metadb, 1:2, as.numeric)
 metadb[is.na(metadb)] <- 0
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
-A <- sapply(A, function(x){
-  x[, apply(x, 2, sd) != 0]
-}, simplify = FALSE)
+A <- clean_unvariable(A)
 saveRDS(A, file = "TRIM.RDS")
 
 # The design

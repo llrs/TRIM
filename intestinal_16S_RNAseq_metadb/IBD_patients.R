@@ -30,28 +30,13 @@ nam <- c(
   "Surgery", # Up to surgery?
   "SEX" # Male/female
 ) 
-keepCol <- keepCol[nam]
-keepCol[nam] <- TRUE
-for (col in names(keepCol)) {
-  if (class(metadb[, col]) == "character") {
-    metadb[, col] <- as.factor(metadb[, col])
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "factor") {
-    levels(metadb[, col]) <- seq_along(levels(metadb[, col]))
-  } else if (class(metadb[, col]) == "numeric") {
-    next
-  }
-}
-metadb <- metadb[, names(keepCol)]
 
-# Set metadb with a sigle variable with several options
-metadb <- apply(metadb, 1:2, as.numeric)
-metadb[is.na(metadb)] <- 0
+Demographics <- model_RGCCA(metadb, nam)
 
 # Normalize expression
 expr_edge <- edgeR::DGEList(expr)
 expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
-expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
+expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 
 # Filter expression
 expr <- norm_RNAseq(expr_norm)
@@ -70,9 +55,7 @@ otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb)
-A <- sapply(A, function(x){
-  x[, apply(x, 2, sd) != 0]
-}, simplify = FALSE)
+A <- clean_unvariable(A)
 
 saveRDS(A, file = "TRIM_IBD_model2.RDS")
 

@@ -56,7 +56,7 @@ otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 # Normalize expression
 expr_edge <- edgeR::DGEList(expr)
 expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
-expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
+expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 
 # Filter expression
 expr <- norm_RNAseq(expr_norm)

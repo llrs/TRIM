@@ -14,10 +14,7 @@ meta_r <- meta_r[meta_r$IBD == "CD", ]
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i))
-A <- sapply(A, function(x){
-  x[, apply(x, 2, sd) != 0]
-}, simplify = FALSE)
-
+A <- clean_unvariable(A)
 saveRDS(A, file = "TRIM_IBD.RDS")
 
 # The design
