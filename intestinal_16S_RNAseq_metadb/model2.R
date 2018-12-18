@@ -71,11 +71,7 @@ sgcca.centroid <- sgcca(
   scale = TRUE,
   verbose = FALSE
 )
-names(sgcca.centroid$Y) <- names(A)
-names(sgcca.centroid$a) <- names(A)
-names(sgcca.centroid$astar) <- names(A)
-names(sgcca.centroid$AVE$AVE_X) <- names(A)
-sgcca.centroid <- aves(sgcca.centroid)
+sgcca.centroid <- improve.sgcca(sgcca.centroid, names(A))
 sgcca.centroid$AVE
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,

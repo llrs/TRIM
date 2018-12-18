@@ -46,37 +46,9 @@ sgcca.centroid <- sgcca(
   scale = TRUE,
   verbose = FALSE
 )
-names(sgcca.centroid$Y) <- names(A)
-names(sgcca.centroid$a) <- names(A)
-names(sgcca.centroid$astar) <- names(A)
-names(sgcca.centroid$AVE$AVE_X) <- names(A)
-sgcca.centroid <- aves(sgcca.centroid)
+sgcca.centroid <- improve.sgcca(sgcca.centroid, names(A))
 sgcca.centroid$AVE$AVE_inner
 
-# sgcca.factorial <- sgcca(
-#   A, C, c1 = shrinkage,
-#   ncomp = ncomp,
-#   scheme = "factorial",
-#   scale = TRUE,
-#   verbose = FALSE
-# )
-# names(sgcca.factorial$Y) <- names(A)
-# names(sgcca.factorial$a) <- names(A)
-# names(sgcca.factorial$astar) <- names(A)
-# 
-# sgcca.horst <- sgcca(
-#   A, C, c1 = shrinkage,
-#   ncomp = ncomp,
-#   scheme = "horst",
-#   scale = TRUE,
-#   verbose = FALSE
-# )
-# names(sgcca.horst$Y) <- names(A)
-# names(sgcca.horst$a) <- names(A)
-# names(sgcca.horst$astar) <- names(A)
-
-# list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
-# sgcca.factorial = sgcca.factorial)
 saveRDS(sgcca.centroid, file = "model0_demographics.RDS")
 
 samples <- data.frame(

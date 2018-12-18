@@ -82,10 +82,7 @@ sgcca.centroid <- sgcca(
   scale = TRUE,
   verbose = FALSE
 )
-names(sgcca.centroid$Y) <- names(A)
-names(sgcca.centroid$a) <- names(A)
-names(sgcca.centroid$astar) <- names(A)
-
+sgcca.centroid <- improve.sgcca(sgcca.centroid, names(A))
 
 PCA <- cbind(sgcca.centroid$Y[[1]], meta_i)
 pdf(paste0("Figures/", today, "_plots.pdf"))

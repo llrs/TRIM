@@ -44,13 +44,8 @@ meta_r <- read.delim(
   na.strings = c("NA", "")
 )
 
-# Correct the swapped samples
-position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
-              grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- colnames(expr)[rev(position)]
-colnames(expr) <- toupper(colnames(expr))
-#To match metadata
-colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
+# Correct the swapped samples and match metadata
+expr <- norm_expr_colnames(expr)
 
 # Clean the metadata
 meta_i <- meta_i_norm(meta_i)

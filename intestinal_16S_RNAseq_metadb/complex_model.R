@@ -40,14 +40,8 @@ meta_r <- read.delim(
 
 setwd(cd)
 
-# Correct the swapped samples
-position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
-              grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- colnames(expr)[rev(position)]
-colnames(expr) <- toupper(colnames(expr))
-#To match metadata
-colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
-
+# Correct the swapped samples and match metadata
+expr <- norm_expr_colnames(expr)
 # normalize names of samples
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
 
@@ -134,11 +128,7 @@ sgcca.centroid2 <- sgcca(
   scale = TRUE,
   verbose = FALSE
 )
-names(sgcca.centroid2$Y) <- names(A)
-names(sgcca.centroid2$a) <- names(A)
-names(sgcca.centroid2$astar) <- names(A)
-names(sgcca.centroid2$AVE$AVE_X) <- names(A)
-sgcca.centroid2$AVE$AVE_X <- simplify2array(sgcca.centroid2$AVE$AVE_X)
+sgcca.centroid2 <- improve.sgcca(sgcca.centroid2, names(A))
 sgcca.centroid2$AVE
 
 l2 <- lapply(A, function(x){

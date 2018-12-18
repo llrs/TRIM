@@ -79,11 +79,7 @@ sgcca.centroid <- sgcca(
   scale = TRUE,
   verbose = FALSE
 )
-names(sgcca.centroid$Y) <- names(A)
-names(sgcca.centroid$a) <- names(A)
-names(sgcca.centroid$astar) <- names(A)
-names(sgcca.centroid$AVE$AVE_X) <- names(A)
-sgcca.centroid <- aves(sgcca.centroid)
+sgcca.centroid <- improve.sgcca(sgcca.centroid, names(A))
 
 sgcca.factorial <- sgcca(
   A, C, c1 = shrinkage,
@@ -92,11 +88,7 @@ sgcca.factorial <- sgcca(
   scale = TRUE,
   verbose = FALSE
 )
-names(sgcca.factorial$Y) <- names(A)
-names(sgcca.factorial$a) <- names(A)
-names(sgcca.factorial$astar) <- names(A)
-names(sgcca.factorial$AVE$AVE_X) <- names(A)
-sgcca.factorial$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
+sgcca.factorial <- improve.sgcca(sgcca.factorial, names(A))
 
 sgcca.horst <- sgcca(
   A, C, c1 = shrinkage,
@@ -105,12 +97,7 @@ sgcca.horst <- sgcca(
   scale = TRUE,
   verbose = FALSE
 )
-names(sgcca.horst$Y) <- names(A)
-names(sgcca.horst$a) <- names(A)
-names(sgcca.horst$astar) <- names(A)
-names(sgcca.horst$AVE$AVE_X) <- names(A)
-sgcca.horst$AVE$AVE_X <- simplify2array(sgcca.factorial$AVE$AVE_X)
-
+sgcca.horst <- improve.sgcca(sgcca.horst, names(A))
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
 saveRDS(sgcca.centroid, file = "Controls.RDS")

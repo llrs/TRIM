@@ -35,14 +35,8 @@ meta_r <- read.delim(
 
 setwd(cd)
 
-# Correct the swapped samples
-position <- c(grep("33-T52-TTR-CIA", colnames(expr)), 
-              grep("33-T52-TTR-IIA", colnames(expr)))
-colnames(expr)[position] <- colnames(expr)[rev(position)]
-colnames(expr) <- toupper(colnames(expr))
-#To match metadata
-colnames(expr) <- gsub("16-TM29", "16-TM30", colnames(expr)) 
-
+# Correct the swapped samples and match metadata
+expr <- norm_expr_colnames(expr)
 # normalize names of samples
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
 

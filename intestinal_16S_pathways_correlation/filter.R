@@ -34,109 +34,12 @@ meta_r <- meta_r_norm(meta_r)
 all_s <- readRDS("correlations_all.RDS")
 pall_s <- readRDS("padj_all.RDS")
 
-select_genes_int <- function(file, expr) {
-  # Load data from all the patients
-  pre <- "../intestinal_16S_RNAseq_metadb"
-  sgcca.centroid <- readRDS(file.path(pre, file))
-  
-  # Find outliers/important genes
-  comp1 <- sgcca.centroid$a$RNAseq[, 1]
-  outliers <- comp1 != 0
-  comp1 <- comp1[outliers]
-  
-  keepGenes <- rownames(expr) %in% names(comp1)
-  expr[keepGenes, ]
-}
-
 filter_sexual <- function(expr) {
   source("../genes_XY.R")
   sexual_related <- gsub("(.+)\\..*", "\\1", rownames(expr)) %in% 
   c(#bmX$ensembl_gene_id, 
     bmY$ensembl_gene_id)
   expr[!sexual_related, ]
-}
-
-# Functions ####
-filter_values <- function(file, cors, pval, threshold) {
-
-  # Load data from all the patients
-  pre <- "../intestinal_16S_RNAseq_metadb"
-  sgcca.centroid <- readRDS(file.path(pre, file))
-  
-  # Find outliers/important genes
-  comp1 <- sgcca.centroid$a$RNAseq[, 1]
-  outliers <- comp1 != 0
-  comp1 <- comp1[outliers]
-  
-  keepGenes <- colnames(cors) %in% names(comp1)
-  cors <- cors[, keepGenes]
-  pval <- pval[, keepGenes]
-  
-  cors <- cors[, !is.na(colnames(cors))]
-  pval <- pval[, !is.na(colnames(pval))]
-  
-  message("Dimensions ", paste0(dim(cors), collapse = ", "))
-  
-  # Genes below the threshold
-  keepCols <- apply(pval, 2, function(x){any(x < threshold)})
-  keepRows <- apply(pval, 1, function(x){any(x < threshold)})
-  
-  keepCols[is.na(keepCols)] <- FALSE
-  keepRows[is.na(keepRows)] <- FALSE
-  
-  if (sum(keepCols) == 0 || sum(keepRows) == 0) {
-    stop("No relevant correlations with this threshold")
-  }
-  
-  cors <- cors[keepRows, keepCols]
-  pval <- pval[keepRows, keepCols]
-  if (is.null(pval) || is.null(cors)) {
-    stop("No relevant correlations with this threshold")
-  }
-  message("Dimensions ", paste0(dim(cors), collapse = ", "))
-  
-  list(cors = cors, pval = pval)
-}
-
-relevant <- function(file, cors, pval, threshold = 0.05) {
-  l <- filter_values(file, cors, pval, threshold)
-  pval <- l$pval
-  cors <- l$cors
-  if (ncol(pval) == 0) {
-    stop("No relevant correlations with this threshold")
-  }
-  ind <- as.data.frame(which(pval < threshold, arr.ind = TRUE), 
-                       stringAsFactors = FALSE)
-  rownames(ind) <- seq_len(nrow(ind)) # TODO test
-  cor_pval <- apply(ind, 1, function(x){
-    c("cors" = cors[x[1], x[2]],
-      "pvalue" = pval[x[1], x[2]])
-  })
-  ind$row <- rownames(cors)[ind$row]
-  ind$col <- colnames(cors)[ind$col]
-  ind <- cbind(ind, t(cor_pval))
-  colnames(ind) <- c("Microorganism", "Gene", "Correlation", "pvalue")
-  
-  ind <- ind[!duplicated(ind), ]
-  ind <- ind[order(ind$Microorganism, ind$pvalue, decreasing = c(TRUE, FALSE)), ]
-  rownames(ind) <- seq_len(nrow(ind))
-  ind
-}
-
-# Expects genes in rows and species at the columns
-plot_cor <- function(file, cors, pval, threshold, label) {
-  l <- filter_values(file, cors, pval, threshold)
-  cors <- l$cors
-  
-  cors <- cors[!duplicated(rownames(cors)), ]
-  colors_g <- ggplot2::scale_fill_gradient2(low = "blue", high = "red",
-                                            midpoint = 0, limits = c(-1, 1))
-  heatmaply(cors, name = "Cor",
-            ylab = "Genes",
-            xlab = "Genus",
-            scale_fill_gradient_fun = colors_g,
-            file = paste0("Figures/", today, "heatmap", label,".html"))
-
 }
 
 # Output ####
