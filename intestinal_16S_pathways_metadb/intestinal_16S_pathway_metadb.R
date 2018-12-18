@@ -1,11 +1,12 @@
-cd <- setwd("..")
 library("ggforce")
+library("metagenomeSeq")
+library("integration")
+library("fgsea")
 
+cd <- setwd("..")
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
 
-library("fgsea")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -48,7 +49,6 @@ gsv <- gsv[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
 # Normalize OTUS
-library("metagenomeSeq")
 MR_i <- newMRexperiment(
   otus_table_i, 
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))

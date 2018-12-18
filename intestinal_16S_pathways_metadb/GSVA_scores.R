@@ -1,8 +1,14 @@
+library("metagenomeSeq")
+library("GSVA")
+library("reactome.db")
+library("GSEABase")
+library("org.Hs.eg.db")
+library("integration")
+
 cd <- setwd("..")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -59,7 +65,6 @@ expr <- norm_RNAseq(expr_norm)
 otus_table_i <- otus_table_i[rowSums(otus_table_i) != 0, ]
 
 # Normalize OTUS
-library("metagenomeSeq")
 MR_i <- newMRexperiment(
   otus_table_i, 
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
@@ -67,10 +72,6 @@ MR_i <- newMRexperiment(
 MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
 otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
 
-library("GSVA")
-library("reactome.db")
-library("GSEABase")
-library("org.Hs.eg.db")
 paths2genes <- as.list(reactomePATHID2EXTID)
 paths2genes <- paths2genes[grep("R-HSA-", names(paths2genes))]
 gsl <- sapply(names(paths2genes), function(x){

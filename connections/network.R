@@ -3,6 +3,7 @@ library("ggplot2")
 library("ggraph")
 library("tidygraph")
 library("ggnetwork")
+library("data.table")
 
 files <- list.files(pattern = "toppfun_.*.txt.tsv")
 # colC <- rep("character", 11)
@@ -62,5 +63,5 @@ suba <- a[names(tp)[tp >= 3]]
 suba <- suba[order(lengths(suba), decreasing = TRUE)]
 seq.max <- seq_len(max(lengths(suba)))
 mat <- t(sapply(suba, "[", i = seq.max))
-library("data.table")
+
 fwrite(as.data.frame(mat), file = "paths2microorganisms.tsv", na = "")

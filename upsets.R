@@ -1,10 +1,12 @@
+library("integration")
+library("grid")
+library("UpSetR")
+library("data.table")
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
 
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("grid")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(
@@ -106,7 +108,6 @@ df <- rbind(df, subdf)
 df <- df[!grepl("^(JR|NP)$", rownames(df)), ]
 
 metadata <- data.frame(sets = colnames(df), "Type" = c("Biopsies", "Biopsies", "Stools", "Depends"))
-library("UpSetR")
 text_sizes <- c(1.3, 1.3, 1, 1, 1.5, 1.5)
 pdf("Figures/patients_dataset.pdf")
 upset(df, order.by = "freq", line.size = NA, sets.x.label = "Patients samples",
@@ -203,7 +204,6 @@ tab <- sapply(subs, function(x){
 mm_area <- data.frame("Colon" = ifelse(tab == "C", 1, 0),
                       "Ileum" = ifelse(tab == "I", 1, 0))
 mm <- cbind(mm, mm_area)
-library("data.table")
 setDT(mm)
 cols <- c("Stools", "Responder", "T0", "T26", "T52",
           "g__Megasphaera", "g__Streptococcus", "s__prausnitzii", "Colon", "Ileum")

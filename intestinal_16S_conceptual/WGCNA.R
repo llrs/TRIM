@@ -1,6 +1,7 @@
+library("integration")
+library("WGCNA")
 wd <- setwd("..")
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
 intestinal <- "intestinal_16S"
 
 # Read the intestinal otus table
@@ -27,7 +28,7 @@ setwd(wd)
 # Clean the metadata
 meta_i <- meta_i_norm(meta_i)
 
-library("WGCNA")
+
 enableWGCNAThreads()
 # All together is not possible
 data.wgcna <- t(otus_table_i[, meta_i$HSCT_responder != "C" & meta_i$CD_Aftected_area %in% "COLON"])

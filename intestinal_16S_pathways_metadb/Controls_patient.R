@@ -1,10 +1,10 @@
 library("ggforce")
 library("RGCCA")
+library("integration")
+library("fgsea")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("fgsea")
 
 # Load data
 otus_table_i <- readRDS("otus_table.RDS")

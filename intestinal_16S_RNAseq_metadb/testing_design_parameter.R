@@ -1,5 +1,6 @@
 library("RGCCA")
 library("gliomaData")
+library("patchwork")
 
 # Load data ####
 data(ge_cgh_locIGR, package = "gliomaData")
@@ -164,9 +165,6 @@ r6 <- p +
   geom_smooth(aes(var3, AVE_inner, col = var1)) +
   geom_point(aes(var3, AVE_inner, col = var1))
 
-
-
-library("patchwork")
 (p1 + p2 + p3) / (q1 + q2 + q3 )
 
 # Testing the tau effect on the AVE ####

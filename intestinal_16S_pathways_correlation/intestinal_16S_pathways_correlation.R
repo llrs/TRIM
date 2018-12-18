@@ -1,3 +1,8 @@
+library("integration")
+library("metagenomeSeq")
+library("vegan")
+library("phyloseq")
+
 # Load ####
 cd <- setwd("..")
 
@@ -6,7 +11,6 @@ source("../genes_XY.R")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
 
 intestinal <- "intestinal_16S"
 
@@ -39,9 +43,6 @@ meta_r <- read.delim(
 setwd(cd)
 
 # Summarize to genus ####
-library("metagenomeSeq")
-library("vegan")
-library("phyloseq")
 
 # Correct metadata
 meta_i <- meta_i_norm(meta_i)

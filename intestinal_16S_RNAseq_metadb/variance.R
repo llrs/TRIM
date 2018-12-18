@@ -1,9 +1,13 @@
+library("integration")
+library("metagenomeSeq")
+library("globaltest") 
+library("SummarizedExperiment")
+library("vegan") # For all the matrice
+
 cd <- setwd("..")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
 
@@ -65,7 +69,6 @@ expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
 expr <- norm_RNAseq(expr_norm)
 
 # Normalize OTUS
-library("metagenomeSeq")
 MR_i <- newMRexperiment(
   otus_table_i, 
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
@@ -81,14 +84,12 @@ pos <- which(rowSums(su) == 1, arr.ind = TRUE)
 
 meta_r$SEX <- as.factor(meta_r$SEX)
 
-library("globaltest") 
 # Only for one gene
 out <- lapply(seq_len(5000), function(x){
   gt(t(expr)[-pos, x]~Exact_location * IBD*ID*SEX + AGE_SAMPLE + diagTime, data = meta_r[-pos, ])
 })
 
 # Globaltest can be used in summarized experiment to asses if a whole SE is significant for a given relationship
-library("SummarizedExperiment")
 
 meta_r$Exact_location <- as.factor(meta_r$Exact_location)
 meta_r$Treatment <- as.factor(meta_r$Treatment)
@@ -130,7 +131,6 @@ gt(Transplant:SEX:Surgery:Exact_location, micro[, !is.na(micro$Exact_location)])
 saveRDS(rna, "rna_ES.RDS")
 saveRDS(micro, "micro_ES.RDS")
 
-library("vegan") # For all the matrice
 all_RNA <- adonis(as.data.frame(t(expr))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean", permutations = 5000)
 all_16S <- adonis(as.data.frame(t(otus_table_i))[-pos, ] ~ Exact_location * IBD*ID + AGE_SAMPLE + diagTime + SESCD_local + SEX, meta_r[-pos, ], method = "euclidean", by = "margin", permutations = 5000)
 

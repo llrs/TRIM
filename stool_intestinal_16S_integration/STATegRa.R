@@ -1,8 +1,9 @@
+library("integration")
+library("gridExtra")
 cd <- setwd("..")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
 
 # Read files
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
@@ -23,7 +24,7 @@ keepCol <- cbind(keepCol, allComb(meta, c("CD_Aftected_area")))
 # keepT0 <- meta$Time == "T106"
 # keep <- keepColon & keepT0
 pdf(paste0("Figures/", today, "_STATegRa_plots.pdf"))
-library("gridExtra")
+
 for (i in seq_len(ncol(keepCol))) {
   keep <- keepCol[, i]
   message("\n", colnames(keepCol)[i])

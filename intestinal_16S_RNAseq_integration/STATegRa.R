@@ -1,6 +1,8 @@
 library("STATegRa")
-today <- format(Sys.time(), "%Y%m%d")
+library("gridExtra")
 library("integration")
+
+today <- format(Sys.time(), "%Y%m%d")
 
 A <- readRDS("TRIM.RDS")
 expr <- t(A[["RNAseq"]])
@@ -51,7 +53,7 @@ p2 <- plotRes(object=discoRes, comps=c(1, 2), what="loadings", type="individual"
               combined=FALSE, block="micro", color="HSCT_responder", shape=NULL,
               labels=NULL, background=TRUE, palette=NULL, pointSize=1,
               labelSize=NULL, axisSize=NULL, titleSize=NULL)
-library("gridExtra")
+
 grid.arrange(arrangeGrob(p1+theme(legend.position="none"),
                          p2+theme(legend.position="none"), nrow=1), 
              heights=c(6/7, 1/7))

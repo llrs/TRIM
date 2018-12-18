@@ -1,10 +1,11 @@
 library("ggforce")
 library("RGCCA")
+library("metagenomeSeq")
+library("integration")
+library("fgsea")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("fgsea")
 
 # Load data
 otus_table_i <- readRDS("IBD_otus_table.RDS")
@@ -42,7 +43,6 @@ expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 expr <- norm_RNAseq(expr_norm)
 
 # Normalize OTUS
-library("metagenomeSeq")
 MR_i <- newMRexperiment(
   otus_table_i, 
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))

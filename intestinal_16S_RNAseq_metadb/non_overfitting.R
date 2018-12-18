@@ -1,11 +1,11 @@
 library("ggforce")
 library("RGCCA")
+library("integration")
+library("fgsea")
+library("dplyr")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("fgsea")
-
 
 A <- readRDS("model3_TRIM.RDS")
 
@@ -38,7 +38,7 @@ Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
 out <- sapply(s, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
 out2 <- as.data.frame(t(out))
 saveRDS(out2, "sample_model3_boot.RDS")
-library("dplyr")
+
 out2 %>% 
   top_n(5, AVE_inner) %>% 
   select(AVE_inner, AVE_outer, var12, var13, var23, 

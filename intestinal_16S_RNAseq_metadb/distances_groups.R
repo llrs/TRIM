@@ -7,11 +7,11 @@ library("RGCCA")
 library("Matrix")
 library("tidyr")
 library("dplyr")
+library("integration")
+library("fgsea")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("fgsea")
 
 # Load data
 otus_table_i <- readRDS("otus_table.RDS")
@@ -198,7 +198,6 @@ ggplot(droplevels(denrich[!is.na(denrich$Gene), ])) +
   guides(color = FALSE, shape = FALSE)
 
 rank <- rowSums(denrich_model3[, 1:6])
-library("fgsea")
 names(rank) <- as.character(seq_along(rank))
 nam <- split(seq_along(rank), denrich$Micro)
 nam <- nam[-which(names(nam) == " ")] # Remove the empty one

@@ -1,9 +1,9 @@
+library("integration")
+library("metagenomeSeq") # Summarize to genus
 cd <- setwd("..")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-
 # Read files
 otus_i <- read.csv(file = "intestinal_16S/otus_coherent.csv")
 otus_s <- read.csv(file = "stools_16S/otus_coherent.csv")
@@ -19,8 +19,6 @@ tax_s <- read.csv(
 eqOTUS <- read.csv("equivalent_genus.csv", stringsAsFactors = FALSE)
 setwd(cd)
 
-# Summarize to genus
-library("metagenomeSeq")
 
 # Create the objects
 MR_i <- newMRexperiment(

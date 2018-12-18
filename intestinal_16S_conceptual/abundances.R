@@ -6,6 +6,7 @@ library("tidyr")
 library("tibble")
 library("ggplot2")
 library("forcats")
+library("patchwork")
 
 wd <- setwd("..")
 today <- format(Sys.time(), "%Y%m%d")
@@ -100,6 +101,5 @@ ctrls <- o %>%
   labs(fill = "Abundance (%)", x = "Sample", title = "Controls") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-library("patchwork")
 patients / ctrls
 ctrls

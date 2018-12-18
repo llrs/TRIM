@@ -1,10 +1,11 @@
+library("integration")
+library("SummarizedExperiment")
+library("reshape")
+
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("SummarizedExperiment")
-library("reshape")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(
@@ -186,13 +187,12 @@ com_otus_table_s <- com_otus_table_s[
 rownames(add_s) <- seq_len(nrow(add_s))
 
 add_samples_s <- apply(add_s, 1, function(x) {
-  rep(rownames(meta_s)[meta_s$Patient_ID %in% x[1] & meta_s$Time %in% x[2]], x[3])
+  rep(rownames(meta_s)[meta_s$Patient_ID %in% x[1] & meta_s$Time %in% x[2]], 
+      x[3])
 })
 
 com_otus_table_s <- com_otus_table_s[
-  ,
-  c(colnames(com_otus_table_s), unlist(add_samples_s))
-]
+  , c(colnames(com_otus_table_s), unlist(add_samples_s))]
 
 # Remove intestinal data
 rownames(remove_i) <- seq_len(nrow(remove_i))
@@ -202,9 +202,7 @@ remove_samples_i <- apply(remove_i, 1, function(x) {
 })
 
 com_otus_table_i <- com_otus_table_i[
-  ,
-  !colnames(com_otus_table_i) %in% unlist(remove_samples_i)
-]
+  , !colnames(com_otus_table_i) %in% unlist(remove_samples_i)]
 
 # Reorder so that the stools samples and the intestinal samples are in the
 # same order including Time and Patient_ID

@@ -2,6 +2,10 @@ library("tidyr")
 library("dplyr")
 library("ggplot2")
 library("forcats")
+library("UpSetR")
+library("grid")
+library("org.Hs.eg.db")
+library("clusterProfiler")
 
 # Evaluate all models ###
 # model 0
@@ -458,8 +462,7 @@ rownames(keepM) <- keepM$Rownames
 keepM <- keepM[, -grep("Rownames", colnames(keepM))]
 keepM[is.na(keepM)] <- 0
 
-library("UpSetR")
-library("grid")
+
 text_sizes <- c(1.3, 1.3, 1, 1, 1.5, 1.5)
 dfGE %>% 
   filter(Component == "V1" & GE != 0) %>% 
@@ -488,7 +491,7 @@ grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 
 # Testing genes in model 1 to 3 best 
 se <- apply(keepGE, 1, function(x){all(x[2:6] != 0 & x[1] == 0)})
-library("org.Hs.eg.db")
+
 g <- mapIds(org.Hs.eg.db, keys = integration::trimVer(names(se)[se]), column = "SYMBOL", keytype = "ENSEMBL")
 g <- unique(g[!is.na(g)]) # Calco related S100A6
 int_genes <- "^S100A|^NOD|DUOX|^CA[1:9]+|^CEACAM|^REG"
@@ -527,7 +530,7 @@ desc <- mapIds(reactome.db, keys = pathways, column = "PATHNAME", keytype = "PAT
 desc <- gsub("Homo sapiens: ", "", desc)
 T2D <- unique(cbind.data.frame(pathways, desc))
 T2G <- cbind.data.frame(pathways, genes)
-library("clusterProfiler")
+
 enrichment_models <- lapply(keepGE, function(x){
   y <- entrezID[x == 1]
   enrich <- enricher(gene = y, TERM2GENE = T2G, TERM2NAME = T2D)

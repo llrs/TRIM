@@ -1,11 +1,17 @@
 cd <- setwd("..")
+library("fgsea")
+library("org.Hs.eg.db")
+library("reactome.db")
 library("ggforce")
+library("metagenomeSeq")
+library("integration")
+library("ggplot2")
+library("clusterProfiler")
+library("KEGGREST")
+library("RGCCA")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-
-library("fgsea")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -68,7 +74,7 @@ expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
 expr <- norm_RNAseq(expr_norm)
 
 # Normalize OTUS
-library("metagenomeSeq")
+
 MR_i <- newMRexperiment(
   otus_table_i, 
   featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
@@ -145,9 +151,9 @@ ncomp <- rep(2, length(A))
 results <- vector(length = 20*20, mode = "list")
 names(results) <- apply(expand.grid(weights, weights), 1, paste, collapse = "_")
 
-for (i in weights){
+for (i in weights) {
   C <- subSymm(C, "RNAseq", "metadata", i)
-  for (j in weights){
+  for (j in weights) {
     C <- subSymm(C, "16S", "metadata", j)
     # print(C)
     sgcca.centroid <- sgcca(
@@ -166,9 +172,7 @@ for (i in weights){
 saveRDS(results, file = "weights_design.RDS")
 nam_genes <- rownames(results[[1]]$a$RNAseq)
 nam_genes <- gsub("\\..+", "", nam_genes)
-library("org.Hs.eg.db")
 nam_entrez <- mapIds(org.Hs.eg.db, nam_genes, keytype = "ENSEMBL", "ENTREZID")
-library("reactome.db")
 genes2Pathways <- as.list(reactome.db::reactomeEXTID2PATHID)
 pathways <- unlist(genes2Pathways, use.names = FALSE)
 genes <- rep(names(genes2Pathways), lengths(genes2Pathways))
@@ -176,8 +180,6 @@ paths2genes <- split(genes, pathways) # List of genes and the gene sets
 
 # Subset to only human pathways
 paths2genes <- paths2genes[grep("R-HSA-", names(paths2genes))]
-
-library("fgsea")
 
 o <- vapply(results, function(x){
   genes <- x$a$RNAseq[, 1]
@@ -197,7 +199,7 @@ output$genes <- vapply(results, function(x){
   genes <- x$a$RNAseq[, 1]
   sum(genes != 0, na.rm = TRUE)
   }, numeric(1L))
-library("ggplot2")
+
 ggplot(output, aes(x = RNAseq, y = Micro)) + 
   geom_count(aes(size = Enrichment, color = Enrichment)) +
   theme_bw() +
@@ -206,9 +208,7 @@ ggplot(output, aes(x = RNAseq, y = Micro)) +
   geom_contour(aes(z = Enrichment, col = Enrichment)) +
   theme_bw() +
   ggtitle("Values in design matrix")
-library("clusterProfiler")
 
-library("KEGGREST")
 hsa_path_eg  <- keggLink("pathway", "hsa")
 hsa_eg <- gsub("hsa:", "", names(hsa_path_eg))
 hsa_en <- mapIds(org.Hs.eg.db, hsa_eg, keytype = "ENTREZID", "ENSEMBL")
@@ -229,7 +229,6 @@ output <- cbind(output, enrichment = o)
 colnames(output) <- c("RNAseq", "Micro", "Enrichment")
 output <- apply(output, 2, as.numeric)
 output <- as.data.frame(output)
-library("ggplot2")
 ggplot(output, aes(x = RNAseq, y = Micro)) + 
   geom_count(aes(size = Enrichment, color = Enrichment)) +
   theme_bw() +

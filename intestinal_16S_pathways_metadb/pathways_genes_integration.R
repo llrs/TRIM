@@ -1,13 +1,15 @@
+library("reactome.db")
+library("org.Hs.eg.db")
+library("integration")
+
 sgcca.centroid <- readRDS("sgcca.RDS")
 
 pathways <- sgcca.centroid$a$RNAseq[, 1]
 pathways <- pathways[pathways != 0]
 
-library("reactome.db")
 genes_e <- select(reactome.db, keys = names(pathways), keytype = "PATHID", column = "ENTREZID")
 pathways_names <- select(reactome.db, keys = names(pathways), keytype = "PATHID", column = "PATHNAME")
 pathways_names$PATHNAME <- gsub("(Homo sapiens: )", "", pathways_names$PATHNAME)
-library("org.Hs.eg.db")
 genes_s <- select(org.Hs.eg.db, keys = genes_e$ENTREZID, keytype = "ENTREZID", column = "SYMBOL")
 paths <- merge(genes_e, pathways_names)
 paths <- merge(paths, genes_s)
@@ -27,7 +29,6 @@ micro <- sgcca.centroid$a$`16S`[, 1]
 otus <- names(micro)[micro != 0]
 
 cd <- setwd("..")
-library("integration")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"

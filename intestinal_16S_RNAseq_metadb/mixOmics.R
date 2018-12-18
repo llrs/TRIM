@@ -1,11 +1,11 @@
-cd <- setwd("..")
 library("ggforce")
+library("mixOmics")
+library("integration")
+library("fgsea")
+cd <- setwd("..")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-
-library("fgsea")
 
 intestinal <- "intestinal_16S"
 rna <- "intestinal_RNAseq"
@@ -116,7 +116,7 @@ diag(design) = 0
 
 
 # Use mixomics to interact with the data
-library("mixOmics")
+
 Y <- meta_r$Exact_location
 Y[is.na(Y)] <- "ILEUM"
 A <- lapply(A, function(x){

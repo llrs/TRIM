@@ -133,10 +133,6 @@ dev.off()
 # colnames(edges) <- c('node1', 'node2', 'value')
 # write.table(edges, 'edges.txt', row.names=FALSE, quote=FALSE, sep='\t')
 # 
-# library("ggplot2")
-# library("ggraph")
-# library("tidygraph")
-# library("ggnetwork")
 # tab_names <- table(all_samples_symbol$Microorganism) > 60
 # org <- names(tab_names[tab_names])
 # org <- org[!org %in% "Peptostreptococcus"]

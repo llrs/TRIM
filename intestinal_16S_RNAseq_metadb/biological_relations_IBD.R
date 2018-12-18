@@ -1,9 +1,16 @@
+library("fgsea") # To test the distribution of the pathways
+library("reactome.db") # To get the pathways
+library("org.Hs.eg.db") # To get the names to entrez from the ensembl
+library("data.table")
+library("integration")
+library("ReactomePA")
+library("clusterProfiler")
+
 # Test if the loadings of the genes are from a relevant pathways.
 wd <- setwd("..")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
 
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
@@ -25,11 +32,6 @@ epithelium <- read.csv("epithelium.csv")
 epithelium <- epithelium$Epithelium
 
 setwd(wd)
-
-library("fgsea") # To test the distribution of the pathways
-library("reactome.db") # To get the pathways
-library("org.Hs.eg.db") # To get the names to entrez from the ensembl
-library("data.table")
 
 # Load previous data
 sgcca.centroid <- readRDS("IBD.RDS")
@@ -88,7 +90,6 @@ paths2genes <- split(genes, pathways) # List of genes and the gene sets
 paths2genes <- paths2genes[grep("R-HSA-", names(paths2genes))]
 
 ## Compute the hypergeometric/enrichment analysis ####
-library("ReactomePA")
 enrich <- enrichPathway(
   gene = entrezID[significant], pvalueCutoff = 0.05,
   readable = TRUE, universe = unique(entrezID)
@@ -148,7 +149,6 @@ term2name <- data.frame(
   "Name" = otus_tax_i[, "Genus"],
   "Term" = rownames(otus_tax_i)
 )
-library("clusterProfiler")
 enrich <- as.data.frame(enricher(
   gene = otus, universe = rownames(otus_tax_i),
   minGSSize = 1, TERM2GENE = term2gene,

@@ -1,10 +1,12 @@
+library("integration")
+library("ggplot2")
+library("metagenomeSeq")
+
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
 rna <- "intestinal_RNAseq"
 
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("ggplot2")
 
 # Read the intestinal otus table
 otus_table_i <- read.csv(
@@ -61,7 +63,6 @@ expr <- expr_norm - apply(expr_norm, 1, median)
 # expr <- norm_RNAseq(expr_norm)
 
 # Normalize OTUS
-library("metagenomeSeq")
 MR_i <- newMRexperiment(
   otus_table_i
 )

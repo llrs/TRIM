@@ -1,10 +1,11 @@
 library("ggforce")
 library("RGCCA")
+library("BiocParallel")
+library("integration")
+library("fgsea")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
-library("fgsea")
 
 # Load data
 otus_table_i <- readRDS("otus_table.RDS")
@@ -80,7 +81,7 @@ saveRDS(sgcca.centroid, file = "sgcca_model2.RDS")
 
 designs <- weight_design(weights = 11, size = length(A))
 keep <- check_design(designs)
-library("BiocParallel")
+
 designs <- designs[keep]
 sgcca_custom <- function(x, ...) {
   sgcca.centroid <- RGCCA::sgcca(

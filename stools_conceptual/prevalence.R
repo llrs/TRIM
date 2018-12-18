@@ -1,10 +1,9 @@
 library("boot")
-# Summarize by taxa
-library("metagenomeSeq")
+library("metagenomeSeq") # Summarize by taxa
+library("integration")
 
 wd <- setwd("..")
 today <- format(Sys.time(), "%Y%m%d")
-library("integration")
 
 stool <- "stools_16S"
 # Read the stools OTUs
