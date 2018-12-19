@@ -79,19 +79,6 @@ expr <- norm_RNAseq(expr_norm)
 ctrls_expr <- norm_RNAseq(ctrls_expr_norm)
 IBD_expr <- norm_RNAseq(IBD_expr_norm)
 
-# Normalize OTUS
-norm_otus <- function(otus_tax_i, otus_table_i){
-  MR_i <- newMRexperiment(
-    otus_table_i, 
-    featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
-  )
-  MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
-  otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
-  
-  # Subset if all the rows are 0 and if sd is 0
-  otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
-}
-
 otus_table_i <- norm_otus(otus_tax_i, otus_table_i)
 ctrls_otus_table_i <- norm_otus(otus_tax_i, ctrls_otus_table_i)
 IBD_otus_table_i <- norm_otus(otus_tax_i, IBD_otus_table_i)
