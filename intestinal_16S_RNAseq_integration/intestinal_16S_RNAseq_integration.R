@@ -27,7 +27,7 @@ model0i <- subSymm(model0, 1, 1, 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.25670333, 0) # We guess a 0.1
+shrinkage <- c(0.249488046688595, 0) # We guess a 0.1
 shrinkage[2] <- tau.estimate(A[[2]])
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))

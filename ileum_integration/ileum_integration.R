@@ -68,27 +68,6 @@ sgcca.centroid <- sgcca(
   verbose = FALSE
 )
 sgcca.centroid <- improve.sgcca(sgcca.centroid, names(A))
-sgcca.factorial <- sgcca(
-  A, C, c1 = shrinkage,
-  ncomp = ncomp,
-  scheme = "factorial",
-  scale = TRUE,
-  verbose = FALSE
-)
-sgcca.factorial <- improve.sgcca(sgcca.factorial, names(A))
-
-sgcca.horst <- sgcca(
-  A, C, c1 = shrinkage,
-  ncomp = ncomp,
-  scheme = "horst",
-  scale = TRUE,
-  verbose = FALSE
-)
-sgcca.horst <- improve.sgcca(sgcca.horst, names(A))
-
-# list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
-# sgcca.factorial = sgcca.factorial)
-
 
 samples <- data.frame(
   Stools = sgcca.centroid$Y[[1]][, 1],

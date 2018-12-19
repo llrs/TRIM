@@ -1,6 +1,7 @@
 library("integration")
 library("SummarizedExperiment")
 library("reshape")
+library("ggplot2")
 
 intestinal <- "intestinal_16S"
 stool <- "stools_16S"
@@ -77,6 +78,7 @@ ggplot(p, aes(Abundance, OTUs)) +
   xlim(c(0, max(p$Abundance)))
 
 p2 <- cbind(p, meta_i[match(rownames(p), rownames(meta_i)), ])
+
 # Remove a genus because it is an outlier
 ggplot(p2[-88, ], aes(Abundance, OTUs)) +
   geom_point(aes(col = Time)) +

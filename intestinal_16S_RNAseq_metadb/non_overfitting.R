@@ -10,7 +10,7 @@ today <- format(Sys.time(), "%Y%m%d")
 A <- readRDS("model3_TRIM.RDS")
 
 # We cannnot comput eht tau.estimate for A[[1]] calculated on server
-shrinkage <- c(0.25670333, 0, 1, 1, 1) 
+shrinkage <- c(0.249488046688595, 0, 1, 1, 1) 
 shrinkage[[2]] <- tau.estimate(A[[2]]) # 0.286506412433534
 
 # Experiment design for the complicated cases 

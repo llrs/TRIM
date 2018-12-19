@@ -51,7 +51,7 @@ model3 <- subSymm(model3, "RNAseq", "16S", 1)
 
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
-shrinkage <- c(0.25670333, 0, 1, 1, 1) # We guess a 0.1 for the RNAseq expression
+shrinkage <- c(0.249488046688595, 0, 1, 1, 1) # We guess a 0.1 for the RNAseq expression
 # shrinkage[[2]] <- vapply(A[[2]], tau.estimate, numeric(1L))
 # (min_shrinkage <- sapply(A, function(x) {
 #   1 / sqrt(ncol(x))
@@ -329,15 +329,7 @@ comp2 <- sapply(sgcca.centroid$a, function(x) {
 variables_weight(comp2)
 
 l <- looIndex(size(A))
-loo_model <- function(x, model){
-  
-  RGCCA::sgcca(A = subsetData(A, x),
-               C = model, 
-               scheme = "centroid", 
-               verbose = FALSE, c1 = shrinkage
-  )
-}
-
+loo_model <- loo_functions(A, shrinkage)
 result.out <- lapply(l, loo_model, model = model3)
 saveRDS(result.out, "loo-model3.RDS")
 
