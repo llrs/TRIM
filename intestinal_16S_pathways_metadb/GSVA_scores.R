@@ -60,7 +60,7 @@ expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
 expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 
 # Filter expression
-expr <- norm_RNAseq(expr_norm)
+expr <- filter_RNAseq(expr_norm)
 
 otus_table_i <- otus_table_i[rowSums(otus_table_i) != 0, ]
 

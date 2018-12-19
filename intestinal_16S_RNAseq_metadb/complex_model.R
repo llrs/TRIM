@@ -60,24 +60,9 @@ meta_r <- meta_r[meta_r$Seq_code_uDNA %in% colnames(otus_table_i) &
 expr <- expr[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
-# Normalize expression
-expr_edge <- edgeR::DGEList(expr)
-expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
-expr_norm <- edgeR::cpm(expr_edge, normalized.lib.sizes=TRUE, log = TRUE)
-
-# Filter expression
+expr_norm <- norm_RNAseq(expr)
 expr <- norm_RNAseq(expr_norm)
-
-# Normalize OTUS
-MR_i <- newMRexperiment(
-  otus_table_i, 
-  featureData = AnnotatedDataFrame(as.data.frame(otus_tax_i[rownames(otus_table_i), ]))
-)
-MR_i <- cumNorm(MR_i, metagenomeSeq::cumNormStat(MR_i))
-otus_table_i <- MRcounts(MR_i, norm = TRUE, log = TRUE)
-
-# Subset if all the rows are 0 and if sd is 0
-otus_table_i <- otus_table_i[apply(otus_table_i, 1, sd) != 0, ]
+otus_table_i <- norm_otus(otus_table_i)
 
 # Create the different metadb matrices
 Invariable <- cbind(mixOmics::unmap(meta_r$ID), 

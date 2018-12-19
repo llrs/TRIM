@@ -66,9 +66,8 @@ norm_edgeR <- function(expr){
   edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
 }
 
-expr_norm <- norm_edgeR(expr)
-
 # Filter expression
+expr_norm <- norm_RNAseq(expr)
 expr <- norm_RNAseq(expr_norm)
 
 # Create the objects to summarize data

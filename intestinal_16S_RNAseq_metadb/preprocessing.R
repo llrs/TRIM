@@ -61,20 +61,14 @@ IBD_expr <- expr[, meta_r$IBD != "CONTROL"]
 IBD_otus_table_i <- otus_table_i[, meta_r$IBD != "CONTROL"]
 
 # Normalize expression
-norm_edgeR <- function(expr){
-  expr_edge <- edgeR::DGEList(expr)
-  expr_edge <- edgeR::calcNormFactors(expr_edge, method = "TMM")
-  edgeR::cpm(expr_edge, normalized.lib.sizes = TRUE, log = TRUE)
-}
-
-expr_norm <- norm_edgeR(expr)
-ctrls_expr_norm <- norm_edgeR(ctrls_expr)
-IBD_expr_norm <- norm_edgeR(IBD_expr)
+expr_norm <- norm_RNAseq(expr)
+ctrls_expr_norm <- norm_RNAseq(ctrls_expr)
+IBD_expr_norm <- norm_RNAseq(IBD_expr)
 
 # Filter expression
-expr <- norm_RNAseq(expr_norm)
-ctrls_expr <- norm_RNAseq(ctrls_expr_norm)
-IBD_expr <- norm_RNAseq(IBD_expr_norm)
+expr <- filter_RNAseq(expr_norm)
+ctrls_expr <- filter_RNAseq(ctrls_expr_norm)
+IBD_expr <- filter_RNAseq(IBD_expr_norm)
 
 otus_table_i <- norm_otus(otus_tax_i, otus_table_i)
 ctrls_otus_table_i <- norm_otus(otus_tax_i, ctrls_otus_table_i)
