@@ -2,13 +2,9 @@ library("RGCCA")
 library("integration")
 library("ggplot2")
 library("patchwork")
+library("dplyr")
 
-# Save
-otus_table_i <- readRDS("otus_table.RDS")
-expr <- readRDS("expr.RDS")
-meta_r <- readRDS( "meta.RDS")
-
-# Read
+# Read data
 A <- readRDS(file = "TRIM.RDS")
 
 # The design
@@ -16,7 +12,8 @@ C <- matrix(
   0, ncol = length(A), nrow = length(A),
   dimnames = list(names(A), names(A))
 )
-model0 <- subSymm(C, "16S", "RNAseq", 1)
+model1 <- subSymm(C, "16S", "metadata", 1)
+model1 <- subSymm(model1, "RNAseq", "metadata", 1)
 
 # We cannnot comput the tau.estimate for A[[1]]
 min_shrinkage <- sapply(A, function(x) {
@@ -25,18 +22,21 @@ min_shrinkage <- sapply(A, function(x) {
 
 shrinkage <- expand.grid(
   seq(from = min_shrinkage[1], to = 1, length.out = 10),
-  seq(from = min_shrinkage[2], to = 1, length.out = 10))
+  seq(from = min_shrinkage[2], to = 1, length.out = 10),
+  seq(from = min_shrinkage[3], to = 1, length.out = 10))
 
 # The one tau.estimate says:
-shrinkage_opt <- c(0.249488046688595, 0) 
+shrinkage_opt <- c(0.249488046688595, 0, 1) 
 shrinkage_opt[2] <- tau.estimate(A[[2]])
 shrinkage_opt2 <- shrinkage_opt
 shrinkage_opt2[1] <- 0.1
 
 shrinkage <- rbind(shrinkage, shrinkage_opt, shrinkage_opt2)
 
+# It uses my own improved modification of RGCCA which is faster
+# However it 
 testing <- function(x, type, ...) {
-  result.sgcca <- RGCCA::sgcca(c1 = x, 
+  result.sgcca <- RGCCA2::sgcca(c1 = x,  
                                scheme = type, 
                                verbose = FALSE, 
                                scale = FALSE,
@@ -52,39 +52,44 @@ testing <- function(x, type, ...) {
 
 Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
 # Estimated time of 1 hours
-bench::system_time(out <- apply(shrinkage, 1, testing, 
-                         type = "centroid", A = Ab, C = model0))
+out <- apply(shrinkage, 1, testing, 
+                                type = "centroid", A = Ab, C = model1)
 o <- t(out)
-beepr::beep()
+beep()
 
 dat <- cbind.data.frame(o, shrinkage)
 saveRDS(dat, "shrinkage_real.RDS")
-r <- ggplot(dat) +
+real <- dat %>% 
+  filter(Var3 ==1)
+r <- ggplot(real) +
   geom_point(aes(Var1, RNAseq, color = Var2)) +
   scale_color_viridis_c() +
   labs(x = "Shrinkage RNAseq", color = "Shrinkage 16S", title = "Effect of shrinkage parameter", 
        y = "# genes") +
   geom_vline(xintercept = 0.1)
-s <- ggplot(dat) +
+s <- ggplot(real) +
   geom_point(aes(Var2, `16S`, color = Var1)) +
   scale_color_viridis_c() +
   labs(color = "Shrinkage RNAseq", x = "Shrinkage 16S", title = "Effect of shrinkage parameter", 
        y = "# OTUs")
 shrin <- r + s
 
-r2 <- ggplot(dat) +
+
+
+
+r2 <- ggplot(real) +
   geom_point(aes(RNAseq, AVE_inner,  color = Var1, size = Var2)) +
   scale_color_viridis_c() +
   labs(y = "AVE_inner", color = "Shrinkage RNAseq", title = "Effect of shrinkage parameter", 
        x = "# genes", size = "Srhinkage 16S") +
   scale_size_continuous()
-r3 <- ggplot(dat) +
+r3 <- ggplot(real) +
   geom_point(aes(`16S`, AVE_inner,  color = Var1, size = Var2)) +
   scale_color_viridis_c() +
   labs(y = "AVE_inner", color = "Shrinkage RNAseq", title = "Effect of shrinkage parameter", 
        x = "# 16S", size = "Srhinkage 16S") +
   scale_size_continuous()
-s2 <- ggplot(dat) +
+s2 <- ggplot(real) +
   geom_point(aes(RNAseq, AVE_outer,  color = Var1, size = Var2)) +
   scale_color_viridis_c() +
   labs(y = "AVE_outer", color = "Shrinkage RNAseq", title = "Effect of shrinkage parameter", 
@@ -93,10 +98,5 @@ s2 <- ggplot(dat) +
 AVEs <- r2 + s2
 
 shrin/AVEs
-
-ggplot(dat) + 
-  geom_point(aes(Var1,  Var2, color = AVE_inner, size = RNAseq)) +
-  scale_color_viridis_c()
-ggplot(dat) + 
-  geom_point(aes(Var1,  Var2, color = AVE_outer, size = RNAseq)) +
-  scale_color_viridis_c()
+ggplot(real) + 
+  geom_point(aes(Var1, AVE_inner, color = Var2, size = log10(RNAseq)))
