@@ -20,16 +20,14 @@ metadb <- meta_r
 Localization <- model_RGCCA(meta_r, c("Exact_location")) # With SESCD local it increase the AVE_inner
 Time <- model_RGCCA(meta_r, c("AgeDiag", "AGE_SAMPLE", "Transplant"))
 Demographics <- model_RGCCA(meta_r, c("ID","SEX", "Surgery", "Treatment"))
+Time$AgeDiag[is.na(Time$AgeDiag)] <- 0 # Time has NA values
 
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "Demographics" = Demographics,
           "Location" = Localization, "Time" = Time)
 
 stopifnot(length(unique(vapply(A, nrow, numeric(1L)))) == 1)
-A <- lapply(A, function(x) {
-  k <- unlist(apply(x, 2, sd, na.rm = FALSE))
-  x[, k != 0]}
-)
+A <- clean_unvariable(A)
 
 saveRDS(A, "model3_TRIM.RDS")
 
@@ -78,7 +76,6 @@ sgcca.centroid$AVE
 
 # list(sgcca.centroid = sgcca.centroid, sgcca.horst = sgcca.horst,
 # sgcca.factorial = sgcca.factorial)
-saveRDS(sgcca.centroid, file = "sgcca_model3.RDS")
 
 designs <- weight_design(weights = 3, size = 5)
 keep <- check_design(designs)
