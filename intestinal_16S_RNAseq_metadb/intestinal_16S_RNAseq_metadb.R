@@ -38,7 +38,7 @@ metadb_0$AgeDiag[is.na(metadb_0$AgeDiag)] <- metadb_0$AGE_SAMPLE[is.na(metadb_0$
 # Prepare input for the sgcca function
 A <- list(RNAseq = t(expr), "16S" = t(otus_table_i), "metadata" = metadb_0)
 A <- clean_unvariable(A)
-# saveRDS(A, file = "TRIM.RDS")
+saveRDS(A, file = "TRIM.RDS")
 
 # The design
 model <- matrix(

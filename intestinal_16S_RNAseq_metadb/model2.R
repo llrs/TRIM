@@ -1,5 +1,5 @@
 library("ggforce")
-library("RGCCA")
+library("RGCCA2")
 library("BiocParallel")
 library("integration")
 library("fgsea")
@@ -84,19 +84,18 @@ keep <- check_design(designs)
 
 designs <- designs[keep]
 sgcca_custom <- function(x, ...) {
-  sgcca.centroid <- RGCCA::sgcca(
+  sgcca.centroid <- RGCCA2::sgcca(
     C = x,
     scheme = "centroid",
-    scale = TRUE,
+    scale = FALSE,
     verbose = FALSE, ...)
   sgcca.centroid$AVE[c("AVE_inner", "AVE_outer")]
 }
+
+Ab <- lapply(A, RGCCA2:::scale2_, bias = TRUE)
 # design_boot <- bplapply(designs, sgcca_custom, ncomp = ncomp, 
 # shrinkage = shrinkage, A = A, BPPARAM = bpparam())
-# design_boot <- lapply(designs, sgcca_custom, ncomp = ncomp, 
-#                       c1 = shrinkage, A = A)
-# saveRDS(design_boot, "designs_boot_model2.RDS")
-design_boot <- readRDS("designs_boot_model2.RDS")
+design_boot <- lapply(designs, sgcca_custom, c1 = shrinkage, A = Ab)
 # Modify for a better usage
 w <- t(vapply(designs, function(x){x[upper.tri(x)]}, numeric(3L)))
 ind <- apply(which(upper.tri(designs[[1]]), arr.ind = TRUE), 1, 
@@ -105,7 +104,11 @@ colnames(w) <- paste0("var", ind)
 db <- t(vapply(design_boot, unlist, numeric(2L)))
 db2 <- cbind(db, w)
 db3 <- as.data.frame(db2)
+saveRDS(db3, "designs_boot_model2.RDS")
+design_boot <- readRDS("designs_boot_model2.RDS")
 
+model2b <- design_boot[which.max(design_boot$AVE_inner), 3:5]
+model2b <- symm(model1, model2b)
 # Continue with the normal model 2
 samples <- data.frame(
   "RNAseq" = sgcca.centroid$Y[["RNAseq"]][, 1],
