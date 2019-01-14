@@ -155,7 +155,7 @@ df <- rbind(
   merge(m2M, m2GE, all = TRUE, by = inter),
   merge(m2bM, m2bGE, all = TRUE, by = inter),
   merge(m2biM, m2biGE, all = TRUE, by = inter),
-  merge(m3M, m3GE, all.x = RUE, by = inter),
+  merge(m3M, m3GE, all.x = TRUE, by = inter),
   merge(m3bM, m3bGE, all = TRUE, by = inter),
   merge(m3biM, m3biGE, all = TRUE, by = inter)
 )
@@ -223,7 +223,7 @@ df %>%
 
 # Check that the samples order doesn't change or something!! It doesn't look right
 df %>% 
-  # filter(!grepl(" i", Model)) %>%
+  filter(!grepl(" i", Model)) %>%
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
