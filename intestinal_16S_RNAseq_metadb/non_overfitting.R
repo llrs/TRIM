@@ -53,7 +53,7 @@ stop("Visual inspection of the top 5")
 # Based on the top 5 of the random sample ie AVE_inner > 0.6
 # Select another range of 37000 of models and check which models are the best ones.
 best_keep <- vapply(designs, function(x) {
-  x[4, 5] == 0 & x[3, 4] == 0 & x[3, 5] != 0
+  x[4, 5] == 0 & x[3, 4] == 0
 }, logical(1L))
 out3 <- sapply(designs[best_keep], testing, 
                type = "centroid",
@@ -75,6 +75,8 @@ rownames(model3_best) <- names(A)
 out4 <- out
 out4$weights <- as.factor(out4$weights)
 ggplot(out4) + geom_boxplot(aes(weights, AVE_inner))
+ggplot(out4, aes(AVE_inner, AVE_outer)) +geom_count()
+
 # Leave one out procedure ####
 # To asses if the selected model how well generalizes
 l <- looIndex(size(A))
