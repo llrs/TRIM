@@ -6,6 +6,7 @@ library("UpSetR")
 library("grid")
 library("org.Hs.eg.db")
 library("clusterProfiler")
+library("integration")
 
 # Evaluate all models ###
 # model 0
@@ -26,6 +27,10 @@ model1i_loo <- readRDS(file.path(folder1, "loo-model1i.RDS"))
 model2 <- readRDS(file.path(folder1, "sgcca_model2.RDS"))
 model2_loo <- readRDS(file.path(folder1, "loo-model2.RDS"))
 
+# TODO create these files
+# model2i <- readRDS(file.path(folder1, "sgcca_model2i.RDS"))
+# model2i_loo <- readRDS(file.path(folder1, "loo-model2i.RDS"))
+
 model2_best <- readRDS(file.path(folder1, "model2_best.RDS"))
 model2_best_loo <- readRDS(file.path(folder1, "loo-model2_best.RDS"))
 
@@ -40,27 +45,6 @@ model3_best <- readRDS(file.path(folder1, "model3_best.RDS"))
 model3_best_loo <- readRDS(file.path(folder1, "loo-model3_best.RDS"))
 model3_besti <- readRDS(file.path(folder1, "model3_best_interaction.RDS"))
 model3_besti_loo <- readRDS(file.path(folder1, "loo-model3_best_interaction.RDS"))
-
-getAVEs <- function(x, pos = 1L) { 
-  x$AVE$AVE_inner[pos]
-}
-
-sem <- function(x){
-  sd(x)/length(x)
-}
-
-plotAVEs <- function(model, loo) {
-  aves <- vapply(loo, getAVEs, numeric(1L))
-  hist(aves, xlim = c(0, 1), main = "model")
-  abline(v = model$AVE$AVE_inner[1])
-}
-
-m_sem <- function(model, loo) {
-  aves <- vapply(loo, getAVEs, numeric(1L))
-  paste0(signif(model$AVE$AVE_inner[1], 3), 
-        " (", signif(mean(aves), 3),
-        " \u00b1 ", scales::scientific(sem(aves), 3), ")")
-}
 
 m_sem(model0, model0_loo)
 m_sem(model0i, model0i_loo)
@@ -86,25 +70,6 @@ names(model2_best$a) <- names(model2$Y)
 names(model3_best$a) <- names(model3$Y)
 names(model3_besti$a) <- names(model3$Y)
 
-tidyer <- function(data, model, type) {
-  if ("comp1" %in% colnames(data)){
-    d <- as.data.frame(data) %>% 
-      as_tibble() %>% 
-      mutate(Model = model) %>% 
-      gather(Component, !!type, comp1:comp2)
-  } else {
-    d <- as.data.frame(data) %>% 
-      as_tibble() %>% 
-      mutate(Model = model) %>% 
-      gather(Component, !!type, 1:2)
-  }
-  if (!is.null(rownames(data))){
-    d$Rownames <- rep(rownames(data), 2)
-  }
-  d
-    # mutate(Sample = seq_len(n()))
-  # Samples name could be important!!
-}  
 
 meta <- readRDS("intestinal_16S_RNAseq_metadb/meta.RDS")
 
@@ -117,7 +82,7 @@ merger <- function(data) {
 }
 
 index <- c(seq(to = 2*nrow(model3_best$Y[[1]]), by = 2), #comp1
-           seq(from=2, to = 2*nrow(model3_best$Y[[1]]), by = 2)) # comp2
+           seq(from = 2, to = 2*nrow(model3_best$Y[[1]]), by = 2)) # comp2
 m0GE <- merger(tidyer(model0$Y[[1]], "0", "GE"))
 m0M <- merger(tidyer(model0$Y[[2]], "0", "M"))
 m0iGE <- merger(tidyer(model0i$Y[[1]], "0 i", "GE"))
@@ -160,7 +125,9 @@ df <- rbind(
   merge(m3biM, m3biGE, all = TRUE, by = inter)
 )
 
-# Plot microbiome, phenotype of model2
+saveRDS(df, "models_summary.RDS")
+
+# Plot microbiome, phenotype of model2 ####
 df2b <- cbind.data.frame(P = model2_best$Y[[3]][, 1], 
                  M = model2_best$Y[[2]][, 1], 
                  Rownames = rownames(model2_best$Y[[2]]))
@@ -180,7 +147,7 @@ ggplot(df2b) +
 ggplot(df2b) +
   geom_point(aes(P, M, color = Time)) +
   labs(color = "Time")
-# Model3
+# Model3 plots ####
 df3b <- cbind.data.frame(D = model3_best$Y[[3]][, 1], 
                  M = model3_best$Y[[2]][, 1], 
                  L = model3_best$Y[[4]][, 1], 
@@ -209,6 +176,7 @@ ggplot(df3b) +
 theme_set(theme_bw())
 theme_update(strip.background = element_blank())
 
+# plots of all models ####
 df <- as_tibble(df)
 df %>% 
   filter(!grepl(" i", Model)) %>% 
@@ -227,6 +195,7 @@ df %>%
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
+  stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", show.legend = FALSE) +
   facet_wrap(~Model, scales = "free") + 
   labs(title = "Samples by model",
        caption = "HSCT dataset")
@@ -234,11 +203,12 @@ df %>%
   filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
-  geom_point(aes(GE, M, col = SESCD_local)) +
+  geom_point(aes(GE, M, color = SESCD_local)) +
   facet_wrap(~Model, scales = "free") +
   labs(title = "Samples by model",
        caption = "HSCT dataset",
-       col = "SESCD (local)")
+       color = "SESCD (local)") +
+  scale_color_viridis_c()
 
 df %>% 
   filter(!grepl(" i", Model)) %>% 
@@ -258,7 +228,7 @@ df %>%
                            !is.na(Exact_location) ~ "Colon")) %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Ileum)) +
-  stat_ellipse(aes(GE, M, col = Ileum, group = Ileum), type = "norm", show.legend = FALSE) +
+  # stat_ellipse(aes(GE, M, col = Ileum, group = Ileum), type = "norm", show.legend = FALSE) +
   facet_wrap(~Model, scales = "free") + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
@@ -291,6 +261,15 @@ df %>%
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Time")
+df %>% 
+  filter(!grepl(" i", Model)) %>% 
+  filter(Component == "comp1") %>%
+  ggplot() +
+  geom_point(aes(GE, M, col = Active_area)) +
+  facet_wrap(~Model, scales = "free") + 
+  labs(title = "Samples by model",
+       caption = "HSCT dataset", 
+       col = "Active area")
 df %>% 
   filter(!grepl(" i", Model)) %>% 
   filter(Component == "comp1") %>% 
@@ -435,13 +414,18 @@ a3bM <- tidyer(model3_best$a[[2]], "3 best", "M")
 a3biGE <- tidyer(model3_besti$a[[1]], "3 best i", "GE")
 a3biM <- tidyer(model3_besti$a[[2]], "3 best i", "M")
 
+a1GE <- cbind("Model" = "1", a1GE)
+a1iGE <- cbind("Model" = "1 i", a1iGE)
+a1M <- cbind("Model" = "1", a1M)
+a1iM <- cbind("Model" = "1 i", a1iM)
+
 dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE)
 dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM)
 keepGE <- dfGE %>% 
   # filter(!grepl(" i", Model)) %>% 
   filter(Component == "V1" & GE != 0) %>% 
   mutate(Presence = if_else(GE != 0, 1, 0)) %>% 
-  select(-Component, -GE, Rownames) %>% 
+  dplyr::select(-Component, -GE, Rownames) %>% 
   group_by(Rownames) %>% 
   spread(Model, Presence) %>% 
   as.data.frame()
@@ -453,7 +437,7 @@ keepM <- dfM %>%
   # filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & M != 0) %>% 
   mutate(Presence = if_else(M != 0, 1, 0)) %>% 
-  select(-Component, -M, Rownames) %>% 
+  dplyr::select(-Component, -M, Rownames) %>% 
   group_by(Rownames) %>% 
   spread(Model, Presence) %>% 
   ungroup() %>% 
@@ -480,13 +464,19 @@ dfM %>%
        subtitle = "Microbiome")
 
 ## Upset plots ####
-upset(keepGE, order.by = "freq", nsets = 6,
+upset(keepGE, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepGE)), keep.order = TRUE,
+      line.size = NA, text.scale = text_sizes, scale.sets = "identity")
+grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+upset(keepGE, order.by = "freq", keep.order = TRUE, sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 upset(keepM, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepM)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes)
+grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+upset(keepM, order.by = "freq", keep.order = TRUE, sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best")),
+      line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 
 # Testing genes in model 1 to 3 best 
