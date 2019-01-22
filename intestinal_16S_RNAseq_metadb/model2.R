@@ -168,10 +168,10 @@ variables_weight(comp2)
 model2_best <- matrix(0, nrow = 3, ncol = 3)
 model2_best <- symm(model2_best, unlist(db3[which.max(db3$AVE_inner), 3:5]))
 
-model2_best_sgcca <- sgcca(A, C = model2_best, verbose = FALSE, c1 = shrinkage, ncomp = ncomp)
+model2_best_sgcca <- sgcca(A, C = model2b, verbose = FALSE, c1 = shrinkage[1:3], ncomp = ncomp[1:3])
 saveRDS(model2_best_sgcca, "model2_best.RDS")
-model2_besti <- subSymm(model2_best, 1, 1, 1)
-model2_best_interaction_sgcca <- sgcca(A, C = model2_besti, verbose = FALSE, c1 = shrinkage, ncomp = ncomp)
+model2_besti <- subSymm(model2b, 1, 1, 1)
+model2_best_interaction_sgcca <- sgcca(A, C = model2_besti, verbose = FALSE, c1 = shrinkage[1:3], ncomp = ncomp[1:3])
 saveRDS(model2_best_interaction_sgcca, "model2_best_interaction.RDS")
 
 l <- looIndex(size(A))
