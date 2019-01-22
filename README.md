@@ -9,3 +9,6 @@ Some preliminar analysis are done on the main folder, including PCAs.
 
 # Data
 The data is missing from this repository, and it is supossed to be located in three different folders (one for each kind of data).
+[RNAseq](intestinal_RNAseq/)
+[stool 16S](stool_16S/)
+[intestinal 16S](intestinal_16S/)
