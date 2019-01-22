@@ -139,3 +139,13 @@ out2 %>%
 sgcca_model3bb <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = model3bb)
 sgcca_model3bb <- improve.sgcca(sgcca_model3bb, names(Ab))
 saveRDS(sgcca_model3bb, "model3_best2.RDS")
+
+df <- data.frame(GE = sgcca_model3bb$Y[[1]][, 1],
+                 M = sgcca_model3bb$Y[[2]][, 1])
+df <- cbind(df, meta_r)
+ggplot(df) +
+  geom_point(aes(GE, M, color = Exact_location))
+ggplot(df) +
+  geom_point(aes(GE, M, color = IBD))
+ggplot(df) +
+  geom_point(aes(GE, M, color = SESCD_local))
