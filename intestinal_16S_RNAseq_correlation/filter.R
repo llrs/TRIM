@@ -63,13 +63,18 @@ filter_sexual <- function(expr) {
 # Output ####
 # #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
-all_comp <- readSGCCA("../intestinal_16S_RNAseq_integration/sgcca.RDS")
+all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/sgcca_model2.RDS")
 all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
+
+heatmap(all_s[, colnames(all_s) %in% names(all_comp)], Rowv = NULL, Colv = NULL, 
+        scale = "none", labCol = FALSE, xlab = "Genes", ylab = "Microorganisms (Genus)",
+        main = "Correlation of the genes in model 2", margins = c(2, 8), 
+        col = scico::scico(10, palette = 'roma'))
 o2 <- pathsPerMicro(all_samples_ensembl, all_comp)
 all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
-write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model0.csv"))
+write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model2.csv"))
 # write_cor(all_samples_ensembl_cor, file = paste0(today, "_sign_", type, "_correlation_all.csv"))
-lapply(names(o2), store_micro, o2 = o2, label = "_model0_all")
+lapply(names(o2), store_micro, o2 = o2, label = "_model2_all")
 
 colon_samples_ensembl <- relevant(all_comp, colon, pcolon, threshold)
 o2 <- pathsPerMicro(colon_samples_ensembl, all_comp)
