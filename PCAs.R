@@ -118,16 +118,20 @@ labels <- sapply(label, function(x) {
 })
 meta_i <- cbind(meta_i, labels)
 
-pcai <- cbind(pca_i_x, meta_i)
+pcai <- cbind(pca_i_x[, 1:10], meta_i)
+pcai2 <- merge(pcai, meta_r, by.x = c("Sample_Code", "ID", "Patient_ID", "Involved_Healthy", "HSCT_responder", "IBD", "Time"), 
+               by.y = c("Sample_Code_uDNA", "ID", "Patient_ID", "Involved_Healthy", "HSCT_responder", "IBD", "Time"),
+               all.x = TRUE)
+pcai2 <- droplevels(pcai2)
 
-pi <- ggplot(pcai, aes(PC1, PC2)) +
+pi <- ggplot(pcai2, aes(PC1, PC2)) +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab(paste("PC1", pca_i_var[1], "%")) +
   ylab(paste("PC2", pca_i_var[2], "%")) +
   ggtitle("PCA 16S", subtitle = "Intestinal microbiome")
 
 pi +
-  geom_text(aes(col = ID, label = labels)) +
+  geom_text(aes(col = ID, label = labels.x)) +
   guides(col = guide_legend(title = "Patient")) +
   scale_color_manual(values = colors_i)
 
@@ -135,6 +139,11 @@ pi +
   geom_text(aes(col = HSCT_responder,
                 label = paste(Time, ID, sep = "_"))) +
   guides(col = guide_legend(title = "Responders"))
+
+pi + 
+  geom_text(aes(col = SESCD_local,
+                label = paste(Time, ID, sep = "_"))) +
+  guides(col = guide_legend(title = "SECD local"))
 
 pi + 
   geom_text(aes(col = Involved_Healthy,
@@ -258,6 +267,9 @@ mix +
 mix +
   geom_point(aes(col = Exact_location)) +
   guides(col = guide_legend(title = "Location"))
+mix +
+  geom_point(aes(col = IBD)) +
+  guides(col = guide_legend(title = "Type"))
 mix +
   geom_point(aes(shape = Active_area, col = Exact_location)) +
   guides(shape = guide_legend(title = "Responders"), 
