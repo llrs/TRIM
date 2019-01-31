@@ -65,11 +65,10 @@ filter_sexual <- function(expr) {
 threshold <- 0.05
 all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/sgcca_model2.RDS")
 all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
-
-heatmap(all_s[, colnames(all_s) %in% names(all_comp)], Rowv = NULL, Colv = NULL, 
-        scale = "none", labCol = FALSE, xlab = "Genes", ylab = "Microorganisms (Genus)",
-        main = "Correlation of the genes in model 2", margins = c(2, 8), 
-        col = scico::scico(10, palette = 'roma'))
+gplots::heatmap.2(all_s[, colnames(all_s) %in% names(all_comp)], scale = "none", 
+                  labCol = FALSE, xlab = "Genes", ylab = "Microorganisms (Genus)",
+                  main = "Correlation of the genes in model 2", margins = c(2, 8), 
+                  col = scico::scico(10, palette = 'roma'), trace = "none", tracecol = "transparent")
 o2 <- pathsPerMicro(all_samples_ensembl, all_comp)
 all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
 write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model2.csv"))
