@@ -46,6 +46,9 @@ model3_best_loo <- readRDS(file.path(folder1, "loo-model3_best.RDS"))
 model3_besti <- readRDS(file.path(folder1, "model3_best_interaction.RDS"))
 model3_besti_loo <- readRDS(file.path(folder1, "loo-model3_best_interaction.RDS"))
 
+model3_best2 <- readRDS(file.path(folder1, "model3_forced_interaction.RDS"))
+model3_bestB <- readRDS(file.path(folder1, "model3_wo_forced_interaction.RDS"))
+
 m_sem(model0, model0_loo)
 m_sem(model0i, model0i_loo)
 m_sem(model1, model1_loo)
@@ -108,6 +111,11 @@ m3bD <- cbind(tidyer(model3_best$Y[[3]], "3 best", "D"), m3bGE[index, -c(1, 2, 3
 m3bL <- cbind(tidyer(model3_best$Y[[4]], "3 best", "L"), m3bGE[index, -c(1, 2, 3, 4)])
 m3biGE <- merger(tidyer(model3_besti$Y[[1]], "3 best i", "GE"))
 m3biM <- merger(tidyer(model3_besti$Y[[2]], "3 best i", "M"))
+
+m3boGE <- merger(tidyer(model3_best2$Y[[1]], "3 best o", "GE"))
+m3boM <- merger(tidyer(model3_best2$Y[[2]], "3 best o", "M"))
+m3bIntGE <- merger(tidyer(model3_besti$Y[[1]], "3 best int", "GE"))
+m3bIntM <- merger(tidyer(model3_besti$Y[[2]], "3 best int", "M"))
 
 inter <- intersect(colnames(m0GE), colnames(m0M))
 inter <- grep("Rownames", inter, invert = TRUE, value = TRUE)
@@ -414,13 +422,22 @@ a3bM <- tidyer(model3_best$a[[2]], "3 best", "M")
 a3biGE <- tidyer(model3_besti$a[[1]], "3 best i", "GE")
 a3biM <- tidyer(model3_besti$a[[2]], "3 best i", "M")
 
+
+a3boGE <- tidyer(model3_best2$a[[1]], "3 best o", "GE")
+a3boM <- tidyer(model3_best2$a[[2]], "3 best o", "M")
+a3bIntGE <- tidyer(model3_besti$a[[1]], "3 best int", "GE")
+a3bIntM <- tidyer(model3_besti$a[[2]], "3 best int", "M")
+
+
 a1GE <- cbind("Model" = "1", a1GE)
 a1iGE <- cbind("Model" = "1 i", a1iGE)
 a1M <- cbind("Model" = "1", a1M)
 a1iM <- cbind("Model" = "1 i", a1iM)
+a3boGE <- cbind("Model" = "3 best o", a3boGE)
+a3boM <- cbind("Model" = "3 best o", a3boM)
 
-dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE)
-dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM)
+dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE, a3boGE, a3bIntGE)
+dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM, a3boM, a3bIntM)
 keepGE <- dfGE %>% 
   # filter(!grepl(" i", Model)) %>% 
   filter(Component == "V1" & GE != 0) %>% 
@@ -468,14 +485,16 @@ upset(keepGE, order.by = "freq", nsets = 6,
       sets = rev(colnames(keepGE)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
-upset(keepGE, order.by = "freq", keep.order = TRUE, sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best")),
+upset(keepGE, order.by = "freq", keep.order = TRUE, 
+      sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best", "3 best o", "3 best int")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 upset(keepM, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepM)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes)
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
-upset(keepM, order.by = "freq", keep.order = TRUE, sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best")),
+upset(keepM, order.by = "freq", keep.order = TRUE, 
+      sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best", "3 best o", "3 best int")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 

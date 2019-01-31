@@ -14,8 +14,14 @@ model2_best <- readRDS(file.path(folder1, "model2_best.RDS"))
 model3 <- readRDS(file.path(folder1, "sgcca_model3.RDS"))
 model3_best <- readRDS(file.path(folder1, "model3_best.RDS"))
 
-models <- list(model0, model1, model2, model2_best, model3, model3_best)
-names(models) <- c("model0", "model1", "model2", "model2_best", "model3", "model3_best")
+
+model3_best2 <- readRDS(file.path(folder1, "model3_forced_interaction.RDS"))
+model3_bestB <- readRDS(file.path(folder1, "model3_wo_forced_interaction.RDS"))
+
+models <- list(model0, model1, model2, model2_best, model3, model3_best, 
+               model3_best2, model3_bestB)
+names(models) <- c("model0", "model1", "model2", "model2_best", "model3", 
+                   "model3_best", "model3_best2", "model3_bestB")
 
 genes <- sapply(models, function(x){
   rownames(x$a[[1]])[x$a[[1]][, 1] != 0]
