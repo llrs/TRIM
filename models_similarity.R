@@ -1,4 +1,7 @@
 library("BioCor")
+library("ggplot2")
+library("dplyr")
+library("ggrepel")
 
 # Evaluate all models ###
 # model 0
@@ -48,3 +51,30 @@ plot(hc3, main = "Similarities between models", sub = "by OTUs and genes")
 
 hc3b <- hclust(as.dist(1 - (genesSim + microSim)))
 plot(hc3b, main = "Similarities between models", sub = "by OTUs and genes")
+
+
+
+MDS_micro <- cmdscale(1 - microSim)
+MDS_genes <- cmdscale(1 - genesSim)
+MDS_micro <- as.data.frame(MDS_micro) %>% 
+  tibble::rownames_to_column()
+MDS_genes <- as.data.frame(MDS_genes) %>% 
+  tibble::rownames_to_column()
+colnames(MDS_genes) <- c("rowname", "PC1", "PC2")
+colnames(MDS_micro) <- c("rowname", "PC1", "PC2")
+MDS_genes <- cbind(MDS_genes, Type = "Genes")
+MDS_micro <- cbind(MDS_micro, Type = "OTUs")
+MDS <- rbind(MDS_genes, MDS_micro)
+MDS %>% filter(Type == "Genes") %>% 
+  ggplot() +
+  geom_label_repel(aes(PC1, PC2, label = rowname)) +
+  ggtitle("Genes PCA")
+
+MDS %>% mutate(Dim = paste0("PC1_", Type))
+
+MDS2 <- data.frame(rowname = MDS$rowname[1:8], 
+           PC1_genes = MDS$PC1[1:8],
+           PC1_micro = MDS$PC1[9:16])
+ggplot(MDS2) +
+  geom_label_repel(aes(PC1_genes, PC1_micro, label = rowname)) +
+  ggtitle("Mixing PCAs")
