@@ -23,8 +23,8 @@ model3_bestB <- readRDS(file.path(folder1, "model3_wo_forced_interaction.RDS"))
 
 models <- list(model0, model1, model2, model2_best, model3, model3_best, 
                model3_best2, model3_bestB)
-names(models) <- c("model0", "model1", "model2", "model2_best", "model3", 
-                   "model3_best", "model3_best2", "model3_bestB")
+names(models) <- c("0", "1", "2", "2 best", "3", 
+                   "3 best", "3 best int", "3 best o")
 
 genes <- sapply(models, function(x){
   rownames(x$a[[1]])[x$a[[1]][, 1] != 0]
@@ -65,10 +65,10 @@ colnames(MDS_micro) <- c("rowname", "PC1", "PC2")
 MDS_genes <- cbind(MDS_genes, Type = "Genes")
 MDS_micro <- cbind(MDS_micro, Type = "OTUs")
 MDS <- rbind(MDS_genes, MDS_micro)
-MDS %>% filter(Type == "Genes") %>% 
+MDS %>% filter(Type == "OTUs") %>% 
   ggplot() +
   geom_label_repel(aes(PC1, PC2, label = rowname)) +
-  ggtitle("Genes PCA")
+  ggtitle("OTUs PCA")
 
 MDS %>% mutate(Dim = paste0("PC1_", Type))
 
@@ -77,4 +77,4 @@ MDS2 <- data.frame(rowname = MDS$rowname[1:8],
            PC1_micro = MDS$PC1[9:16])
 ggplot(MDS2) +
   geom_label_repel(aes(PC1_genes, PC1_micro, label = rowname)) +
-  ggtitle("Mixing PCAs")
+  labs(title = "Mixing PCAs", x = "PC1 (genes)", y = "PC1 (OTUs)")

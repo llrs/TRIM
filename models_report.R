@@ -114,8 +114,8 @@ m3biM <- merger(tidyer(model3_besti$Y[[2]], "3 best i", "M"))
 
 m3boGE <- merger(tidyer(model3_best2$Y[[1]], "3 best o", "GE"))
 m3boM <- merger(tidyer(model3_best2$Y[[2]], "3 best o", "M"))
-m3bIntGE <- merger(tidyer(model3_besti$Y[[1]], "3 best int", "GE"))
-m3bIntM <- merger(tidyer(model3_besti$Y[[2]], "3 best int", "M"))
+m3bIntGE <- merger(tidyer(model3_bestB$Y[[1]], "3 best int", "GE"))
+m3bIntM <- merger(tidyer(model3_bestB$Y[[2]], "3 best int", "M"))
 
 inter <- intersect(colnames(m0GE), colnames(m0M))
 inter <- grep("Rownames", inter, invert = TRUE, value = TRUE)
@@ -130,7 +130,9 @@ df <- rbind(
   merge(m2biM, m2biGE, all = TRUE, by = inter),
   merge(m3M, m3GE, all.x = TRUE, by = inter),
   merge(m3bM, m3bGE, all = TRUE, by = inter),
-  merge(m3biM, m3biGE, all = TRUE, by = inter)
+  merge(m3biM, m3biGE, all = TRUE, by = inter),
+  merge(m3boGE, m3boM, all = TRUE, by = inter),
+  merge(m3bIntGE, m3bIntM, all = TRUE, by = inter)
 )
 
 saveRDS(df, "models_summary.RDS")
@@ -187,142 +189,130 @@ theme_update(strip.background = element_blank())
 # plots of all models ####
 df <- as_tibble(df)
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = as.factor(Sample_Code_uDNA))) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   guides(col = FALSE) +
   labs(title = "Samples by model", 
        subtitle = "Colored by sample",
-       caption = "HSCT dataset")
+       caption = "HSCT dataset") 
 
 # Check that the samples order doesn't change or something!! It doesn't look right
 df %>% 
-  filter(!grepl(" i", Model)) %>%
+  filter(!grepl(" i$", Model)) %>%
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
   stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", show.legend = FALSE) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, color = SESCD_local)) +
-  facet_wrap(~Model, scales = "free") +
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset",
        color = "SESCD (local)") +
   scale_color_viridis_c()
 
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
                            !is.na(Exact_location) ~ "Colon")) %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Ileum)) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Location")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
-  filter(Component == "comp1") %>% 
-  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
-                           !is.na(Exact_location) ~ "Colon")) %>% 
-  ggplot() +
-  geom_point(aes(GE, M, col = Ileum)) +
-  # stat_ellipse(aes(GE, M, col = Ileum, group = Ileum), type = "norm", show.legend = FALSE) +
-  facet_wrap(~Model, scales = "free") + 
-  labs(title = "Samples by model",
-       caption = "HSCT dataset", 
-       col = "Location")
-df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = ID)) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Patient ID")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
-  stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", show.legend = FALSE) +
-  facet_wrap(~Model, scales = "free") + 
+  # stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", show.legend = FALSE) +
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "IBD")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>%
   ggplot() +
   geom_point(aes(GE, M, col = Time)) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Time")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>%
   ggplot() +
   geom_point(aes(GE, M, col = Active_area)) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Active area")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Time)) +
   stat_ellipse(aes(GE, M, col = Time, group = Time), type = "norm", show.legend = FALSE) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Time")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Transplant)) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Transplant")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Transplant)) +
   stat_ellipse(aes(GE, M, col = Transplant, group = Transplant), type = "norm", show.legend = FALSE) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Transplant")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = SEX)) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Sex")
 df %>% 
-  filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = SEX)) +
   stat_ellipse(aes(GE, M, col = SEX, group = SEX), type = "norm", show.legend = FALSE) +
-  facet_wrap(~Model, scales = "free") + 
+  facet_wrap(~Model, scales = "free", nrow = 2) +  
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
        col = "Sex")
@@ -425,8 +415,8 @@ a3biM <- tidyer(model3_besti$a[[2]], "3 best i", "M")
 
 a3boGE <- tidyer(model3_best2$a[[1]], "3 best o", "GE")
 a3boM <- tidyer(model3_best2$a[[2]], "3 best o", "M")
-a3bIntGE <- tidyer(model3_besti$a[[1]], "3 best int", "GE")
-a3bIntM <- tidyer(model3_besti$a[[2]], "3 best int", "M")
+a3bIntGE <- tidyer(model3_bestB$a[[1]], "3 best int", "GE")
+a3bIntM <- tidyer(model3_bestB$a[[2]], "3 best int", "M")
 
 
 a1GE <- cbind("Model" = "1", a1GE)
@@ -435,6 +425,8 @@ a1M <- cbind("Model" = "1", a1M)
 a1iM <- cbind("Model" = "1 i", a1iM)
 a3boGE <- cbind("Model" = "3 best o", a3boGE)
 a3boM <- cbind("Model" = "3 best o", a3boM)
+a3bIntGE <- cbind("Model" = "3 best int", a3bIntGE)
+a3bIntM <- cbind("Model" = "3 best int", a3bIntM)
 
 dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE, a3boGE, a3bIntGE)
 dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM, a3boM, a3bIntM)
