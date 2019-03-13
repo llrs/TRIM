@@ -54,21 +54,21 @@ meta_i <- meta_i_norm(meta_i)
 meta_s <- meta_s_norm(meta_s)
 meta_r <- meta_r_norm(meta_r)
 
-# Check that the names of the matrices and the names of the metadata are 
+# Check that the names of the matrices and the names of the metadata are
 # equivalent
-if (nrow(meta_i[colnames(otus_table_i), ]) != nrow(meta_i)){
+if (nrow(meta_i[colnames(otus_table_i), ]) != nrow(meta_i)) {
   meta_i <- meta_i[colnames(otus_table_i), ]
 }
 
-if (nrow(meta_s[colnames(otus_table_s), ]) != nrow(meta_s)){
+if (nrow(meta_s[colnames(otus_table_s), ]) != nrow(meta_s)) {
   meta_s <- meta_s[colnames(otus_table_s), ]
 }
 
-if (nrow(meta_r[colnames(expr), ]) != nrow(meta_r)){
+if (nrow(meta_r[colnames(expr), ]) != nrow(meta_r)) {
   meta_r <- meta_r[meta_r$`Sample Name_RNA` %in% colnames(expr), ]
-  if (any(!colnames(expr) %in% meta_r$`Sample Name_RNA`)){
+  if (any(!colnames(expr) %in% meta_r$`Sample Name_RNA`)) {
     missing <- colnames(expr)[!colnames(expr) %in% meta_r$`Sample Name_RNA`]
-    if (all(grepl("-w[0-9]+", missing, ignore.case = TRUE))){
+    if (all(grepl("-w[0-9]+", missing, ignore.case = TRUE))) {
       missing <- missing[!grepl("-w[0-9]+", missing, ignore.case = TRUE)]
       message("Removing Barcelona samples")
     } else {
@@ -76,7 +76,6 @@ if (nrow(meta_r[colnames(expr), ]) != nrow(meta_r)){
     }
   }
 }
-
 # First by patient
 i_pat <- unique(as.character(meta_i$ID))
 s_pat <- unique(as.character(meta_s$ID))
@@ -107,15 +106,20 @@ rownames(subdf) <- paste0(rownames(subdf), "_2")
 df <- rbind(df, subdf)
 df <- df[!grepl("^(JR|NP)$", rownames(df)), ]
 
-metadata <- data.frame(sets = colnames(df), "Type" = c("Biopsies", "Biopsies", "Stools", "Depends"))
+metadata <- data.frame(sets = colnames(df), 
+                       "Type" = c("Biopsies", "Biopsies", "Stools", "Depends"))
 text_sizes <- c(1.3, 1.3, 1, 1, 1.5, 1.5)
 pdf("Figures/patients_dataset.pdf")
 upset(df, order.by = "freq", line.size = NA, sets.x.label = "Patients samples",
       mainbar.y.label = "Patients intersection", 
-      set.metadata = list(data = metadata, plots = list(list(type = "matrix_rows", 
-                                                             column = "Type", 
-                                                             colors = c(Biopsies = "green", Stools = "blue", Depends = "Grey"), 
-                                                alpha = 0.25))), text.scale = text_sizes)
+      set.metadata = list(data = metadata, 
+                          plots = list(list(type = "matrix_rows", 
+                                            column = "Type", 
+                                            colors = c(Biopsies = "green", 
+                                                       Stools = "blue",
+                                                       Depends = "Grey"), 
+                                            alpha = 0.25))), 
+      text.scale = text_sizes)
 dev.off()
 
 # Then by biopsies
@@ -143,7 +147,8 @@ st <- data.frame("Biopsies_16S" = as.numeric(!is.na(meta_r$Sample_Code_uDNA)),
 m <- cbind(m, st)
 st <- colnames(st)
 
-m2 <- cbind(m, meta_r[, c("Time", "Involved_Healthy", "SEX", "Patient_ID", "Sample_Code_uDNA")])
+m2 <- cbind(m, meta_r[, c("Time", "Involved_Healthy", "SEX", "Patient_ID", 
+                          "Sample_Code_uDNA")])
 m_controls <- m2[m2$C == 1, ]
 m_IBD <- m2[m2$C == 0, ]
 
@@ -155,28 +160,39 @@ location <- location[c(1, 4, 6, 5, 2, 3)]
 
 
 pdf("Figures/samples_dataset.pdf")
-upset(m_IBD, order.by = "freq", sets = st, line.size = NA, text.scale = text_sizes)
-grid.text("TRIM", x = 0.65, y=0.95, gp=gpar(fontsize=20))
-upset(m_IBD, order.by = "freq", sets = location, line.size = NA, keep.order = TRUE, text.scale = text_sizes)
-grid.text("Localization", x = 0.65, y=0.95, gp=gpar(fontsize=20))
-upset(m_IBD, order.by = "freq", sets = time, line.size = NA, keep.order = TRUE, text.scale = text_sizes)
-grid.text("Time", x = 0.65, y=0.95, gp=gpar(fontsize=20))
-upset(m_IBD, order.by = "freq", sets = c(st, location), line.size = NA, text.scale = text_sizes)
-upset(m_IBD, order.by = "freq", sets = c(st, time), line.size = NA, text.scale = text_sizes)
-upset(m_IBD, order.by = "freq", sets = c(st, location, time), line.size = NA, text.scale = text_sizes)
+upset(m_IBD, order.by = "freq", sets = st, line.size = NA, 
+      text.scale = text_sizes)
+grid.text("TRIM", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+upset(m_IBD, order.by = "freq", sets = location, line.size = NA, 
+      keep.order = TRUE, text.scale = text_sizes)
+grid.text("Localization", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+upset(m_IBD, order.by = "freq", sets = time, line.size = NA, keep.order = TRUE, 
+      text.scale = text_sizes)
+grid.text("Time", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+upset(m_IBD, order.by = "freq", sets = c(st, location), line.size = NA, 
+      text.scale = text_sizes)
+upset(m_IBD, order.by = "freq", sets = c(st, time), line.size = NA, 
+      text.scale = text_sizes)
+upset(m_IBD, order.by = "freq", sets = c(st, location, time), line.size = NA, 
+      text.scale = text_sizes)
 
 upset(m_controls, sets = st, line.size = NA, text.scale = text_sizes)
-grid.text("Samples", x = 0.65, y = 0.95, gp=gpar(fontsize=15))
-keep <- sapply(location, function(x){any(m_controls[, x] != 0)})
-upset(m_controls, order.by = "freq", sets = location[keep], line.size = NA, keep.order = TRUE, text.scale = text_sizes)
-grid.text("Localization", x = 0.65, y=0.95, gp=gpar(fontsize=20))
-grid.text("(Controls)", x = 0.79, y = 0.95, gp=gpar(fontsize=15))
-upset(m_controls, order.by = "freq", sets = c(st, location[keep]), line.size = NA, text.scale = text_sizes)
-grid.text("Controls", x = 0.670, y = 0.95, gp=gpar(fontsize=15))
+grid.text("Samples", x = 0.65, y = 0.95, gp = gpar(fontsize = 15))
+keep <- sapply(location, function(x) {
+  any(m_controls[, x] != 0)
+})
+upset(m_controls, order.by = "freq", sets = location[keep], line.size = NA, 
+      keep.order = TRUE, text.scale = text_sizes)
+grid.text("Localization", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+grid.text("(Controls)", x = 0.79, y = 0.95, gp = gpar(fontsize = 15))
+upset(m_controls, order.by = "freq", sets = c(st, location[keep]),
+      line.size = NA, text.scale = text_sizes)
+grid.text("Controls", x = 0.670, y = 0.95, gp = gpar(fontsize = 15))
 dev.off()
 
-# Calculate prevalence plots
-microab <- read.csv("AllSamples_Time_MicrobesAbund.csv", stringsAsFactors = FALSE)
+# Calculate prevalence plots ####
+microab <- read.csv("AllSamples_Time_MicrobesAbund.csv", 
+                    stringsAsFactors = FALSE)
 mm_type <- incorporate(microab$Sample_Type)
 mm_time <- incorporate(microab$Time)
 mm_patient <- incorporate(microab$Patient_ID)
