@@ -23,6 +23,8 @@ meta_r <- read.delim(
   na.strings = c("NA", "")
 )
 
+# Comes from models_sets
+o <- read.csv("relevant_genes_different_models.csv")
 
 setwd(cd)
 
@@ -59,6 +61,16 @@ filter_sexual <- function(expr) {
   expr[!sexual_related, ]
 }
 
+# Heatmaps of the correlations of the genes selected by intersection of models.
+o <- o$elements
+heatmap.2(all_s[, colnames(all_s) %in% o], trace = "none", 
+          col = scico::scico(50, palette = 'roma'))
+heatmap.2(disease[, colnames(disease) %in% o], trace = "none", 
+          col = scico::scico(50, palette = 'roma'), 
+          Rowv = FALSE, Colv = TRUE, dendrogram = "column")
+heatmap.2(controls[, colnames(controls) %in% o], trace = "none", 
+          col = scico::scico(50, palette = 'roma'), 
+          Rowv = FALSE, Colv = TRUE, dendrogram = "column")
 
 # Output ####
 # #  The numbers come from the number of samples in each correlation
@@ -68,7 +80,7 @@ all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
 gplots::heatmap.2(all_s[, colnames(all_s) %in% names(all_comp)], scale = "none", 
                   labCol = FALSE, xlab = "Genes", ylab = "Microorganisms (Genus)",
                   main = "Correlation of the genes in model 2", margins = c(2, 8), 
-                  col = scico::scico(10, palette = 'roma'), trace = "none", tracecol = "transparent")
+                  col = scico::scico(10, palette = 'roma'), trace = "none")
 o2 <- pathsPerMicro(all_samples_ensembl, all_comp)
 all_samples_ensembl_cor <- sign_cor(all_s, pall_s, threshold)
 write_cor(all_samples_ensembl, file = paste0(today, "_", type, "_correlation_all_model2.csv"))
