@@ -18,57 +18,62 @@ shrinkage[[2]] <- tau.estimate(A[[2]]) # 0.286506412433534
 
 # Experiment design for the complicated cases 
 # with too many computations possible to perform it only tests for 3 weighs per edge
-designs <- weight_design(weights = 11, size = 5, c(2, 4, 8, 9, 15))
+designs <- weight_design(weights = 11, size = 5, c(4, 8, 9, 15))
 keep <- vapply(designs, RGCCA2::correct, logical(1L))
 designs <- designs[keep]
 
 keep2 <- vapply(designs, function(x){
-  x[2, 1] != 0 && x[2, 4] != 0 && x[1, 4] != 0 && x[3, 5] != 0 && x[2, 3] != 0
+  x[2, 1] == 0 && x[2, 4] != 0 && x[1, 4] != 0 && x[3, 5] != 0 && x[2, 3] != 0
 }, logical(1L))
 
 designs <- designs[keep2]
 
 # Step 1 ####
-# Random subsample of 10% of the trials
-# Store all AVEs in the path so that it can be confirmed that it is the max value
-set.seed(4672679)
-s <- sample(designs, size = min(length(designs)*.1, 10000))
 # Perform the sgcca on these samples
 testing <- function(x, type, ...) {
+  tryCatch({
   result.sgcca <- RGCCA2::sgcca(C = x, 
                                 scheme = type, 
                                 verbose = FALSE, 
                                 scale = FALSE,
                                 ...)
-  analyze(result.sgcca)
+  analyze(result.sgcca)}, error = function(e){
+    out <- rep(NA, 24)
+    names(out) <- c(
+      "vs12", "vs13", "vs23", "vs14", "vs24", "vs34", "vs15",
+      "vs25", "vs35", "vs45", "AVE_inner", "AVE_outer", "cc1", "var12", "var13",
+      "var23", "var14", "var24", "var34", "var15", "var25", "var35",
+      "var45", "weights"
+    )
+  }
+    
+  )
 }
 Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
 # Estimated time of 8 hours
-out <- sapply(s, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
+out <- sapply(designs, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
 out2 <- as.data.frame(t(out))
-saveRDS(out2, "sample_model3_forced_interaction.RDS")
+saveRDS(out2, "model3_optimization_wo_forced_interaction.RDS")
+# This code is needed to remove the factors introduced by handling the error :\
+keep <- out2$vs12 != "vs12"
+out2 <- out2[keep, ]
+out2 <- sapply(out2, function(x){
+  as.numeric(levels(x))[x]
+})
+out2 <- as.data.frame(out2)
 
 out2 %>% 
-  top_n(5, AVE_inner) %>% 
-  select(AVE_inner, AVE_outer, var12, var13, var23, 
-         var14, var24, var34, var15, var25, var35, var45) %>% 
-  arrange(desc(AVE_inner))
+  select(AVE_inner, AVE_outer, matches("var")) %>% 
+  arrange(desc(AVE_inner)) %>% 
+  head()
 stop("Visual inspection of the top 5")
-# step 2 ####
 
 C3 <- symm(designs[[1]], out2[out2$AVE_inner == max(out2$AVE_inner), grep("var.*", colnames(out2))])
-model3_best2 <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = C3)
-saveRDS(model3_best2, "model3_forced_interaction.RDS")
+dimnames(C3) <- list(names(A), names(A))
+model3b3 <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = C3)
+saveRDS(model3b3, "model3_wo_forced_interaction.RDS")
 
-df <- data.frame(GE = model3_best2$Y[[1]][, 1],
-                 M = model3_best2$Y[[2]][, 1],
-                 D = model3_best2$Y[[3]][, 1],
-                 L = model3_best2$Y[[4]][, 1],
-                 Ti = model3_best2$Y[[5]][, 1])
-df <- cbind(df, meta_r)
-ggplot(df) +
-  geom_point(aes(GE, M, color = Exact_location))
-ggplot(df) +
-  geom_point(aes(GE, M, color = IBD))
-ggplot(df) +
-  geom_point(aes(GE, M, color = SESCD_local))
+l <- looIndex(size(A))
+loo_model <- loo_functions(A, shrinkage)
+result.out <- lapply(l, loo_model, model = C3)
+saveRDS(result.out, "loo-model3_wo_forced_interaction.RDS")
