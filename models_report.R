@@ -94,28 +94,28 @@ m1GE <- merger(tidyer(model1$Y[[1]], "1", "GE"))
 m1M <- merger(tidyer(model1$Y[[2]], "1", "M"))
 m1iGE <- merger(tidyer(model1i$Y[[1]], "1 i", "GE"))
 m1iM <- merger(tidyer(model1i$Y[[2]], "1 i", "M"))
-m2GE <- merger(tidyer(model2$Y[[1]], "2", "GE"))
-m2M <- merger(tidyer(model2$Y[[2]], "2", "M"))
-m2bGE <- merger(tidyer(model2_best$Y[[1]], "2 best", "GE"))
-m2bM <- merger(tidyer(model2_best$Y[[2]], "2 best", "M"))
-m2bP <- cbind(tidyer(model2_best$Y[[3]], "2 best", "P"), m2bGE[index, -c(1, 2, 3, 4)])
+m2GE <- merger(tidyer(model2$Y[[1]], "1.1", "GE"))
+m2M <- merger(tidyer(model2$Y[[2]], "1.1", "M"))
+m2bGE <- merger(tidyer(model2_best$Y[[1]], "1.2", "GE"))
+m2bM <- merger(tidyer(model2_best$Y[[2]], "1.2", "M"))
+m2bP <- cbind(tidyer(model2_best$Y[[3]], "1.2", "P"), m2bGE[index, -c(1, 2, 3, 4)])
 
-m2biGE <- merger(tidyer(model2_besti$Y[[1]], "2 best i", "GE"))
-m2biM <- merger(tidyer(model2_besti$Y[[2]], "2 best i", "M"))
-m3GE <- merger(tidyer(model3$Y[[1]], "3", "GE"))
-m3M <- merger(tidyer(model3$Y[[2]], "3", "M"))
-m3bGE <- merger(tidyer(model3_best$Y[[1]], "3 best", "GE"))
-m3bM <- merger(tidyer(model3_best$Y[[2]], "3 best", "M"))
+m2biGE <- merger(tidyer(model2_besti$Y[[1]], "1.2 i", "GE"))
+m2biM <- merger(tidyer(model2_besti$Y[[2]], "1.2 i", "M"))
+m3GE <- merger(tidyer(model3$Y[[1]], "2", "GE"))
+m3M <- merger(tidyer(model3$Y[[2]], "2", "M"))
+m3bGE <- merger(tidyer(model3_best$Y[[1]], "2.1", "GE"))
+m3bM <- merger(tidyer(model3_best$Y[[2]], "2.1", "M"))
 
-m3bD <- cbind(tidyer(model3_best$Y[[3]], "3 best", "D"), m3bGE[index, -c(1, 2, 3, 4)])
-m3bL <- cbind(tidyer(model3_best$Y[[4]], "3 best", "L"), m3bGE[index, -c(1, 2, 3, 4)])
-m3biGE <- merger(tidyer(model3_besti$Y[[1]], "3 best i", "GE"))
-m3biM <- merger(tidyer(model3_besti$Y[[2]], "3 best i", "M"))
+m3bD <- cbind(tidyer(model3_best$Y[[3]], "2.1", "D"), m3bGE[index, -c(1, 2, 3, 4)])
+m3bL <- cbind(tidyer(model3_best$Y[[4]], "2.1", "L"), m3bGE[index, -c(1, 2, 3, 4)])
+m3biGE <- merger(tidyer(model3_besti$Y[[1]], "2.1 i", "GE"))
+m3biM <- merger(tidyer(model3_besti$Y[[2]], "2.1 i", "M"))
 
-m3boGE <- merger(tidyer(model3_best2$Y[[1]], "3 best o", "GE"))
-m3boM <- merger(tidyer(model3_best2$Y[[2]], "3 best o", "M"))
-m3bIntGE <- merger(tidyer(model3_bestB$Y[[1]], "3 best int", "GE"))
-m3bIntM <- merger(tidyer(model3_bestB$Y[[2]], "3 best int", "M"))
+m3boGE <- merger(tidyer(model3_best2$Y[[1]], "2.3", "GE"))
+m3boM <- merger(tidyer(model3_best2$Y[[2]], "2.3", "M"))
+m3bIntGE <- merger(tidyer(model3_bestB$Y[[1]], "2.2", "GE"))
+m3bIntM <- merger(tidyer(model3_bestB$Y[[2]], "2.2", "M"))
 
 inter <- intersect(colnames(m0GE), colnames(m0M))
 inter <- grep("Rownames", inter, invert = TRUE, value = TRUE)
@@ -137,50 +137,98 @@ df <- rbind(
 
 saveRDS(df, "models_summary.RDS")
 
-# Plot microbiome, phenotype of model2 ####
+# Model 1.2 plots####
 df2b <- cbind.data.frame(P = model2_best$Y[[3]][, 1], 
                  M = model2_best$Y[[2]][, 1], 
+                 R = model2_best$Y[[1]][, 1],
                  Rownames = rownames(model2_best$Y[[2]]))
 df2b <- merge(df2b, meta, by.x = "Rownames", by.y = "Seq_code_uDNA")
-ggplot(df2b) +
-  geom_point(aes(P, M, color = ID)) +
-  scale_color_viridis_d()
+
 df2b %>% 
   mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
                            !is.na(Exact_location) ~ "Colon")) %>% 
   ggplot() +
   geom_point(aes(P, M, color = Ileum)) +
-  labs(color = "Location")
+  scale_color_viridis_d() +
+  labs(x = "Sample data", y = "Microbiome", title = "Model 1.2", 
+       color = "Location")
+df2b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(P, R, color = Ileum)) +
+  scale_color_viridis_d() +
+  labs(x = "Sample data", y = "Transcriptome", title = "Model 1.2", 
+       color = "Location")
 
 ggplot(df2b) +
-  geom_point(aes(P, M, color = IBD))
+  geom_point(aes(P, M, color = IBD, shape = IBD)) +
+  labs(x = "Sample data", y = "Microbiome", title = "Model 1.2")
+  
 ggplot(df2b) +
-  geom_point(aes(P, M, color = Time)) +
+  geom_point(aes(P, M, color = diagTime)) +
   labs(color = "Time")
-# Model3 plots ####
-df3b <- cbind.data.frame(D = model3_best$Y[[3]][, 1], 
-                 M = model3_best$Y[[2]][, 1], 
-                 L = model3_best$Y[[4]][, 1], 
-                 R = model3_best$Y[[1]][, 1], 
-                 T = model3_best$Y[[5]][, 1], 
-                 Rownames = rownames(model2_best$Y[[2]]))
+
+# Model 2.2 plots ####
+df3b <- cbind.data.frame(D = model3_bestB$Y[[3]][, 1], 
+                 M = model3_bestB$Y[[2]][, 1], 
+                 L = model3_bestB$Y[[4]][, 1], 
+                 R = model3_bestB$Y[[1]][, 1], 
+                 T = model3_bestB$Y[[5]][, 1], 
+                 Rownames = rownames(model3_bestB$Y[[2]]))
 
 df3b <- merge(df3b, meta, by.x = "Rownames", by.y = "Seq_code_uDNA")
 ggplot(df3b) +
   geom_point(aes(D, M, color = ID)) +
-  scale_color_viridis_d()
+  scale_color_viridis_d() +
+  labs(x = "Demographics", y = "Microbiome", title = "Model 2.2")
 ggplot(df3b) +
-  geom_point(aes(D, M, color = IBD))
+  geom_point(aes(D, R, color = ID)) +
+  scale_color_viridis_d() +
+  labs(x = "Demographics", y = "Transcriptome", title = "Model 2.2")
+df3b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(D, R, color = Ileum)) +
+  scale_color_viridis_d() +
+  labs(x = "Demographics", y = "Transcriptome", title = "Model 2.2")
+
 df3b %>% 
   mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
                            !is.na(Exact_location) ~ "Colon")) %>% 
   ggplot() +
   geom_point(aes(L, R, color = Ileum)) +
-  scale_color_viridis_d()
+  scale_color_viridis_d() +
+  labs(x = "Location", y = "Transcriptome", title = "Model 2.2", 
+       color = "Location")
+df3b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(L, M, color = Ileum)) +
+  scale_color_viridis_d() +
+  labs(x = "Location", y = "Microbiome", title = "Model 2.2", 
+       color = "Location")
+
+ggplot(df3b) +
+  geom_point(aes(D, M, color = IBD)) +
+  labs(x = "Demographics", y = "Microbiome", title = "Model 2.2")
+ggplot(df3b) +
+  geom_point(aes(D, M, color = Active_area)) +
+  labs(x = "Demographics", y = "Microbiome", title = "Model 2.2")
+df3b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(L, R, color = Ileum)) +
+  scale_color_viridis_d() +
+  labs(x = "Location", y = "Transcriptome", title = "Model 2.2", 
+       color = "Location")
 ggplot(df3b) +
   geom_point(aes(L, R, color = IBD))
 ggplot(df3b) +
-  geom_point(aes(T, D, color = Time))
+  geom_point(aes(T, D, color = AgeDiag))
 
 # Set theme without background on the labels
 theme_set(theme_bw())
@@ -195,9 +243,9 @@ df %>%
   geom_point(aes(GE, M, col = as.factor(Sample_Code_uDNA))) +
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   guides(col = FALSE) +
-  labs(title = "Samples by model", 
-       subtitle = "Colored by sample",
-       caption = "HSCT dataset") 
+  labs(title = "Samples by model", subtitle = "Colored by sample",
+       caption = "HSCT dataset",
+       x = "Transcriptome", y = "Microbiome") 
 
 # Check that the samples order doesn't change or something!! It doesn't look right
 df %>% 
@@ -205,10 +253,11 @@ df %>%
   filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = IBD)) +
-  stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", show.legend = FALSE) +
+  stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", 
+               show.legend = FALSE) +
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
-       caption = "HSCT dataset")
+       caption = "HSCT dataset", x = "Transcriptome", y = "Microbiome")
 df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
@@ -217,7 +266,8 @@ df %>%
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset",
-       color = "SESCD (local)") +
+       color = "SESCD (local)",
+       x = "Transcriptome", y = "Microbiome") +
   scale_color_viridis_c()
 
 df %>% 
@@ -230,7 +280,8 @@ df %>%
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
-       col = "Location")
+       col = "Location",
+       x = "Transcriptome", y = "Microbiome")
 df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
@@ -249,7 +300,8 @@ df %>%
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
-       col = "IBD")
+       col = "IBD",
+       x = "Transcriptome", y = "Microbiome")
 df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>%
@@ -399,34 +451,34 @@ a1GE <- tidyer(model1$a[[1]], "1", "GE")
 a1M <- tidyer(model1$a[[2]], "1", "M")
 a1iGE <- tidyer(model1i$a[[1]], "1 i", "GE")
 a1iM <- tidyer(model1i$a[[2]], "1 i", "M")
-a2GE <- tidyer(model2$a[[1]], "2", "GE")
-a2M <- tidyer(model2$a[[2]], "2", "M")
-a2bGE <- tidyer(model2_best$a[[1]], "2 best", "GE")
-a2bM <- tidyer(model2_best$a[[2]], "2 best", "M")
-a2biGE <- tidyer(model2_besti$a[[1]], "2 best i", "GE")
-a2biM <- tidyer(model2_besti$a[[2]], "2 best i", "M")
-a3GE <- tidyer(model3$a[[1]], "3", "GE")
-a3M <- tidyer(model3$a[[2]], "3", "M")
-a3bGE <- tidyer(model3_best$a[[1]], "3 best", "GE")
-a3bM <- tidyer(model3_best$a[[2]], "3 best", "M")
-a3biGE <- tidyer(model3_besti$a[[1]], "3 best i", "GE")
-a3biM <- tidyer(model3_besti$a[[2]], "3 best i", "M")
+a2GE <- tidyer(model2$a[[1]], "1.1", "GE")
+a2M <- tidyer(model2$a[[2]], "1.1", "M")
+a2bGE <- tidyer(model2_best$a[[1]], "1.2", "GE")
+a2bM <- tidyer(model2_best$a[[2]], "1.2", "M")
+a2biGE <- tidyer(model2_besti$a[[1]], "1.2 i", "GE")
+a2biM <- tidyer(model2_besti$a[[2]], "1.2 i", "M")
+a3GE <- tidyer(model3$a[[1]], "2", "GE")
+a3M <- tidyer(model3$a[[2]], "2", "M")
+a3bGE <- tidyer(model3_best$a[[1]], "2.1", "GE")
+a3bM <- tidyer(model3_best$a[[2]], "2.1", "M")
+a3biGE <- tidyer(model3_besti$a[[1]], "2.1 i", "GE")
+a3biM <- tidyer(model3_besti$a[[2]], "2.1 i", "M")
 
 
-a3boGE <- tidyer(model3_best2$a[[1]], "3 best o", "GE")
-a3boM <- tidyer(model3_best2$a[[2]], "3 best o", "M")
-a3bIntGE <- tidyer(model3_bestB$a[[1]], "3 best int", "GE")
-a3bIntM <- tidyer(model3_bestB$a[[2]], "3 best int", "M")
+a3boGE <- tidyer(model3_best2$a[[1]], "2.2", "GE")
+a3boM <- tidyer(model3_best2$a[[2]], "2.2", "M")
+a3bIntGE <- tidyer(model3_bestB$a[[1]], "2.3", "GE")
+a3bIntM <- tidyer(model3_bestB$a[[2]], "2.3", "M")
 
 
 a1GE <- cbind("Model" = "1", a1GE)
 a1iGE <- cbind("Model" = "1 i", a1iGE)
 a1M <- cbind("Model" = "1", a1M)
 a1iM <- cbind("Model" = "1 i", a1iM)
-a3boGE <- cbind("Model" = "3 best o", a3boGE)
-a3boM <- cbind("Model" = "3 best o", a3boM)
-a3bIntGE <- cbind("Model" = "3 best int", a3bIntGE)
-a3bIntM <- cbind("Model" = "3 best int", a3bIntM)
+a3boGE <- cbind("Model" = "2.2", a3boGE)
+a3boM <- cbind("Model" = "2.2", a3boM)
+a3bIntGE <- cbind("Model" = "2.3", a3bIntGE)
+a3bIntM <- cbind("Model" = "2.3", a3bIntM)
 
 dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE, a3boGE, a3bIntGE)
 dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM, a3boM, a3bIntM)
@@ -478,7 +530,7 @@ upset(keepGE, order.by = "freq", nsets = 6,
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 upset(keepGE, order.by = "freq", keep.order = TRUE, 
-      sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best", "3 best o", "3 best int")),
+      sets = rev(c("0", "1", "1.1", "1.2", "2", "2.1", "2.2", "2.3")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 upset(keepM, order.by = "freq", nsets = 6, 
@@ -486,7 +538,7 @@ upset(keepM, order.by = "freq", nsets = 6,
       line.size = NA, text.scale = text_sizes)
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 upset(keepM, order.by = "freq", keep.order = TRUE, 
-      sets = rev(c("0", "1" ,"2", "2 best", "3", "3 best", "3 best o", "3 best int")),
+      sets = rev(c("0", "1", "1.1", "1.2", "2", "2.1", "2.2", "2.3")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 
