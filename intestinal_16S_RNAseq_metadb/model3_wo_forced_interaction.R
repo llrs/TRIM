@@ -54,6 +54,7 @@ Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
 out <- sapply(designs, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
 out2 <- as.data.frame(t(out))
 saveRDS(out2, "model3_optimization_wo_forced_interaction.RDS")
+out2 <- readRDS("model3_optimization_wo_forced_interaction.RDS")
 # This code is needed to remove the factors introduced by handling the error :\
 keep <- out2$vs12 != "vs12"
 out2 <- out2[keep, ]
@@ -77,3 +78,15 @@ l <- looIndex(size(A))
 loo_model <- loo_functions(A, shrinkage)
 result.out <- lapply(l, loo_model, model = C3)
 saveRDS(result.out, "loo-model3_wo_forced_interaction.RDS")
+
+pdf(paste0("Figures/", today, "_RGCCA_plots_model2.2.pdf"))
+
+# Bootstrap of sgcca
+boot <- boot_sgcca(A, C3, shrinkage, 1000)
+
+saveRDS(boot, file = "bootstrap_model2.2.RDS")
+
+# Evaluate the boostrap effect and plot
+boot_evaluate(boot$STAB)
+
+dev.off()

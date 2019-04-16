@@ -187,7 +187,7 @@ saveRDS(result.out, "loo-model2.RDS")
 # Bootstrap of sgcca
 boot <- boot_sgcca(A, model2, shrinkage, 1000)
 
-saveRDS(boot, file = "bootstrap_model2.RDS")
+saveRDS(boot, file = "bootstrap_model1.2.RDS")
 
 # Evaluate the boostrap effect and plot
 boot_evaluate(boot$STAB)
