@@ -193,6 +193,21 @@ df3b %>%
   geom_point(aes(D, R, color = Ileum)) +
   scale_color_viridis_d() +
   labs(x = "Demographics", y = "Transcriptome", title = "Model 2.2")
+df3b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(T, R, color = Ileum)) +
+  scale_color_viridis_d() +
+  labs(x = "Time", y = "Transcriptome", title = "Model 2.2")
+
+df3b %>% 
+  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                           !is.na(Exact_location) ~ "Colon")) %>% 
+  ggplot() +
+  geom_point(aes(T, D, color = ID)) +
+  scale_color_viridis_d() +
+  labs(x = "Time", y = "Demographics", title = "Model 2.2")
 
 df3b %>% 
   mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
