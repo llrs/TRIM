@@ -1,4 +1,5 @@
 library("ggplot2")
+library("gplots")
 
 folder <- "." # intestinal_16S_RNAseq_integration
 b0 <- readRDS(file.path(folder, "boot0.RDS"))
@@ -45,7 +46,13 @@ ggplot(b) +
   geom_point(aes(AVE_inner, AVE_outer), 
              data = as.data.frame(model0$AVE[AVE_names])[1, , drop = FALSE], 
              col = "red") +
+  stat_ellipse(aes(inner, outer, col = model)) +
   labs(title = "AVE in bootstraps")
+
+b %>% 
+  group_by(model) %>% 
+  summarise(mean(inner), mean(outer), sd(inner), sd(outer)) %>% 
+  write.csv(file = "dispersion_models.csv")
 
 i <- sapply(index, function(x)x)
 t_i <- sort(table(i)) - 1000
@@ -143,8 +150,23 @@ for (mod in rna2.2) {
   i <- i + 1
 }
 
+# Correlations ####
 cors <- WGCNA::cor(t(rna), t(dna), 
                    method = "spearman", 
                    use = "pairwise.complete.obs")
+saveRDS(cors, "cors_bootstrap.RDS")
+dna_orig <- model2.2$a$`16S`[, 1]
+rna_orig <- model2.2$a$RNAseq[, 1]
 
-cors <- cor(t(rna), t(dna), use = "pairwise.complete.obs")
+dna_orig_names <- names(dna_orig)[dna_orig != 0]
+rna_orig_names <- names(rna_orig)[rna_orig != 0]
+
+sub_cors <- cors[rownames(cors) %in% rna_orig_names, 
+                 colnames(cors) %in% dna_orig_names]
+heatmap.2(sub_cors, scale = "none", labCol = FALSE,
+          labRow = FALSE, xlab = "Microorganisms (OTUs)", ylab = "Transcripts",
+          main = "Correlations of bootstrapping model 2.2", margins = c(2, 2), 
+          col = scico::scico(50, palette = 'roma'), trace = "none")
+cor_sign <- cor_sign(ncol(cors))
+df <- as.data.frame(which(sub_cors > cor_sign, arr.ind = TRUE))
+df$cols <- colnames(sub_cors)[df$col]
