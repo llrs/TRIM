@@ -1,5 +1,7 @@
 library("ggplot2")
 library("gplots")
+library("org.Hs.eg.db")
+library("integration")
 
 folder <- "." # intestinal_16S_RNAseq_integration
 b0 <- readRDS(file.path(folder, "boot0.RDS"))
@@ -163,10 +165,36 @@ rna_orig_names <- names(rna_orig)[rna_orig != 0]
 
 sub_cors <- cors[rownames(cors) %in% rna_orig_names, 
                  colnames(cors) %in% dna_orig_names]
+
+sub_cors2 <- WGCNA::cor(t(rna[rna_orig_names, ]), 
+                        t(dna[dna_orig_names, ]), 
+                        method = "spearman", 
+                        use = "pairwise.complete.obs")
 heatmap.2(sub_cors, scale = "none", labCol = FALSE,
           labRow = FALSE, xlab = "Microorganisms (OTUs)", ylab = "Transcripts",
           main = "Correlations of bootstrapping model 2.2", margins = c(2, 2), 
           col = scico::scico(50, palette = 'roma'), trace = "none")
-cor_sign <- cor_sign(ncol(cors))
+
+# Test if there are two groups (one for each sign)
+cls_rna <- apply(rna, 1, kmeans, centers = 2, iter.max = 100)
+p_rna <- sapply(cls_rna, function(cl){1-cl$betweenss/cl$totss})
+cls_dna <- apply(dna, 1, kmeans, centers = 2, iter.max = 100)
+p_dna <- sapply(cls_dna, function(cl){1-cl$betweenss/cl$totss})
+
+non_grouped <- names(p_rna)[p_rna > 0.05]
+
+n_cor <- 999
+cor_sign <- cor_sign(n_cor)
 df <- as.data.frame(which(sub_cors > cor_sign, arr.ind = TRUE))
 df$cols <- colnames(sub_cors)[df$col]
+
+tax <- readRDS("../intestinal_16S_RNAseq_metadb/otus_tax.RDS")
+df$Microorganism <- apply(tax[df$cols, c("Genus", "Species")], 1, paste, collapse = " ")
+df$Microorganism <- gsub("NA", "", df$Microorganism)
+df$Microorganism <- gsub("^ $", "", df$Microorganism)
+df$Genes <- mapIds(org.Hs.eg.db, keys = trimVer(rownames(df)), 
+                   column = "SYMBOL", keytype = "ENSEMBL", multiVals = "first")
+df$cor <- apply(df[, c("row", "col")], 1, function(x, cors){cors[x[1], x[2]]}, cors = sub_cors)
+df$pvalue <- sapply(df$cor, pvalue, n = n_cor)
+write.csv(df[, c(-1, -2, -3)], file = "correlations_bootstrapping.csv", 
+          row.names = FALSE)
