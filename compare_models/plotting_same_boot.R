@@ -2,6 +2,7 @@ library("ggplot2")
 library("gplots")
 library("org.Hs.eg.db")
 library("integration")
+library("patchwork")
 
 folder <- "." # intestinal_16S_RNAseq_integration
 b0 <- readRDS(file.path(folder, "boot0.RDS"))
@@ -55,7 +56,7 @@ b %>%
   group_by(model) %>% 
   summarise(mean(inner), mean(outer), sd(inner), sd(outer)) %>% 
   write.csv(file = "dispersion_models.csv")
-
+index <- readRDS("index_locale.RDS")
 i <- sapply(index, function(x)x)
 t_i <- sort(table(i)) - 1000
 barplot(t_i, main = "Deviation from 1000", 
@@ -110,9 +111,10 @@ CC <- ggplot(df) +
   # scale_x_continuous(labels = scales::percent) +
   labs(
     # x = "Controls (%)",  
-       y = "Ileum (%)",
-       title = "Distribution of the bootstrapping samples",
-       subtitle = paste0(length(index), " resamples of 158 samples"))
+    y = "Ileum (%)",
+    n = "Bootstraps",
+    title = "Distribution of the bootstrapping samples",
+    subtitle = paste0(length(index), " resamples of 158 samples"))
 
 CA <- ggplot(df) +
   geom_point(aes(Controls, Age), col = "grey") +
@@ -129,9 +131,9 @@ CC/CA
 # microbiome ####
 micro_fun <- function(x){x$STAB$`16S`}
 micro2.2 <- lapply(b2.2, micro_fun)
-micro2.2 <- micro2.2[-230]
+micro2.2 <- micro2.2
 
-dna <- matrix(0, nrow = nrow(model0$a$`16S`), ncol = 999)
+dna <- matrix(0, nrow = nrow(model0$a$`16S`), ncol = 1000)
 rownames(dna) <- rownames(model0$a$`16S`)
 i <- 1
 for (mod in micro2.2) {
@@ -142,9 +144,9 @@ for (mod in micro2.2) {
 # transcriptome ####
 rna_fun <- function(x){x$STAB$RNAseq}
 rna2.2 <- lapply(b2.2, rna_fun)
-rna2.2 <- rna2.2[-230]
+rna2.2 <- rna2.2
 
-rna <- matrix(0, nrow = nrow(RNAseq), ncol = 999)
+rna <- matrix(0, nrow = nrow(RNAseq), ncol = 1000)
 rownames(rna) <- rownames(RNAseq)
 i <- 1
 for (mod in rna2.2) {
@@ -163,27 +165,31 @@ rna_orig <- model2.2$a$RNAseq[, 1]
 dna_orig_names <- names(dna_orig)[dna_orig != 0]
 rna_orig_names <- names(rna_orig)[rna_orig != 0]
 
-sub_cors <- cors[rownames(cors) %in% rna_orig_names, 
-                 colnames(cors) %in% dna_orig_names]
-
 sub_cors2 <- WGCNA::cor(t(rna[rna_orig_names, ]), 
                         t(dna[dna_orig_names, ]), 
                         method = "spearman", 
                         use = "pairwise.complete.obs")
+sub_cors <- subcors2
+sub_cors <- cors[rownames(cors) %in% rna_orig_names, 
+                 colnames(cors) %in% dna_orig_names]
+
 heatmap.2(sub_cors, scale = "none", labCol = FALSE,
           labRow = FALSE, xlab = "Microorganisms (OTUs)", ylab = "Transcripts",
           main = "Correlations of bootstrapping model 2.2", margins = c(2, 2), 
           col = scico::scico(50, palette = 'roma'), trace = "none")
 
 # Test if there are two groups (one for each sign)
-cls_rna <- apply(rna, 1, kmeans, centers = 2, iter.max = 100)
-p_rna <- sapply(cls_rna, function(cl){1-cl$betweenss/cl$totss})
-cls_dna <- apply(dna, 1, kmeans, centers = 2, iter.max = 100)
-p_dna <- sapply(cls_dna, function(cl){1-cl$betweenss/cl$totss})
+pseudo_pvalue <- function(x) {
+  cl <- kmeans(x, centers = 2, iter.max = 100)
+  1 - cl$betweenss/cl$totss
+  }
+p_rna <- apply(rna, 1, pseudo_pvalue)
+p_dna <- apply(dna, 1, pseudo_pvalue)
+hist(p_rna, breaks = 1000)
+hist(p_rna[rna_orig_names], breaks = 1000)
+non_grouped <- names(p_rna)[p_rna < 0.4 & p_rna > 0.3]
 
-non_grouped <- names(p_rna)[p_rna > 0.05]
-
-n_cor <- 999
+n_cor <- 1000
 cor_sign <- cor_sign(n_cor)
 df <- as.data.frame(which(sub_cors > cor_sign, arr.ind = TRUE))
 df$cols <- colnames(sub_cors)[df$col]
@@ -196,5 +202,6 @@ df$Genes <- mapIds(org.Hs.eg.db, keys = trimVer(rownames(df)),
                    column = "SYMBOL", keytype = "ENSEMBL", multiVals = "first")
 df$cor <- apply(df[, c("row", "col")], 1, function(x, cors){cors[x[1], x[2]]}, cors = sub_cors)
 df$pvalue <- sapply(df$cor, pvalue, n = n_cor)
+df2 <- df[rownames(df) %in% non_grouped, ]
 write.csv(df[, c(-1, -2, -3)], file = "correlations_bootstrapping.csv", 
           row.names = FALSE)
