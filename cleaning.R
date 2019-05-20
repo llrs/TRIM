@@ -333,3 +333,21 @@ write.csv(tax_i, file = file.path(intestinal, "taxonomy.csv"), row.names = TRUE)
 write.csv(tax_s, file = file.path(stool, "taxonomy.csv"), row.names = TRUE)
 write.csv(eqOTUS, "equivalent_otus.csv", row.names = FALSE)
 write.csv(eqGenera, "equivalent_genus.csv", row.names = FALSE)
+
+
+bottomly_proportions <- 10 ^ seq(-2, 0, 0.1)
+ss = subsample(counts = round(expr, 0),
+               proportions = bottomly_proportions,
+               treatment
+               method = c("voomLimma"),
+               replications = 1,
+               seed = 12345)
+ss_sum <- summary(ss)
+head(ss_sum)
+
+ex <- round(expr, 0)
+ss2 = subsample(counts = ex[rowSums(ex) > 10, ],
+                proportions = bottomly_proportions, treatment = meta_r[1:172, "IBD"],
+                method = c("voomLimma"),
+                replications = 1,
+                seed = 12345)

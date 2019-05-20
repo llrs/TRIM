@@ -1,5 +1,6 @@
 library("ggplot2")
 library("gplots")
+library("dplyr")
 library("org.Hs.eg.db")
 library("integration")
 library("patchwork")
@@ -56,7 +57,11 @@ b %>%
   group_by(model) %>% 
   summarise(mean(inner), mean(outer), sd(inner), sd(outer)) %>% 
   write.csv(file = "dispersion_models.csv")
+
 index <- readRDS("index_locale.RDS")
+meta_r <- readRDS("../intestinal_16S_RNAseq_metadb/meta.RDS")
+meta <- meta_r
+
 i <- sapply(index, function(x)x)
 t_i <- sort(table(i)) - 1000
 barplot(t_i, main = "Deviation from 1000", 
@@ -64,7 +69,7 @@ barplot(t_i, main = "Deviation from 1000",
 barplot(t_i, main = "Deviation from 1000", 
         col = as.factor(meta$IBD[as.numeric(names(t_i))]))
 
-df <- as.data.frame(table(i)-1000)
+df <- as.data.frame(table(i) - 1000)
 meta2 <- cbind(df, meta)
 
 ggplot(meta2) + 
@@ -82,8 +87,15 @@ ggplot(meta2) +
   labs(x = "Sample", y = "Deviation from uniform distribution", 
        title = "Samples repeated in bootstrapping",
        col = "Disease", fill = "Disease")
+ggplot(meta2) + 
+  geom_col(aes(forcats::fct_reorder(i, Freq), Freq, col = SEX, fill = SEX)) +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        panel.grid.major.x = element_blank(), panel.border = element_blank()) +
+  labs(x = "Sample", y = "Deviation from uniform distribution", 
+       title = "Samples repeated in bootstrapping",
+       col = "Sex", fill = "Sex")
 
-meta_r <- readRDS("../intestinal_16S_RNAseq_metadb//meta.RDS")
+
 df <- sapply(index, function(i, x) {
   
   c(Controls = sum(x$IBD[i] != "CD")/158,
