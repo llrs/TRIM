@@ -61,7 +61,7 @@ expr <- expr[, meta_r$`Sample Name_RNA`]
 otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
 expr_norm <- norm_RNAseq(expr)
-expr <- norm_RNAseq(expr_norm)
+expr <- expr_norm
 otus_table_i <- norm_otus(otus_table_i)
 
 su <- apply(meta_r[, c("ID", "Exact_location", "AGE_SAMPLE", "diagTime", "SESCD_local", "SEX")], 2, is.na)
