@@ -70,9 +70,9 @@ expr <- filter_RNAseq(expr_norm)
 ctrls_expr <- filter_RNAseq(ctrls_expr_norm)
 IBD_expr <- filter_RNAseq(IBD_expr_norm)
 
-otus_table_i <- norm_otus(otus_tax_i, otus_table_i)
-ctrls_otus_table_i <- norm_otus(otus_tax_i, ctrls_otus_table_i)
-IBD_otus_table_i <- norm_otus(otus_tax_i, IBD_otus_table_i)
+otus_table_i <- norm_otus(otus_table_i, otus_tax_i)
+ctrls_otus_table_i <- norm_otus(ctrls_otus_table_i, otus_tax_i)
+IBD_otus_table_i <- norm_otus(IBD_otus_table_i, otus_tax_i)
 
 # Save
 saveRDS(otus_table_i, "otus_table.RDS")
