@@ -56,7 +56,7 @@ ggplot(b) +
 b %>% 
   group_by(model) %>% 
   summarise(mean(inner), mean(outer), sd(inner), sd(outer)) %>% 
-  write.csv(file = "dispersion_models.csv")
+  write.csv(file = "dispersion_models.csv", row.names = FALSE)
 
 index <- readRDS("index_locale.RDS")
 meta_r <- readRDS("../intestinal_16S_RNAseq_metadb/meta.RDS")
