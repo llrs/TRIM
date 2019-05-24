@@ -1,5 +1,5 @@
 library("ggforce")
-library("RGCCA2")
+library("RGCCA")
 library("integration")
 library("fgsea")
 library("dplyr")

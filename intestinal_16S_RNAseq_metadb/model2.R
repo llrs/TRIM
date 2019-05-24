@@ -1,5 +1,5 @@
 library("ggforce")
-library("RGCCA2")
+library("RGCCA")
 library("BiocParallel")
 library("integration")
 library("fgsea")
@@ -55,7 +55,7 @@ model2 <- subSymm(model1, "RNAseq", "16S", 1)
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
 shrinkage <- c(0.249488046688595, 0, 1) # We guess a 0.1 for the RNAseq expression
-shrinkage[2] <- tau.estimate(A[[2]])
+shrinkage[2] <- tau.estimate(A[[2]]) # 0.286506412433534
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))
 }))
@@ -92,7 +92,7 @@ sgcca_custom <- function(x, ...) {
   sgcca.centroid$AVE[c("AVE_inner", "AVE_outer")]
 }
 
-Ab <- lapply(A, RGCCA2:::scale2_, bias = TRUE)
+Ab <- lapply(A, scale2)
 # design_boot <- bplapply(designs, sgcca_custom, ncomp = ncomp, 
 # shrinkage = shrinkage, A = A, BPPARAM = bpparam())
 design_boot <- lapply(designs, sgcca_custom, c1 = shrinkage, A = Ab)
@@ -120,7 +120,7 @@ samples <- data.frame(
 RNAseq1 <- samples$RNAseq
 RNAseq2 <- sgcca.centroid$Y[["RNAseq"]][, 2]
 microbiota2 <- sgcca.centroid$Y[["16S"]][, 2]
-microbiota1 <- samples$microbiota
+microbiota1 <- samples$Micro
 
 names(RNAseq1) <- rownames(samples)
 names(microbiota1) <- rownames(samples)
@@ -137,8 +137,8 @@ fgsea(groups, microbiota2, nperm = 1000)
 
 pdf(paste0("Figures/", today, "_RGCCA_plots_model2.pdf"))
 
-km <- kmeans(samples[, c("RNAseq", "microbiota")], 2, nstart = 2)
-plot(samples[, c("RNAseq", "microbiota")], col = km$cluster, 
+km <- kmeans(samples[, c("RNAseq", "Micro")], 2, nstart = 2)
+plot(samples[, c("RNAseq", "Micro")], col = km$cluster, 
      main = "K-clustering (2 groups)")
 
 ## Plotting ####
@@ -153,7 +153,7 @@ variables <- variables(sgcca.centroid)
 plot_variables(variables)
 
 # Plot PCAs
-plot_interesting(plot_interesting, meta_r, expr, otus_table_i)
+plot_interesting(variables, meta_r, expr, otus_table_i)
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x) {x[, 1]})

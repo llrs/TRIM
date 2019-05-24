@@ -31,13 +31,15 @@ model0di <- subSymm(model0d, 1, 1, 1)
 # We cannnot comput eht tau.estimate for A[[1]]
 # (shrinkage <- sapply(A, tau.estimate))
 shrinkage <- c(0.249488046688595, 0, 1) # We guess a 0.1 for the RNAseq expression
-shrinkage[2] <- tau.estimate(A[[2]])
+shrinkage[2] <- tau.estimate(A[[2]]) # 0.286506412433534
 (min_shrinkage <- sapply(A, function(x) {
   1 / sqrt(ncol(x))
 }))
 # # Don't let the shrinkage go below the thershold allowed
 shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # shrinkage <- rep(1, length(A))
+
+ncomp <- rep(2, length(A))
 
 sgcca.centroid <- sgcca(
   A, C = model0d, c1 = shrinkage,
@@ -62,7 +64,7 @@ samples <- data.frame(
 RNAseq1 <- samples$RNAseq
 RNAseq2 <- sgcca.centroid$Y[["RNAseq"]][, 2]
 microbiota2 <- sgcca.centroid$Y[["16S"]][, 2]
-microbiota1 <- samples$microbiota
+microbiota1 <- samples$Micro
 
 names(RNAseq1) <- rownames(samples)
 names(microbiota1) <- rownames(samples)
@@ -70,17 +72,17 @@ names(RNAseq2) <- rownames(samples)
 names(microbiota2) <- rownames(samples)
 groups <- split(rownames(samples), as.factor(meta_r$HSCT_responder))
 # First dimension seems to capture well the
-fgsea(groups, RNAseq1, nperm = 1000)
-fgsea(groups, microbiota1, nperm = 1000)
+fgsea(groups, RNAseq1, nperm = 10000)
+fgsea(groups, microbiota1, nperm = 10000)
 # Further dimensions
-fgsea(groups, RNAseq2, nperm = 1000)
-fgsea(groups, microbiota2, nperm = 1000)
+fgsea(groups, RNAseq2, nperm = 10000)
+fgsea(groups, microbiota2, nperm = 10000)
 
 
 pdf(paste0("Figures/", today, "_RGCCA_plots_model0_demographics.pdf"))
 
-km <- kmeans(samples[, c("RNAseq", "microbiota")], 2, nstart = 2)
-plot(samples[, c("RNAseq", "microbiota")], col = km$cluster, 
+km <- kmeans(samples[, c("RNAseq", "Micro")], 2, nstart = 2)
+plot(samples[, c("RNAseq", "Micro")], col = km$cluster, 
      main = "K-clustering (2 groups)")
 
 ## Plotting ####
@@ -95,7 +97,7 @@ variables <- variables(sgcca.centroid)
 plot_variables(variables)
 
 # Plot PCAs
-plot_interesting(plot_interesting, meta_r, expr, otus_table_i)
+plot_interesting(variables, meta_r, expr, otus_table_i)
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x) {x[, 1]})
