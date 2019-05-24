@@ -2,6 +2,10 @@ library("integration")
 library("org.Hs.eg.db")
 library("fastDummies")
 library("WGCNA")
+library("RGCCA")
+library("pheatmap")
+library("gplots")
+library("WriteXLS")
 
 model2.2 <- readRDS("../intestinal_16S_RNAseq_metadb/model3_best.RDS")
 
@@ -95,15 +99,15 @@ legend("bottomleft", fill = c("black", "red"), legend = c("Ileum", "Colon"))
 
 # Recalculate the dummy variables for the names
 m3 <- c("ID","SEX", "Surgery", "Treatment")
-A3_2 <- dummy_cols(meta_r[, m3], m3, remove_first_dummy = TRUE, ignore_na = TRUE)
+A3_2 <- dummy_cols(meta_r[, m3], m3, remove_first_dummy = TRUE)
 A3cols <- colnames(A3_2[, !colnames(A3_2) %in% m3])
 
 m5 <- "Transplant"
-A5_2 <- dummy_cols(meta_r[, m5, drop = FALSE], m5, remove_first_dummy = TRUE, ignore_na = TRUE)
+A5_2 <- dummy_cols(meta_r[, m5, drop = FALSE], m5, remove_first_dummy = TRUE)
 A5cols <- c("AgeDiag", "AGE_SAMPLE", colnames(A5_2[, !colnames(A5_2) %in% m5]))
 
 m4 <- c("Exact_location")
-A4_2 <- dummy_cols(meta_r[, m4, drop = FALSE], m4, remove_first_dummy = TRUE, ignore_na = TRUE)
+A4_2 <- dummy_cols(meta_r[, m4, drop = FALSE], m4, remove_first_dummy = TRUE)
 A4cols <- colnames(A4_2[, !colnames(A4_2) %in% m4])
 
 pdf("Figures/20190513_weights_model2.2.pdf")
@@ -137,8 +141,12 @@ bigmatrix <- cbind(A[[1]][, names(genes)], A[[2]][, names(micros)])
 biggermatrix <- cbind(A[[1]], A[[2]])
 allowWGCNAThreads(3)
 
+sdata <- apply(bigmatrix, 2, scale2)
+fulldata <- t(sdata)
+colnames(fulldata) <- rownames(bigmatrix)
+
 powers <- seq(1, 20, by = 1)
-psoft <- pickSoftThreshold(data = biggermatrix, powerVector = powers, verbose = TRUE)
+psoft <- pickSoftThreshold(data = sdata, powerVector = powers, verbose = TRUE)
 sft <- psoft
 
 sizeGrWindow(9, 5)
@@ -150,22 +158,103 @@ plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
      main = paste("Scale independence"))
 text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
      labels=powers,cex=cex1,col="red");# this line corresponds to using an R^2 cut-off of h
-abline(h=0.90,col="red")# Mean connectivity as a function of the soft-thresholding power
+abline(h=0.85,col="red")# Mean connectivity as a function of the soft-thresholding power
 plot(sft$fitIndices[,1], sft$fitIndices[,5],xlab="Soft Threshold (power)",
      ylab="Mean Connectivity", type="n",main = paste("Mean connectivity"))
 text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+par(mfrow = c(1, 1))
+
+# taking power=7 remembering previous info prom LLuis
+adjacency <- adjacency(sdata, power = 7)
+dissTOM <- 1 - TOMsimilarity(adjacency)
+geneTree <- hclust(as.dist(dissTOM), method = "average")
+minModuleSize <- 10
+dynamicMods <- cutreeDynamic(dendro = geneTree,  method = "tree", 
+                             minClusterSize = minModuleSize)
+dynamicColors <- labels2colors(dynamicMods)
+scores <- rbind(model2.2$a[[1]], model2.2$a[[2]])
+fscores <- scores[colnames(sdata), ]
+
+
+type <- c(rep("GENE", length(grep("ENSG", rownames(fulldata)))),
+          rep("16S", length(grep("OTU", rownames(fulldata)))))
+
+fdata <- data.frame(var = rownames(fulldata), type, dynamicColors, fscores)
+
+(ts <- table(fdata$type,fdata$dynamicColors))
+keep <- ts[1, ] != 0 & ts[2, ] != 0
+# Modules with bothg Genes or microorganisms
+names(keep)[keep]
+
+typecol <- rep("white", length(fdata$dynamicColors))
+typecol[grep("OTU", rownames(fulldata))]<-"black"
+typescorepc1<-rep("red", length(fdata$dynamicColors))
+typescorepc1[which(fdata$V1<0)]<-"blue"
+typescorepc2<-rep("red", length(fdata$dynamicColors))
+typescorepc2[which(fdata$V2<0)]<-"blue"
+
+triming <- function(num){
+  for(i in 1:nrow(num)) {
+    x <- num[i,]
+    trim = 0.05
+    lo = quantile(x, trim)
+    hi = quantile(x, 1 - trim)
+    x[x < lo] = lo
+    x[x > hi] = hi
+    num[i,] <- x
+  }
+  num
+}
+
+hmcol<-colorRampPalette(c("blue","white","red"))(552)
+
+pdf("Figures/Tree_modules.pdf")
+plotDendroAndColors(geneTree,
+                    cbind(typecol,
+                          dynamicColors,
+                          typescorepc1,
+                          typescorepc2), 
+                    c("Omic","Module","F1","F2"),
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05,
+                    main = "Gene dendrogram and module colors")
+dev.off()
+
+labrow <- rep("", nrow(fulldata))
+
+pdf("Figures/Heatmap_2omics_with_modules_and_weights.pdf")
+tf <- triming(fulldata)
+heatmap.2(tf, col = hmcol, Rowv = as.dendrogram(geneTree), 
+          density.info = "none", trace = "none", RowSideColors = dynamicColors,
+          cexRow = 0.3, cexCol = 0.1, margins = c(5,10), labRow = labrow, 
+          ColSideColors = labels2colors(meta_r[, 9]), key = FALSE)
+
+# weights are proportional to increased in illeum !!
+
+heatmap.2(tf, col = hmcol, Rowv = as.dendrogram(geneTree), 
+          density.info = "none", trace = "none", RowSideColors = typecol,
+          cexRow = 0.3, cexCol = 0.1, margins = c(5,10), labRow = labrow,
+          ColSideColors = labels2colors(meta_r[, 9]), key = FALSE)
+
+dev.off()
+
+WriteXLS("fdata","Fdata.xls")
 
 
 net <- blockwiseModules(biggermatrix, power = 7,
                        TOMType = "signed", 
                        networkType = "unsigned",
                        minModuleSize = 30, reassignThreshold = 0, 
+                       maxBlockSize = 10000,
                        mergeCutHeight = 0.25, numericLabels = TRUE, 
                        pamRespectsDendro = FALSE, saveTOMs = TRUE,
                        saveTOMFileBase = "DNA_RNA_TOM", verbose = 3)
 
 #Just 3 OTUs related with some expression
 table(net$colors, ifelse(grepl("^ENSG", names(net$colors)), "Gene", "OTU"))
+
+table(net$colors[!grepl("^ENSG", names(net$colors))], names(net$colors)[!grepl("^ENSG", names(net$colors))] %in% names(micros))
+table(net$colors, names(net$colors) %in% names(micros))
 
 
 sizeGrWindow(12, 9)# Convert labels to colors for plotting
