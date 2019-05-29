@@ -75,7 +75,7 @@ heatmap.2(controls[, colnames(controls) %in% o], trace = "none",
 # Output ####
 # #  The numbers come from the number of samples in each correlation
 threshold <- 0.05
-all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/sgcca_model2.RDS")
+all_comp <- readSGCCA("../intestinal_16S_RNAseq_metadb/model3_best.RDS")
 all_samples_ensembl <- relevant(all_comp, all_s, pall_s, threshold)
 gplots::heatmap.2(all_s[, colnames(all_s) %in% names(all_comp)], scale = "none", 
                   labCol = FALSE, xlab = "Genes", ylab = "Microorganisms (Genus)",
