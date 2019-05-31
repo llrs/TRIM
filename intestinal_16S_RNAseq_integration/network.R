@@ -20,21 +20,19 @@ non_empty <- function(x) {
 }
 genes <- non_empty(genes)
 micros <- non_empty(micros)
+
+# Plot ecdf weights ####
 plot(ecdf(micros), main = "ECDF", xlab = "weight", pch = NA)
 plot(ecdf(genes), add = TRUE, col = "darkgreen")
 legend("bottomright", fill = c("black", "darkgreen"), legend = c("OTUs", "Genes"))
 
+# Look for number of correlations ####
 q_threshold <- 0.95
-
 rel_micros <- micros[micros > quantile(micros, q_threshold)]
 rel_genes <- genes[genes > quantile(genes, q_threshold)]
-
 q <- seq(from = 0, to = 0.95, by = 0.05)
-
 pall_s <- readRDS("../intestinal_16S_RNAseq_correlation/padj_all_genus.RDS")
 otus_tax <- readRDS("../intestinal_16S_RNAseq_metadb/otus_tax.RDS")
-
-
 df <- sapply(q, function(x) {
     k_genes <- genes > quantile(genes, x)
     k_micros <- micros > quantile(micros, x)
@@ -67,7 +65,7 @@ pos <- as.data.frame(pos)
 pos$genes <- colnames(pall_s[s_micros, s_genes])[pos$col]
 pos$org <- org
 
-# Test if there are more correlations than expected
+## Test if there are more correlations than expected ####
 t1 <- table(pall_s[s_micros, s_genes] < p_threshold)
 t2 <- table(pall_s[!s_micros, !s_genes] < p_threshold)
 
@@ -87,6 +85,8 @@ names(subsets_genes) <- paste("quantile", 1 - q, sep = "_")
 k <- mapIds(org.Hs.eg.db, keys = trimVer(names(rel_genes)), keytype = "ENSEMBL", column = "SYMBOL")
 
 meta_r <- readRDS("../intestinal_16S_RNAseq_metadb/meta.RDS")
+
+# Plot 2nd dimension  ####
 
 location <- ifelse(meta_r$Exact_location == "ILEUM", "Ileum", "Colon")
 # Make the dimension plot
@@ -125,6 +125,7 @@ text(model2.2$a[[5]], labels = A5cols)
 legend("topright", fill = c("green", "red", "brown"), legend = c("RNA", "DNA", "Clinical variables"))
 dev.off()
 
+# Heatmap ####
 
 w <- do.call(rbind, model2.2$a)
 r <- c(rownames(model2.2$a[[1]]), rownames(model2.2$a[[2]]), A3cols, A4cols, A5cols)
@@ -136,14 +137,39 @@ d <- dist(w)
 dm <- as.matrix(d)
 heatmap(dm[7500:7745, 7500:7745])
 
+# WGCNA ####
+
+## Data normalized separately ####
 A <- readRDS("../intestinal_16S_RNAseq_metadb/model3_TRIM.RDS")
 bigmatrix <- cbind(A[[1]][, names(genes)], A[[2]][, names(micros)])
 biggermatrix <- cbind(A[[1]], A[[2]])
-allowWGCNAThreads(3)
 
-sdata <- apply(bigmatrix, 2, scale2)
+## Normalize data together ####
+
+# Read the intestinal otus table
+otus_table_i <- read.csv(
+  "../intestinal_16S/OTUs-Table-new-biopsies.csv",
+  stringsAsFactors = FALSE, row.names = 1,
+  check.names = FALSE
+)
+colnames(otus_table_i) <- gsub("[0-9]*\\.", "", colnames(otus_table_i))
+otus <- otus_table_i[, rownames(A$`16S`)]
+otus_n <- norm_RNAseq(otus)
+expr <- read.delim("../intestinal_RNAseq/taula_sencera2.tsv", 
+                   check.names = FALSE)
+expr <- norm_expr_colnames(expr)
+expr <- expr[, rownames(A$RNAseq)]
+expr_n <- norm_RNAseq(expr)
+data_together <- cbind(t(expr_n), t(otus_n))
+together_small <- data_together[, colnames(bigmatrix)]
+
+## Apply WGCNA ####
+allowWGCNAThreads(3)
+input <- together_small
+sdata <- apply(input, 2, scale2)
+rownames(sdata) <- rownames(input)
 fulldata <- t(sdata)
-colnames(fulldata) <- rownames(bigmatrix)
+colnames(fulldata) <- rownames(sdata)
 
 powers <- seq(1, 20, by = 1)
 psoft <- pickSoftThreshold(data = sdata, powerVector = powers, verbose = TRUE)
@@ -165,7 +191,7 @@ text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
 par(mfrow = c(1, 1))
 
 # taking power=7 remembering previous info prom LLuis
-adjacency <- adjacency(sdata, power = 7)
+adjacency <- adjacency(input, power = 7)
 dissTOM <- 1 - TOMsimilarity(adjacency)
 geneTree <- hclust(as.dist(dissTOM), method = "average")
 minModuleSize <- 10
@@ -175,15 +201,14 @@ dynamicColors <- labels2colors(dynamicMods)
 scores <- rbind(model2.2$a[[1]], model2.2$a[[2]])
 fscores <- scores[colnames(sdata), ]
 
-
 type <- c(rep("GENE", length(grep("ENSG", rownames(fulldata)))),
           rep("16S", length(grep("OTU", rownames(fulldata)))))
 
 fdata <- data.frame(var = rownames(fulldata), type, dynamicColors, fscores)
 
-(ts <- table(fdata$type,fdata$dynamicColors))
-keep <- ts[1, ] != 0 & ts[2, ] != 0
+(ts <- table(type, dynamicColors))
 # Modules with bothg Genes or microorganisms
+keep <- ts[1, ] != 0 & ts[2, ] != 0 & names(ts) != "grey"
 names(keep)[keep]
 
 typecol <- rep("white", length(fdata$dynamicColors))
@@ -195,13 +220,13 @@ typescorepc2[which(fdata$V2<0)]<-"blue"
 
 triming <- function(num){
   for(i in 1:nrow(num)) {
-    x <- num[i,]
+    x <- num[i, ]
     trim = 0.05
     lo = quantile(x, trim)
     hi = quantile(x, 1 - trim)
     x[x < lo] = lo
     x[x > hi] = hi
-    num[i,] <- x
+    num[i, ] <- x
   }
   num
 }
