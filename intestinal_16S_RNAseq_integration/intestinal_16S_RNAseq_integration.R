@@ -9,11 +9,12 @@ today <- format(Sys.time(), "%Y%m%d")
 
 # Save
 otus_table_i <- readRDS("otus_table.RDS")
+otus_n <- readRDS("otus_table_norm_RNAseq.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS( "meta.RDS")
 
 # Prepare input for the sgcca function
-A <- list("RNAseq" = t(expr), "16S" = t(otus_table_i))
+A <- list("RNAseq" = t(expr), "16S" = t(otus_n))
 A <- clean_unvariable(A)
 saveRDS(A, file = "TRIM.RDS")
 
