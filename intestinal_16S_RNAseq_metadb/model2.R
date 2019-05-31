@@ -84,7 +84,7 @@ keep <- check_design(designs)
 
 designs <- designs[keep]
 sgcca_custom <- function(x, ...) {
-  sgcca.centroid <- RGCCA2::sgcca(
+  sgcca.centroid <- RGCCA::sgcca(
     C = x,
     scheme = "centroid",
     scale = FALSE,

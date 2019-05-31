@@ -1,5 +1,5 @@
 library("ggforce")
-library("RGCCA2")
+library("RGCCA")
 library("integration")
 library("fgsea")
 library("dplyr")
@@ -19,7 +19,7 @@ shrinkage[[2]] <- tau.estimate(A[[2]]) # 0.286506412433534
 # Experiment design for the complicated cases 
 # with too many computations possible to perform it only tests for 3 weighs per edge
 designs <- weight_design(weights = 11, size = 5, c(2, 4, 8, 9, 15))
-keep <- vapply(designs, RGCCA2::correct, logical(1L))
+keep <- vapply(designs, RGCCA::correct, logical(1L))
 designs <- designs[keep]
 
 keep2 <- vapply(designs, function(x){
@@ -35,7 +35,7 @@ set.seed(4672679)
 s <- sample(designs, size = min(length(designs)*.1, 10000))
 # Perform the sgcca on these samples
 testing <- function(x, type, ...) {
-  result.sgcca <- RGCCA2::sgcca(C = x, 
+  result.sgcca <- RGCCA::sgcca(C = x, 
                                 scheme = type, 
                                 verbose = FALSE, 
                                 scale = FALSE,

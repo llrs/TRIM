@@ -1,4 +1,4 @@
-library("RGCCA2")
+library("RGCCA")
 library("integration")
 library("ggplot2")
 library("patchwork")
@@ -56,7 +56,7 @@ shrinkage <- rbind(shrinkage, shrinkage_opt, shrinkage_opt2)
 # It uses my own improved modification of RGCCA which is faster
 # However it 
 testing <- function(x, ...) {
-  result.sgcca <- RGCCA2::sgcca(c1 = x,  
+  result.sgcca <- RGCCA::sgcca(c1 = x,  
                                scheme = "centroid", 
                                verbose = FALSE, 
                                scale = FALSE,

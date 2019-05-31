@@ -32,7 +32,7 @@ designs <- designs[keep2]
 # Perform the sgcca on these samples
 testing <- function(x, type, ...) {
   tryCatch({
-  result.sgcca <- RGCCA2::sgcca(C = x, 
+  result.sgcca <- RGCCA::sgcca(C = x, 
                                 scheme = type, 
                                 verbose = FALSE, 
                                 scale = FALSE,

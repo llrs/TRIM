@@ -19,7 +19,7 @@ shrinkage[[2]] <- tau.estimate(A[[2]]) # 0.286506412433534
 # Experiment design for the complicated cases 
 # with too many computations possible to perform it only tests for 3 weighs per edge
 designs <- weight_design(weights = 3, size = 5)
-keep <- vapply(designs, RGCCA2::correct, logical(1L))
+keep <- vapply(designs, RGCCA::correct, logical(1L))
 designs <- designs[keep]
 
 # Step 1 ####
@@ -29,7 +29,7 @@ set.seed(4672679)
 s <- sample(designs, size = min(length(designs)*.1, 1000))
 # Perform the sgcca on these samples
 testing <- function(x, type, ...) {
-  result.sgcca <- RGCCA2::sgcca(C = x, 
+  result.sgcca <- RGCCA::sgcca(C = x, 
                                scheme = type, 
                                verbose = FALSE, 
                                scale = FALSE,
@@ -100,7 +100,7 @@ saveRDS(best_interaction, "model3_best_interaction.RDS")
 
 result.i <- lapply(l, function(x){
   
-  RGCCA2::sgcca(A = subsetData(A, x),
+  RGCCA::sgcca(A = subsetData(A, x),
                C = model3_best2, 
                scheme = "centroid", 
                verbose = FALSE, 

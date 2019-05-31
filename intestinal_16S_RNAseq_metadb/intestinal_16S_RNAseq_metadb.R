@@ -1,5 +1,5 @@
 library("ggforce")
-library("RGCCA2")
+library("RGCCA")
 
 # Load the helper file
 today <- format(Sys.time(), "%Y%m%d")
