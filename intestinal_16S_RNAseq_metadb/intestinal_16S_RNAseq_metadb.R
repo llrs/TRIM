@@ -7,7 +7,7 @@ library("integration")
 library("fgsea")
 
 # Load data
-otus_table_i <- readRDS("otus_table.RDS")
+otus_table_i <- readRDS("../intestinal_16S_RNAseq_integration/otus_table_norm_RNAseq.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS("meta.RDS")
 
@@ -60,7 +60,7 @@ shrinkage[2] <- tau.estimate(A[[2]])
 shrinkage <- ifelse(shrinkage < min_shrinkage, min_shrinkage, shrinkage)
 # shrinkage <- rep(1, length(A))
 
-ncomp <- rep(1, length(A))
+ncomp <- rep(2, length(A))
 sgcca.centroid <- sgcca(
   A, C = model1i, c1 = shrinkage,
   ncomp = ncomp,
@@ -145,7 +145,7 @@ variables <- variables(sgcca.centroid)
 plot_variables(variables)
 
 # Plot PCAs
-plot_interesting(plot_interesting, meta_r, expr, otus_table_i)
+plot_interesting(variables, meta_r, expr, otus_table_i)
 
 # Plot for the same component the variables of each block
 comp1 <- sapply(sgcca.centroid$a, function(x) {x[, 1]})

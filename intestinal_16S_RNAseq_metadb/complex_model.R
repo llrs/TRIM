@@ -62,7 +62,7 @@ otus_table_i <- otus_table_i[, meta_r$Seq_code_uDNA]
 
 expr_norm <- norm_RNAseq(expr)
 expr <- norm_RNAseq(expr_norm)
-otus_table_i <- norm_otus(otus_table_i)
+otus_table_i <- norm_RNAseq(otus_table_i)
 
 # Create the different metadb matrices
 Invariable <- cbind(mixOmics::unmap(meta_r$ID), 

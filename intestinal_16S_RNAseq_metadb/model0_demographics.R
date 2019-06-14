@@ -7,7 +7,7 @@ library("fgsea")
 today <- format(Sys.time(), "%Y%m%d")
 
 # Load data
-otus_table_i <- readRDS("otus_table.RDS")
+otus_table_i <- readRDS("../intestinal_16S_RNAseq_integration/otus_table_norm_RNAseq.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS("meta.RDS")
 

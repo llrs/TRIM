@@ -9,7 +9,7 @@ library("broom")
 today <- format(Sys.time(), "%Y%m%d")
 
 # Load data
-otus_table_i <- readRDS("otus_table.RDS")
+otus_table_i <- readRDS("../intestinal_16S_RNAseq_integration/otus_table_norm_RNAseq.RDS")
 otus_tax_i <- readRDS("otus_tax.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS("meta.RDS")
@@ -163,7 +163,7 @@ result.out <- lapply(l, loo_model, model = model3)
 saveRDS(result.out, "loo-model3.RDS")
 
 # Bootstrap of sgcca
-boot <- boot_sgcca(A, C, shrinkage, 1000)
+boot <- boot_sgcca(A, model3, shrinkage, 1000)
 
 saveRDS(boot, file = "bootstrap_model3.RDS")
 

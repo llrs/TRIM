@@ -8,7 +8,7 @@ library("fgsea")
 today <- format(Sys.time(), "%Y%m%d")
 
 # Load data
-otus_table_i <- readRDS("otus_table.RDS")
+otus_table_i <- readRDS("../intestinal_16S_RNAseq_integration/otus_table_norm_RNAseq.RDS")
 expr <- readRDS("expr.RDS")
 meta_r <- readRDS("meta.RDS")
 
@@ -167,9 +167,12 @@ variables_weight(comp2)
 
 model2_best <- matrix(0, nrow = 3, ncol = 3)
 model2_best <- symm(model2_best, unlist(db3[which.max(db3$AVE_inner), 3:5]))
+colnames(model2_best) <- colnames(model2)
+rownames(model2_best) <- rownames(model2)
 
 model2_best_sgcca <- sgcca(A, C = model2b, verbose = FALSE, c1 = shrinkage[1:3], ncomp = ncomp[1:3])
 saveRDS(model2_best_sgcca, "model2_best.RDS")
+
 model2_besti <- subSymm(model2b, 1, 1, 1)
 model2_best_interaction_sgcca <- sgcca(A, C = model2_besti, verbose = FALSE, c1 = shrinkage[1:3], ncomp = ncomp[1:3])
 saveRDS(model2_best_interaction_sgcca, "model2_best_interaction.RDS")
