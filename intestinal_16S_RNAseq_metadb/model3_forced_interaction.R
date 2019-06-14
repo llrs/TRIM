@@ -16,23 +16,18 @@ meta_r <- readRDS( "meta.RDS")
 shrinkage <- c(0.249488046688595, 0, 1, 1, 1) 
 shrinkage[[2]] <- tau.estimate(A[[2]]) # 0.286506412433534
 
-# Experiment design for the complicated cases 
-# with too many computations possible to perform it only tests for 3 weighs per edge
-designs <- weight_design(weights = 11, size = 5, c(2, 4, 8, 9, 15))
-keep <- vapply(designs, RGCCA::correct, logical(1L))
-designs <- designs[keep]
-
-keep2 <- vapply(designs, function(x){
-  x[2, 1] != 0 && x[2, 4] != 0 && x[1, 4] != 0 && x[3, 5] != 0 && x[2, 3] != 0
-}, logical(1L))
-
-designs <- designs[keep2]
+# Prepare the data:
+Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
 
 # Step 1 ####
-# Random subsample of 10% of the trials
-# Store all AVEs in the path so that it can be confirmed that it is the max value
-set.seed(4672679)
-s <- sample(designs, size = min(length(designs)*.1, 10000))
+# See the one with more AVE_inner on the boot with all models (but with just 3 weights)
+out_models <- readRDS("sample_model3_boot.RDS")
+fi <- out_models[out2$var12 != 0, ]
+
+# Use this to explore all models
+C3 <- symm(designs[[1]], fi[fi$AVE_inner == max(fi$AVE_inner), grep("var.*", colnames(fi))])
+designs <- weight_design(weights = 11, size = 5, diff0 = which(lower.tri(C3) & C3 != 0))
+
 # Perform the sgcca on these samples
 testing <- function(x, type, ...) {
   result.sgcca <- RGCCA::sgcca(C = x, 
@@ -42,22 +37,21 @@ testing <- function(x, type, ...) {
                                 ...)
   analyze(result.sgcca)
 }
-Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
-# Estimated time of 8 hours
-out <- sapply(s, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
+
+
+# Explore for those cases
+out <- sapply(designs, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
 out2 <- as.data.frame(t(out))
 saveRDS(out2, "sample_model3_forced_interaction.RDS")
 
-out2 %>% 
-  top_n(5, AVE_inner) %>% 
-  select(AVE_inner, AVE_outer, var12, var13, var23, 
-         var14, var24, var34, var15, var25, var35, var45) %>% 
-  arrange(desc(AVE_inner))
-stop("Visual inspection of the top 5")
-# step 2 ####
-
-C3 <- symm(designs[[1]], out2[out2$AVE_inner == max(out2$AVE_inner), grep("var.*", colnames(out2))])
-model3_best2 <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = C3)
+# Select the best one
+C3 <- symm(designs[[1]], out2[out2$AVE_inner == max(out2$AVE_inner), 
+                              grep("var.*", colnames(out2))])
+model3_best2 <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", 
+                      C = C3, ncomp = rep(2, length(Ab)))
+model3_best2 <- improve.sgcca(model3_best2, names(Ab))
+colnames(model3_best2$C) <- names(Ab)
+rownames(model3_best2$C) <- names(Ab)
 saveRDS(model3_best2, "model3_forced_interaction.RDS")
 
 df <- data.frame(GE = model3_best2$Y[[1]][, 1],

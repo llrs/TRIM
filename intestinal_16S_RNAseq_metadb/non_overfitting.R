@@ -37,45 +37,53 @@ testing <- function(x, type, ...) {
   analyze(result.sgcca)
 }
 Ab <- lapply(A, function(x) scale2(x, bias = TRUE)/sqrt(NCOL(x)))
-# Estimated time of 8 hours
-out <- sapply(s, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
+# Estimated time of three days with designs and about 1 hour with the sample of 1000
+out <- sapply(designs, testing, type = "centroid", A = Ab, c1 = shrinkage, USE.NAMES = FALSE)
 out2 <- as.data.frame(t(out))
 saveRDS(out2, "sample_model3_boot.RDS")
+ggplot(out2) + 
+  geom_hex(aes(AVE_inner, AVE_outer), bins = 100) + 
+  theme_bw() + 
+  scale_fill_viridis_c()
 
 out2 %>% 
-  top_n(5, AVE_inner) %>% 
+  top_n(10, AVE_inner) %>% 
   select(AVE_inner, AVE_outer, var12, var13, var23, 
          var14, var24, var34, var15, var25, var35, var45) %>% 
   arrange(desc(AVE_inner))
 stop("Visual inspection of the top 5")
-# step 2 ####
+symm(designs[[1]], out2[which.max(out2$AVE_inner), -c(1:13, 24)])
 
-# Based on the top 5 of the random sample ie AVE_inner > 0.6
-# Select another range of 37000 of models and check which models are the best ones.
-best_keep <- vapply(designs, function(x) {
-  x[4, 5] == 0 & x[3, 4] == 0
-}, logical(1L))
-out3 <- sapply(designs[best_keep], testing, 
-               type = "centroid",
-               A = Ab, c1 = shrinkage, 
-               USE.NAMES = FALSE)
-out3 <- as.data.frame(t(out3))
-saveRDS(out3, "subset2_model3_boot.RDS")
-stop("Think again!")
-# Step 3 ####
-out2 <- readRDS("sample_model3_boot.RDS")
-out3 <- readRDS("subset2_model3_boot.RDS")
-out <- rbind(out2, out3)
-columns <- grep("var", colnames(out))
-out <- out[!duplicated(out), ]
+
+# step 2 ####
+# 
+# # Based on the top 5 of the random sample ie AVE_inner > 0.6
+# # Select another range of 37000 of models and check which models are the best ones.
+# best_keep <- vapply(designs, function(x) {
+#   x[4, 5] == 0 & x[3, 4] == 0
+# }, logical(1L))
+# out3 <- sapply(designs[best_keep], testing, 
+#                type = "centroid",
+#                A = Ab, c1 = shrinkage, 
+#                USE.NAMES = FALSE)
+# out3 <- as.data.frame(t(out3))
+# saveRDS(out3, "subset2_model3_boot.RDS")
+# stop("Think again!")
+# # Step 3 ####
+# out2 <- readRDS("sample_model3_boot.RDS")
+# out3 <- readRDS("subset2_model3_boot.RDS")
+# out <- rbind(out2, out3)
+columns <- grep("var", colnames(out2))
+out2 <- out[!duplicated(out2), ]
 model3_best <- designs[[1]]
-model3_best <- symm(model3_best, out[which.max(out$AVE_inner), columns])
+model3_best <- symm(model3_best, out2[which.max(out$AVE_inner), columns])
 colnames(model3_best) <- names(A)
 rownames(model3_best) <- names(A)
-out4 <- out
+out4 <- out2
 out4$weights <- as.factor(out4$weights)
-ggplot(out4) + geom_boxplot(aes(weights, AVE_inner))
-ggplot(out4, aes(AVE_inner, AVE_outer)) +geom_count()
+ggplot(out4, aes(weights, AVE_inner)) + 
+  geom_jitter(alpha = 0.075) +
+  geom_violin(col = "red", fill = "transparent")
 
 # Leave one out procedure ####
 # To asses if the selected model how well generalizes
@@ -89,6 +97,7 @@ result.out <- lapply(l, function(x){
   )}) # SGCCA of the selected model leaving one sample each time out of order.
 saveRDS(result.out, "loo-model3_best.RDS")
 best <- sgcca(A, C = model3_best, c1 = shrinkage, verbose = FALSE, ncomp = rep(2, length(A)))
+best <- improve.sgcca(best, names(A))
 saveRDS(best, "model3_best.RDS")
 # The results should be summarized/compared
 # Which microorganisms are the same? Which genes are the same?
@@ -110,6 +119,31 @@ saveRDS(result.i, "loo-model3_best_interaction.RDS")
 a <- best$a[[1]][, 1]
 ai <-  best_interaction$a[[1]][, 1]
 hist(a[a != 0 | ai != 0] - ai[a != 0 | ai != 0]) # Normal distribution: randomness
+
+
+out3 <- out2[out2$var12 != 0, ]
+C3 <- symm(designs[[1]], out3[out3$AVE_inner == max(out3$AVE_inner), grep("var.*", colnames(out3))])
+colnames(C3) <- names(A)
+rownames(C3) <- names(A)
+model3_best2 <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = C3)
+model3_best2 <- improve.sgcca(model3_best2, names(A))
+saveRDS(model3_best2, "model3_forced_interaction.RDS")
+
+
+l <- looIndex(size(A))
+loo_model <- loo_functions(A, shrinkage)
+result.out <- lapply(l, loo_model, model = C3)
+saveRDS(result.out, "loo-model3_forced_interaction.RDS")
+
+C3 <- symm(designs[[1]], out2[out2$AVE_inner == max(out2$AVE_inner), grep("var.*", colnames(out2))])
+dimnames(C3) <- list(names(A), names(A))
+model3b3 <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = C3)
+saveRDS(model3b3, "model3_wo_forced_interaction.RDS")
+
+l <- looIndex(size(A))
+loo_model <- loo_functions(A, shrinkage)
+result.out <- lapply(l, loo_model, model = C3)
+saveRDS(result.out, "loo-model3_wo_forced_interaction.RDS")
 
 
 ## 
