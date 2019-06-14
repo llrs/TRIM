@@ -42,7 +42,7 @@ AVE_names <- c("AVE_inner", "AVE_outer")
 ggplot(b) +
   geom_point(aes(inner, outer, col = model), alpha = 0.5) +
   geom_point(aes(AVE_inner, AVE_outer), 
-             data = as.data.frame(model2.2$AVE[AVE_names]), 
+             data = as.data.frame(model2.2$AVE[AVE_names])[1, , drop = FALSE], 
              col = "blue") +
   geom_point(aes(AVE_inner, AVE_outer), 
              data = as.data.frame(model1.2$AVE[AVE_names])[1, , drop = FALSE], 
