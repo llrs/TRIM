@@ -7,13 +7,13 @@ library("pheatmap")
 library("gplots")
 library("WriteXLS")
 
-model2.2 <- readRDS("../intestinal_16S_RNAseq_metadb/model3_best.RDS")
+model_RGCCA <- readRDS("../intestinal_16S_RNAseq_metadb/model3_forced_interaction.RDS")
 
-genes <- abs(sort(model2.2$a[[1]][, 1]))
-micros <- abs(sort(model2.2$a[[2]][, 1]))
+genes <- abs(sort(model_RGCCA$a[[1]][, 1]))
+micros <- abs(sort(model_RGCCA$a[[2]][, 1]))
 n_genes <- length(genes)
 n_micros <- length(micros)
-vars <- unlist(sapply(model2.2$a[3:5], function(x){x[, 1]}))
+vars <- unlist(sapply(model_RGCCA$a[3:5], function(x){x[, 1]}))
 
 non_empty <- function(x) {
     x[x != 0]
@@ -70,8 +70,8 @@ t1 <- table(pall_s[s_micros, s_genes] < p_threshold)
 t2 <- table(pall_s[!s_micros, !s_genes] < p_threshold)
 
 ts <- rbind(t1, t2)
-fisher.test(ts) # p-value = 0.0008831
-chisq.test(ts)  # p-value = 0.002665
+fisher.test(ts) # p-value = 0.0008831 to 0.0008573
+chisq.test(ts)  # p-value = 0.002665 to 0.002763
 
 subsets_genes <- lapply(q, function(x) {
     k_genes <- genes > quantile(genes, x)
@@ -90,10 +90,10 @@ meta_r <- readRDS("../intestinal_16S_RNAseq_metadb/meta.RDS")
 
 location <- ifelse(meta_r$Exact_location == "ILEUM", "Ileum", "Colon")
 # Make the dimension plot
-plot(model2.2$Y[[1]][, 2], model2.2$Y[[2]][, 2], xlab = "transcriptome", ylab = "microbiome",
+plot(model_RGCCA$Y[[1]][, 2], model_RGCCA$Y[[2]][, 2], xlab = "transcriptome", ylab = "microbiome",
     main = "Second dimensions", col = as.factor(meta_r$IBD), pch = 16)
 legend("bottomleft", fill = c("black", "red"), legend = c("CD", "Controls"))
-plot(model2.2$Y[[1]][, 2], model2.2$Y[[2]][, 2], xlab = "transcriptome", ylab = "microbiome",
+plot(model_RGCCA$Y[[1]][, 2], model_RGCCA$Y[[2]][, 2], xlab = "transcriptome", ylab = "microbiome",
     main = "Second dimensions", col = as.factor(location), pch = 16)
 legend("bottomleft", fill = c("black", "red"), legend = c("Ileum", "Colon"))
 
@@ -110,25 +110,25 @@ m4 <- c("Exact_location")
 A4_2 <- dummy_cols(meta_r[, m4, drop = FALSE], m4, remove_first_dummy = TRUE)
 A4cols <- colnames(A4_2[, !colnames(A4_2) %in% m4])
 
-pdf("Figures/20190513_weights_model2.2.pdf")
+pdf("Figures/20190614_weights_model_RGCCA.pdf")
 plot(c(-0.6, 1), c(-1, 0.6),  type = "n", ylab = "Dim 2", xlab = "Dim 1", main = "Weights")
-keep1 <- rowSums(model2.2$a[[1]]) != 0
-keep2 <- rowSums(model2.2$a[[2]]) != 0
-points(model2.2$a[[1]][keep1, ], pch = 15, col = "green")
-points(model2.2$a[[2]][keep2, ], pch = 17, col = "red")
-# points(model2.2$a[[3]], pch = 16, col = "brown")
-text(model2.2$a[[3]], labels = A3cols)
-# points(model2.2$a[[4]], pch = 16, col = "brown")
-text(model2.2$a[[4]], labels = A4cols)
-# points(model2.2$a[[5]], pch = 16, col = "brown")
-text(model2.2$a[[5]], labels = A5cols)
+keep1 <- rowSums(model_RGCCA$a[[1]]) != 0
+keep2 <- rowSums(model_RGCCA$a[[2]]) != 0
+points(model_RGCCA$a[[1]][keep1, ], pch = 15, col = "green")
+points(model_RGCCA$a[[2]][keep2, ], pch = 17, col = "red")
+# points(model_RGCCA$a[[3]], pch = 16, col = "brown")
+text(model_RGCCA$a[[3]], labels = A3cols)
+# points(model_RGCCA$a[[4]], pch = 16, col = "brown")
+text(model_RGCCA$a[[4]], labels = A4cols)
+# points(model_RGCCA$a[[5]], pch = 16, col = "brown")
+text(model_RGCCA$a[[5]], labels = A5cols)
 legend("topright", fill = c("green", "red", "brown"), legend = c("RNA", "DNA", "Clinical variables"))
 dev.off()
 
 # Heatmap ####
 
-w <- do.call(rbind, model2.2$a)
-r <- c(rownames(model2.2$a[[1]]), rownames(model2.2$a[[2]]), A3cols, A4cols, A5cols)
+w <- do.call(rbind, model_RGCCA$a)
+r <- c(rownames(model_RGCCA$a[[1]]), rownames(model_RGCCA$a[[2]]), A3cols, A4cols, A5cols)
 rownames(w) <- r
 empty <- apply(w, 1, function(x){all(x == 0)})
 w <- w[!empty, ]
@@ -191,14 +191,14 @@ text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
 par(mfrow = c(1, 1))
 
 # taking power=7 remembering previous info prom LLuis
-adjacency <- adjacency(input, power = 7)
+adjacency <- adjacency(sdata, power = 7)
 dissTOM <- 1 - TOMsimilarity(adjacency)
 geneTree <- hclust(as.dist(dissTOM), method = "average")
 minModuleSize <- 10
 dynamicMods <- cutreeDynamic(dendro = geneTree,  method = "tree", 
                              minClusterSize = minModuleSize)
 dynamicColors <- labels2colors(dynamicMods)
-scores <- rbind(model2.2$a[[1]], model2.2$a[[2]])
+scores <- rbind(model_RGCCA$a[[1]], model_RGCCA$a[[2]])
 fscores <- scores[colnames(sdata), ]
 
 type <- c(rep("GENE", length(grep("ENSG", rownames(fulldata)))),
@@ -209,7 +209,8 @@ fdata <- data.frame(var = rownames(fulldata), type, dynamicColors, fscores)
 (ts <- table(type, dynamicColors))
 # Modules with bothg Genes or microorganisms
 keep <- ts[1, ] != 0 & ts[2, ] != 0 & names(ts) != "grey"
-names(keep)[keep]
+out <- names(keep)[keep]
+stopifnot(!is.null(out))
 
 typecol <- rep("white", length(fdata$dynamicColors))
 typecol[grep("OTU", rownames(fulldata))]<-"black"
@@ -233,7 +234,7 @@ triming <- function(num){
 
 hmcol<-colorRampPalette(c("blue","white","red"))(552)
 
-pdf("Figures/Tree_modules.pdf")
+pdf("Figures/20160614_tTree_modules.pdf")
 plotDendroAndColors(geneTree,
                     cbind(typecol,
                           dynamicColors,
@@ -247,7 +248,7 @@ dev.off()
 
 labrow <- rep("", nrow(fulldata))
 
-pdf("Figures/Heatmap_2omics_with_modules_and_weights.pdf")
+pdf("Figures/20190614_heatmap_2omics_with_modules_and_weights.pdf")
 tf <- triming(fulldata)
 heatmap.2(tf, col = hmcol, Rowv = as.dendrogram(geneTree), 
           density.info = "none", trace = "none", RowSideColors = dynamicColors,
