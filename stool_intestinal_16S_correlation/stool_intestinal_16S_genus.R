@@ -1,4 +1,6 @@
 library("integration")
+library("ggplot2")
+library("reshape2")
 library("metagenomeSeq") # Summarize to genus
 cd <- setwd("..")
 
