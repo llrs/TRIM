@@ -17,7 +17,7 @@ model2.2 <- readRDS(file.path(folder1, "model3_wo_forced_interaction.RDS"))
 
 # Read initial data ####
 RNAseq <- readRDS(file.path(folder1, "expr.RDS"))
-microbiome <- readRDS(file.path(folder1, "otus_table.RDS"))
+microbiome <- readRDS("../intestinal_16S_RNAseq_integration/otus_table_norm_RNAseq.RDS")
 meta <-  readRDS(file.path(folder1, "meta.RDS"))
 A <- list("RNAseq" = t(RNAseq), "16S" = t(microbiome), "metadata" = meta)
 
