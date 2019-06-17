@@ -144,28 +144,9 @@ A <- readRDS("../intestinal_16S_RNAseq_metadb/model3_TRIM.RDS")
 bigmatrix <- cbind(A[[1]][, names(genes)], A[[2]][, names(micros)])
 biggermatrix <- cbind(A[[1]], A[[2]])
 
-## Normalize data together ####
-
-# Read the intestinal otus table
-otus_table_i <- read.csv(
-  "../intestinal_16S/OTUs-Table-new-biopsies.csv",
-  stringsAsFactors = FALSE, row.names = 1,
-  check.names = FALSE
-)
-colnames(otus_table_i) <- gsub("[0-9]*\\.", "", colnames(otus_table_i))
-otus <- otus_table_i[, rownames(A$`16S`)]
-otus_n <- norm_RNAseq(otus)
-expr <- read.delim("../intestinal_RNAseq/taula_sencera2.tsv", 
-                   check.names = FALSE)
-expr <- norm_expr_colnames(expr)
-expr <- expr[, rownames(A$RNAseq)]
-expr_n <- norm_RNAseq(expr)
-data_together <- cbind(t(expr_n), t(otus_n))
-together_small <- data_together[, colnames(bigmatrix)]
-
 ## Apply WGCNA ####
 allowWGCNAThreads(3)
-input <- together_small
+input <- bigmatrix
 sdata <- apply(input, 2, scale2)
 rownames(sdata) <- rownames(input)
 fulldata <- t(sdata)
@@ -265,26 +246,3 @@ heatmap.2(tf, col = hmcol, Rowv = as.dendrogram(geneTree),
 dev.off()
 
 WriteXLS("fdata","Fdata.xls")
-
-
-net <- blockwiseModules(biggermatrix, power = 7,
-                       TOMType = "signed", 
-                       networkType = "unsigned",
-                       minModuleSize = 30, reassignThreshold = 0, 
-                       maxBlockSize = 10000,
-                       mergeCutHeight = 0.25, numericLabels = TRUE, 
-                       pamRespectsDendro = FALSE, saveTOMs = TRUE,
-                       saveTOMFileBase = "DNA_RNA_TOM", verbose = 3)
-
-#Just 3 OTUs related with some expression
-table(net$colors, ifelse(grepl("^ENSG", names(net$colors)), "Gene", "OTU"))
-
-table(net$colors[!grepl("^ENSG", names(net$colors))], names(net$colors)[!grepl("^ENSG", names(net$colors))] %in% names(micros))
-table(net$colors, names(net$colors) %in% names(micros))
-
-
-sizeGrWindow(12, 9)# Convert labels to colors for plotting
-mergedColors = labels2colors(net$colors)# Plot the dendrogram and the module colors underneath
-plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
-                    "Module colors",dendroLabels = FALSE, hang = 0.03,addGuide = TRUE, guideHang = 0.05)
-moduleColors <- mergedColors
