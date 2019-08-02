@@ -43,13 +43,13 @@ ggplot(b) +
   geom_point(aes(inner, outer, col = model), alpha = 0.5) +
   geom_point(aes(AVE_inner, AVE_outer), 
              data = as.data.frame(model2.2$AVE[AVE_names])[1, , drop = FALSE], 
-             col = "blue") +
+             fill = "blue", col = "black", shape = 21) +
   geom_point(aes(AVE_inner, AVE_outer), 
              data = as.data.frame(model1.2$AVE[AVE_names])[1, , drop = FALSE], 
-             col = "green") +
+             fill = "green", col = "black", shape = 21) +
   geom_point(aes(AVE_inner, AVE_outer), 
              data = as.data.frame(model0$AVE[AVE_names])[1, , drop = FALSE], 
-             col = "red") +
+             fill = "red", col = "black", shape = 21) +
   stat_ellipse(aes(inner, outer, col = model)) +
   labs(title = "AVE in bootstraps")
 

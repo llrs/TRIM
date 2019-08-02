@@ -79,7 +79,7 @@ names(colors) <- unique(meta_r$ID)
 samples <- cbind(samples, meta_r, "dist" = dist)
 
 # Plots ####
-# pdf(paste0("Figures/", today, "_RGCCA_plots.pdf"))
+pdf(paste0("Figures/", today, "_RGCCA_plots.pdf"))
 
 # Plot if the coherence between samples has a specific pattern
 ggplot(samples) +

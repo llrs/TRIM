@@ -676,3 +676,62 @@ specificOTUs <- vapply(seq_len(6), function(x){
   sum(specific & others)
 }, numeric(1L))
 names(specificOTUs) <- colnames(keepM)
+
+
+
+# dfGE <- spread()
+# dfM <- spread()
+
+pdf("Figures/easyROC_RNAseq.pdf")
+var <- dfGE
+flag <- ifelse(dfM$Exact_location == "ILEUM", "i", "c")
+for (i in colnames(dfGE)[31:38]) {
+  roc <- rocdata(flag, var[, i])
+  
+  cat(i, " roc asociated p-value ", roc$stats[, 2], "\n")
+  print(auc(flag, var[, i]))
+  
+  plot.roc(flag, var[, i], 
+           main = paste(i, "\npvalue", roc$stats[, 2]),
+           print.auc = TRUE, ci = TRUE)
+}
+
+dev.off()
+
+# Plot ROC curves 
+ggplot(df2, aes(d = ifelse(Exact_location == "ILEUM", "I", "C"), m = GE)) + 
+  geom_abline(slope = 1, intercept = 0, col = "gray") +
+  plotROC::geom_roc(increasing = TRUE, labels = FALSE, n.cuts = 0) + 
+  facet_wrap(~Model, nrow = 2) + 
+  ggtitle("Location in GE") + 
+  labs(caption = "IBD")
+ggplot(df2, aes(d = SEX, m = GE)) + 
+  geom_abline(slope = 1, intercept = 0, col = "gray") +
+  plotROC::geom_roc(increasing = TRUE, labels = FALSE, n.cuts = 0) +
+  facet_wrap(~Model, nrow = 2) + 
+  ggtitle("Location in GE") + 
+  labs(caption = "IBD")
+ggplot(df2, aes(d = IBD, m = GE)) + 
+  geom_abline(slope = 1, intercept = 0, col = "gray") +
+  plotROC::geom_roc(increasing = TRUE, labels = FALSE, n.cuts = 0) +
+  facet_wrap(~Model, nrow = 2) + 
+  ggtitle("Location in GE") + 
+  labs(caption = "IBD")
+ggplot(df2, aes(d = ifelse(Exact_location == "ILEUM", "I", "C"), m = M)) + 
+  geom_abline(slope = 1, intercept = 0, col = "gray") +
+  plotROC::geom_roc(increasing = TRUE, labels = FALSE, n.cuts = 0) + 
+  facet_wrap(~Model, nrow = 2) + 
+  ggtitle("Location in M") + 
+  labs(caption = "IBD")
+ggplot(df2, aes(d = SEX, m = M)) + 
+  geom_abline(slope = 1, intercept = 0, col = "gray") +
+  plotROC::geom_roc(labels = FALSE, n.cuts = 0) +
+  facet_wrap(~Model, nrow = 2) + 
+  ggtitle("Location in M") + 
+  labs(caption = "IBD")
+ggplot(df2, aes(d = IBD, m = M)) + 
+  geom_abline(slope = 1, intercept = 0, col = "gray") +
+  plotROC::geom_roc(increasing = TRUE, labels = FALSE, n.cuts = 0) +
+  facet_wrap(~Model, nrow = 2) + 
+  ggtitle("Location in M") + 
+  labs(caption = "IBD")
