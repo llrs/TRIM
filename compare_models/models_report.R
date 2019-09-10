@@ -7,6 +7,7 @@ library("grid")
 library("org.Hs.eg.db")
 library("clusterProfiler")
 library("integration")
+library("stringr")
 
 # Evaluate all models ###
 # model 0
@@ -135,7 +136,8 @@ df <- rbind(
   merge(m3bIntGE, m3bIntM, all = TRUE, by = inter)
 )
 
-saveRDS(df, "models_summary_new.RDS")
+# saveRDS(df, "models_summary_new.RDS")
+df <- readRDS("compare_models/models_summary_new.RDS")
 
 # Model 1.2 plots####
 df2b <- cbind.data.frame(P = model1.2$Y[[3]][, 1], 
@@ -247,7 +249,11 @@ ggplot(df3b) +
 
 # Set theme without background on the labels
 theme_set(theme_bw())
-theme_update(strip.background = element_blank())
+theme_update(strip.background = element_blank(), 
+             panel.grid.minor = element_blank(),
+             axis.text.x = element_blank(),
+             axis.text.y = element_blank(),
+             axis.ticks = element_blank())
 
 # plots of all models ####
 df <- as_tibble(df)
@@ -262,17 +268,24 @@ df %>%
        caption = "HSCT dataset",
        x = "Transcriptome", y = "Microbiome") 
 
+
 # Check that the samples order doesn't change or something!! It doesn't look right
-df %>% 
+p_by_status <- df %>% 
   filter(!grepl(" i$", Model)) %>%
+  dplyr::rename(CD = IBD) %>% 
+  mutate(CD = case_when(CD != "CD" ~ "Control",
+                        TRUE ~ "CD")) %>% 
   filter(Component == "comp1") %>% 
   ggplot() +
-  geom_point(aes(GE, M, col = IBD)) +
+  geom_point(aes(GE, M, col = CD), size = 0.5) +
   # stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", 
   #              show.legend = FALSE) +
   facet_wrap(~Model, scales = "free", nrow = 2) + 
-  labs(title = "Samples by model",
-       caption = "HSCT dataset", x = "Transcriptome", y = "Microbiome")
+  labs(x = "Transcriptome", y = "Microbiome", col = "Status") +
+  scale_x_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
+  scale_y_continuous(breaks = seq(-0.25, 0.75, by = 0.25))
+p_by_status
+
 df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
@@ -280,23 +293,29 @@ df %>%
   geom_point(aes(GE, M, color = SESCD_local)) +
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
-       caption = "HSCT dataset",
        color = "SESCD (local)",
        x = "Transcriptome", y = "Microbiome") +
   scale_color_viridis_c()
 
-df %>% 
+p_by_loc <- df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
   mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
                            !is.na(Exact_location) ~ "Colon")) %>% 
   ggplot() +
-  geom_point(aes(GE, M, col = Ileum)) +
+  geom_point(aes(GE, M, col = Ileum), size = 0.5) +
   facet_wrap(~Model, scales = "free", nrow = 2) + 
-  labs(title = "Samples by model",
-       caption = "HSCT dataset", 
-       col = "Location",
-       x = "Transcriptome", y = "Microbiome")
+  labs(col = "Location",
+       x = "Transcriptome", y = "Microbiome") +
+  scale_x_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
+  scale_y_continuous(breaks = seq(-0.25, 0.75, by = 0.25))
+p_by_loc
+
+library("patchwork")
+p <- p_by_status/p_by_loc + plot_annotation(tag_levels = "A")
+ggsave("Figures/location_status.png", units = "mm", width = 170, 
+       height = 112, dpi = 300)
+
 df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
