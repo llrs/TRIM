@@ -5,23 +5,34 @@ library("org.Hs.eg.db")
 library("integration")
 library("patchwork")
 
-folder <- "." # intestinal_16S_RNAseq_integration
+if (basename(getwd()) == "TRIM") {
+  folder <- "compare_models/"
+  folder0 <- "intestinal_16S_RNAseq_integration"
+  folder1 <- "intestinal_16S_RNAseq_metadb"
+} else {
+  folder <- "."
+  folder0 <- "../intestinal_16S_RNAseq_integration"
+  folder1 <- "../intestinal_16S_RNAseq_metadb"
+}
 b0 <- readRDS(file.path(folder, "boot0.RDS"))
 b1.2 <- readRDS(file.path(folder, "boot1.2.RDS"))
 b2.2 <- readRDS(file.path(folder, "boot2.2.RDS"))
 
 # Models ###
-folder0 <- "../intestinal_16S_RNAseq_integration"
 model0 <- readRDS(file.path(folder0, "sgcca.RDS"))
 
 # model 1 without interaction
-folder1 <- "../intestinal_16S_RNAseq_metadb"
 # model 2 without interaction
 model1.2 <- readRDS(file.path(folder1, "model2_best.RDS"))
 # model 3
 model2.2 <- readRDS(file.path(folder1, "model3_wo_forced_interaction.RDS"))
 
 RNAseq <- readRDS(file.path(folder1, "expr.RDS"))
+
+
+theme_set(theme_bw())
+theme_update(strip.background = element_blank(), 
+             panel.grid.minor = element_blank())
 
 # AVE ####
 AVE0 <- t(sapply(b0, "[[", "AVE"))
@@ -39,7 +50,7 @@ ggplot(b) +
   geom_density(aes(outer, group = model, fill = model), alpha = 0.5)
 
 AVE_names <- c("AVE_inner", "AVE_outer")
-ggplot(b) +
+p <- ggplot(b) +
   geom_point(aes(inner, outer, col = model), alpha = 0.5) +
   geom_point(aes(AVE_inner, AVE_outer), 
              data = as.data.frame(model2.2$AVE[AVE_names])[1, , drop = FALSE], 
@@ -51,11 +62,19 @@ ggplot(b) +
              data = as.data.frame(model0$AVE[AVE_names])[1, , drop = FALSE], 
              fill = "red", col = "black", shape = 21) +
   stat_ellipse(aes(inner, outer, col = model)) +
-  labs(title = "AVE in bootstraps")
+  labs(title = "AVE in bootstraps") +
+  scale_x_continuous(breaks = seq(0, 0.8, by = 0.1)) +
+  scale_y_continuous(breaks = seq(0, 0.8, by = 0.01))
+ggsave("Figures/Figure_6_half.png", width = 85, dpi = 300, height = 85, 
+       units = "mm")
 
 b %>% 
-  group_by(model) %>% 
-  summarise(mean(inner), mean(outer), sd(inner), sd(outer)) %>% 
+  dplyr::select(-index) %>% 
+  tidyr::gather(inner, outer, -model) %>% 
+  dplyr::rename(AVE = inner, value = outer) %>% 
+  group_by(model, AVE) %>% 
+  summarise(mean(value), sd(value)) %>% 
+  arrange(AVE) %>% 
   write.csv(file = "dispersion_models.csv", row.names = FALSE)
 
 index <- readRDS("index_locale.RDS")
