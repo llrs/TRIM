@@ -77,8 +77,8 @@ b %>%
   arrange(AVE) %>% 
   write.csv(file = "dispersion_models.csv", row.names = FALSE)
 
-index <- readRDS("index_locale.RDS")
-meta_r <- readRDS("../intestinal_16S_RNAseq_metadb/meta.RDS")
+index <- readRDS("compare_models/index_locale.RDS")
+meta_r <- readRDS("intestinal_16S_RNAseq_metadb/meta.RDS")
 meta <- meta_r
 
 i <- sapply(index, function(x)x)
@@ -138,14 +138,15 @@ CC <- ggplot(df) +
   theme_minimal() +
   scale_y_continuous(labels = scales::percent) +
   theme(axis.text.x = element_blank(),
-        axis.title.x = element_blank()) +
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank()) +
   # scale_x_continuous(labels = scales::percent) +
   labs(
     # x = "Controls (%)",  
     y = "Ileum (%)",
     n = "Bootstraps",
-    title = "Distribution of the bootstrapping samples",
-    subtitle = paste0(length(index), " resamples of 158 samples"))
+    title = "Bootstrap samples",
+    subtitle = paste0(length(index), " resamples of all the samples"))
 
 CA <- ggplot(df) +
   geom_point(aes(Controls, Age), col = "grey") +
@@ -155,9 +156,10 @@ CA <- ggplot(df) +
   # scale_y_continuous(labels = scales::percent) +
   scale_x_continuous(labels = scales::percent) +
   labs(x = "Controls (%)",  
-       y = "Age (Mean)",
-       caption = "HSCT cohort")
-CC/CA
+       y = "Age (Mean)")
+plot_boot <- CC/CA
+plot_boot
+ggsave("Figures/Figure10.png", dpi = 300, width = 170, units = "mm")
 
 # microbiome ####
 micro_fun <- function(x){x$STAB$`16S`}

@@ -508,7 +508,7 @@ a3bIntM <- tidyer(model2.2$a[[2]], "2.3", "M")
 dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE, a3boGE, a3bIntGE)
 dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM, a3boM, a3bIntM)
 keepGE <- dfGE %>% 
-  # filter(!grepl(" i", Model)) %>% 
+  filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & GE != 0) %>% 
   mutate(Presence = if_else(GE != 0, 1, 0)) %>% 
   dplyr::select(-Component, -GE, Rownames) %>% 
@@ -520,7 +520,7 @@ keepGE <- keepGE[, -grep("Rownames", colnames(keepGE))]
 keepGE[is.na(keepGE)] <- 0
 
 keepM <- dfM %>% 
-  # filter(!grepl(" i", Model)) %>%
+  filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & M != 0) %>% 
   mutate(Presence = if_else(M != 0, 1, 0)) %>% 
   dplyr::select(-Component, -M, Rownames) %>% 
@@ -552,18 +552,25 @@ dfM %>%
 
 ## Upset plots ####
 pdf("compare_models/Figures/new_upsets.pdf")
+png("compare_models/Figures/Figure8.png", width = 170, units = "mm", 
+    res = 300, height = 142)
 upset(keepGE, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepGE)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+dev.off(
+)
 upset(keepGE, order.by = "freq", keep.order = TRUE, 
       sets = rev(c("0", "1", "1.1", "1.2", "2", "2.1", "2.2", "2.3")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+png("compare_models/Figures/Figure9.png", width = 170, units = "mm", 
+    res = 300, height = 142)
 upset(keepM, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepM)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes)
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+dev.off()
 upset(keepM, order.by = "freq", keep.order = TRUE, 
       sets = rev(c("0", "1", "1.1", "1.2", "2", "2.1", "2.2", "2.3")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
