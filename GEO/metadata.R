@@ -60,6 +60,11 @@ stopifnot(nrow(meta) == 158)
 ntfastq <- c(files_transcriptome$Left, files_transcriptome$Right)
 stopifnot(all(ntfastq %in% tfastq$V1))
 
+md5sum_RNAseq <- read.table("GEO/md5sum_RNAseq.txt", header = FALSE, 
+                         stringsAsFactors = FALSE, sep = "") %>% 
+  filter(V2 %in% c(files_transcriptome$Left, files_transcriptome$Right))
+
+
 # microbiome ####
 files_microbiome <- mfastq %>% 
   mutate(name = str_replace(V1, pattern = "@[RF]\\.fastq", replacement = "")) %>% 
@@ -71,10 +76,15 @@ files_microbiome <- mfastq %>%
   filter(root %in% meta$Seq_code_uDNA)
 
 
+md5sum_16S <- read.table("GEO/md5sum_16S.txt", header = FALSE, 
+                         stringsAsFactors = FALSE, sep = "") %>% 
+  filter(V2 %in% c(files_microbiome$Left, files_microbiome$Right))
 
 # Double check that all are in.
 stopifnot(nrow(files_microbiome) == 158)
 stopifnot(all(c(files_microbiome$Left, files_microbiome$Right) %in% mfastq$V1))
+stopifnot(all(c(files_microbiome$Left, files_microbiome$Right) %in% md5sum_16S$V2))
+stopifnot(sum(md5sum_16S$V2 %in% c(files_microbiome$Left, files_microbiome$Right)) == 316)
 
 # RAW FILES ####
 # To plug in any data 
