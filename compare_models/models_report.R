@@ -256,7 +256,7 @@ theme_update(strip.background = element_blank(),
              axis.ticks = element_blank())
 
 # plots of all models ####
-df <- as_tibble(df)
+df <- tibble::as_tibble(df)
 df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
@@ -300,20 +300,22 @@ df %>%
 p_by_loc <- df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
-  mutate(Ileum = case_when(Exact_location == "ILEUM" ~ "Ileum", 
-                           !is.na(Exact_location) ~ "Colon")) %>% 
+  mutate(Ileum = case_when(
+    Exact_location == "ILEUM" ~ "Ileum", 
+    !is.na(Exact_location) ~ "Colon")) %>% 
   ggplot() +
   geom_point(aes(GE, M, col = Ileum), size = 0.5) +
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(col = "Location",
        x = "Transcriptome", y = "Microbiome") +
   scale_x_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
-  scale_y_continuous(breaks = seq(-0.25, 0.75, by = 0.25))
+  scale_y_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
+  scale_color_discrete(labels = c("Colon", "Ileum", "Not classified"))
 p_by_loc
 
 library("patchwork")
 p <- p_by_status/p_by_loc + plot_annotation(tag_levels = "A")
-ggsave("Figures/location_status.png", units = "mm", width = 170, 
+ggsave("Figures/Figure5.png", units = "mm", width = 170, 
        height = 112, dpi = 300)
 
 df %>% 
