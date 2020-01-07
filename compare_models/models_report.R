@@ -271,11 +271,11 @@ df %>%
 
 # Check that the samples order doesn't change or something!! It doesn't look right
 p_by_status <- df %>% 
-  filter(!grepl(" i$", Model)) %>%
+  dplyr::filter(!grepl(" i$", Model)) %>%
   dplyr::rename(CD = IBD) %>% 
-  mutate(CD = case_when(CD != "CD" ~ "Control",
+  dplyr::mutate(CD = case_when(CD != "CD" ~ "Control",
                         TRUE ~ "CD")) %>% 
-  filter(Component == "comp1") %>% 
+  dplyr::filter(Component == "comp1") %>% 
   ggplot() +
   geom_point(aes(GE, M, col = CD), size = 0.5) +
   # stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", 
@@ -315,7 +315,7 @@ p_by_loc
 
 library("patchwork")
 p <- p_by_status/p_by_loc + plot_annotation(tag_levels = "A")
-ggsave("Figures/Figure5.png", units = "mm", width = 170, 
+ggsave("Figures/Figure4.png", units = "mm", width = 170, 
        height = 112, dpi = 300)
 
 df %>% 
@@ -393,7 +393,10 @@ df %>%
   facet_wrap(~Model, scales = "free", nrow = 2) + 
   labs(title = "Samples by model",
        caption = "HSCT dataset", 
-       col = "Sex")
+       col = "Sex") +
+  scale_x_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
+  scale_y_continuous(breaks = seq(-0.25, 0.75, by = 0.25))  
+
 df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
@@ -554,7 +557,7 @@ dfM %>%
 
 ## Upset plots ####
 pdf("compare_models/Figures/new_upsets.pdf")
-png("compare_models/Figures/Figure8.png", width = 170, units = "mm", 
+png("compare_models/Figures/Figure7.png", width = 170, units = "mm", 
     res = 300, height = 142)
 upset(keepGE, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepGE)), keep.order = TRUE,
@@ -566,7 +569,7 @@ upset(keepGE, order.by = "freq", keep.order = TRUE,
       sets = rev(c("0", "1", "1.1", "1.2", "2", "2.1", "2.2", "2.3")),
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
-png("compare_models/Figures/Figure9.png", width = 170, units = "mm", 
+png("compare_models/Figures/Figure8.png", width = 170, units = "mm", 
     res = 300, height = 142)
 upset(keepM, order.by = "freq", nsets = 6, 
       sets = rev(colnames(keepM)), keep.order = TRUE,

@@ -62,10 +62,10 @@ p <- ggplot(b) +
              data = as.data.frame(model0$AVE[AVE_names])[1, , drop = FALSE], 
              fill = "red", col = "black", shape = 21) +
   stat_ellipse(aes(inner, outer, col = model)) +
-  labs(title = "AVE in bootstraps") +
+  labs(title = "AVE in bootstraps", x = "Inner AVE", y = "Outer AVE") +
   scale_x_continuous(breaks = seq(0, 0.8, by = 0.1)) +
   scale_y_continuous(breaks = seq(0, 0.8, by = 0.01))
-ggsave("Figures/Figure_6_half.png", width = 85, dpi = 300, height = 85, 
+ggsave("Figures/Figure_5_half.png", width = 85, dpi = 300, height = 85, 
        units = "mm")
 
 b %>% 
@@ -159,7 +159,7 @@ CA <- ggplot(df) +
        y = "Age (Mean)")
 plot_boot <- CC/CA
 plot_boot
-ggsave("Figures/Figure10.png", dpi = 300, width = 170, units = "mm")
+ggsave("Figures/Figure9.png", dpi = 300, width = 170, units = "mm")
 
 # microbiome ####
 micro_fun <- function(x){x$STAB$`16S`}
