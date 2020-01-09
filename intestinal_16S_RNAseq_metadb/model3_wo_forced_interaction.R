@@ -51,6 +51,11 @@ dimnames(C3) <- list(names(A), names(A))
 model3b3 <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = C3, ncomp = rep(2, length(A)))
 model3b3 <- improve.sgcca(model3b3, names(A))
 saveRDS(model3b3, "model3_wo_forced_interaction.RDS")
+C3i <- C3
+C3i[1, 1] <- 1
+model3b3i <- sgcca(Ab, c1 = shrinkage, scheme = "centroid", C = C3i, ncomp = rep(2, length(A)))
+model3b3i <- improve.sgcca(model3b3i, names(A))
+saveRDS(model3b3i, "model3i_wo_forced_interaction.RDS")
 
 l <- looIndex(size(A))
 loo_model <- loo_functions(A, shrinkage)
