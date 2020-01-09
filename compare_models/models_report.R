@@ -8,6 +8,7 @@ library("org.Hs.eg.db")
 library("clusterProfiler")
 library("integration")
 library("stringr")
+library("patchwork")
 
 # Evaluate all models ###
 # model 0
@@ -49,6 +50,9 @@ model2.1i_loo <- readRDS(file.path(folder1, "loo-model3_best_interaction.RDS"))
 
 model2.3 <- readRDS(file.path(folder1, "model3_forced_interaction.RDS"))
 model2.2 <- readRDS(file.path(folder1, "model3_wo_forced_interaction.RDS"))
+model2.2_loo <- readRDS(file.path(folder1, "loo-model3_wo_forced_interaction.RDS"))
+
+model2.2i <- readRDS(file.path(folder1, "model3i_wo_forced_interaction.RDS"))
 
 m_sem(model0, model0_loo)
 m_sem(model0i, model0i_loo)
@@ -60,6 +64,7 @@ m_sem(model1.2i, model1.2i_loo)
 m_sem(model2, model2_loo)
 m_sem(model2.1, model2.1_loo)
 m_sem(model2.1i, model2.1i_loo)
+m_sem(model2.2, model2.2_loo)
 
 model0i$AVE$AVE_inner-model0$AVE$AVE_inner
 model1i$AVE$AVE_inner-model1$AVE$AVE_inner
@@ -118,6 +123,9 @@ m3boM <- merger(tidyer(model2.3$Y[[2]], "2.3", "M"))
 m3bIntGE <- merger(tidyer(model2.2$Y[[1]], "2.2", "GE"))
 m3bIntM <- merger(tidyer(model2.2$Y[[2]], "2.2", "M"))
 
+m3biGE <- merger(tidyer(model2.2i$Y[[1]], "2.2 i", "GE"))
+m3biM <- merger(tidyer(model2.2i$Y[[2]], "2.2 i", "M"))
+
 inter <- intersect(colnames(m0GE), colnames(m0M))
 inter <- grep("Rownames", inter, invert = TRUE, value = TRUE)
 
@@ -133,7 +141,8 @@ df <- rbind(
   merge(m3bM, m3bGE, all = TRUE, by = inter),
   merge(m3biM, m3biGE, all = TRUE, by = inter),
   merge(m3boGE, m3boM, all = TRUE, by = inter),
-  merge(m3bIntGE, m3bIntM, all = TRUE, by = inter)
+  merge(m3bIntGE, m3bIntM, all = TRUE, by = inter),
+  merge(m3biGE, m3biM, all = TRUE, by = inter)
 )
 
 # saveRDS(df, "models_summary_new.RDS")
@@ -306,14 +315,13 @@ p_by_loc <- df %>%
   ggplot() +
   geom_point(aes(GE, M, col = Ileum), size = 0.5) +
   facet_wrap(~Model, scales = "free", nrow = 2) + 
-  labs(col = "Location",
-       x = "Transcriptome", y = "Microbiome") +
+  labs(col = "Location", x = "Transcriptome", y = "Microbiome") +
   scale_x_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
   scale_y_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
   scale_color_discrete(labels = c("Colon", "Ileum", "Not classified"))
 p_by_loc
 
-library("patchwork")
+
 p <- p_by_status/p_by_loc + plot_annotation(tag_levels = "A")
 ggsave("Figures/Figure4.png", units = "mm", width = 170, 
        height = 112, dpi = 300)
@@ -504,16 +512,18 @@ a3biGE <- tidyer(model2.1i$a[[1]], "2.1 i", "GE")
 a3biM <- tidyer(model2.1i$a[[2]], "2.1 i", "M")
 
 
-a3boGE <- tidyer(model2.3$a[[1]], "2.2", "GE")
-a3boM <- tidyer(model2.3$a[[2]], "2.2", "M")
-a3bIntGE <- tidyer(model2.2$a[[1]], "2.3", "GE")
-a3bIntM <- tidyer(model2.2$a[[2]], "2.3", "M")
+a3bIntGE <- tidyer(model2.2$a[[1]], "2.2", "GE")
+a3bIntM <- tidyer(model2.2$a[[2]], "2.2", "M")
+a3b2iGE <- tidyer(model2.2i$a[[1]], "2.2 i", "GE")
+a3b2iM <- tidyer(model2.2i$a[[2]], "2.2 i", "M")
 
+a3boGE <- tidyer(model2.3$a[[1]], "2.3", "GE")
+a3boM <- tidyer(model2.3$a[[2]], "2.3", "M")
 
-dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE, a3boGE, a3bIntGE)
-dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM, a3boM, a3bIntM)
+dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE, a3boGE, a3bIntGE, a3b2iGE)
+dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM, a3boM, a3bIntM, a3b2iM)
 keepGE <- dfGE %>% 
-  filter(!grepl(" i", Model)) %>%
+  # filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & GE != 0) %>% 
   mutate(Presence = if_else(GE != 0, 1, 0)) %>% 
   dplyr::select(-Component, -GE, Rownames) %>% 
@@ -525,7 +535,7 @@ keepGE <- keepGE[, -grep("Rownames", colnames(keepGE))]
 keepGE[is.na(keepGE)] <- 0
 
 keepM <- dfM %>% 
-  filter(!grepl(" i", Model)) %>%
+  # filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & M != 0) %>% 
   mutate(Presence = if_else(M != 0, 1, 0)) %>% 
   dplyr::select(-Component, -M, Rownames) %>% 
