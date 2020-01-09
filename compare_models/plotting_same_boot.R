@@ -148,10 +148,11 @@ CC <- ggplot(df) +
     title = "Bootstrap samples",
     subtitle = paste0(length(index), " resamples of all the samples"))
 
-CA <- ggplot(df) +
-  geom_point(aes(Controls, Age), col = "grey") +
-  geom_smooth(aes(Controls, Age), col = "darkgrey") +
-  geom_point(aes(Controls, Age), col = "black", data = df2) +
+CA <- df %>% 
+  ggplot(aes(Controls, Age)) +
+  geom_point(col = "grey") +
+  geom_smooth( col = "darkgrey") +
+  geom_point(col = "black", data = df2) +
   theme_minimal() +
   # scale_y_continuous(labels = scales::percent) +
   scale_x_continuous(labels = scales::percent) +
