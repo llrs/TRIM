@@ -50,8 +50,9 @@ ggplot(b) +
   geom_density(aes(outer, group = model, fill = model), alpha = 0.5)
 
 AVE_names <- c("AVE_inner", "AVE_outer")
+b$model <- as.character(b$model)
 p <- ggplot(b) +
-  geom_point(aes(inner, outer, col = model), alpha = 0.5) +
+  geom_point(aes(inner, outer, col = model, shape = model), alpha = 0.5) +
   geom_point(aes(AVE_inner, AVE_outer), 
              data = as.data.frame(model2.2$AVE[AVE_names])[1, , drop = FALSE], 
              fill = "blue", col = "black", shape = 21) +
@@ -65,8 +66,7 @@ p <- ggplot(b) +
   labs(title = "AVE in bootstraps", x = "Inner AVE", y = "Outer AVE") +
   scale_x_continuous(breaks = seq(0, 0.8, by = 0.1)) +
   scale_y_continuous(breaks = seq(0, 0.8, by = 0.01))
-ggsave("Figures/Figure_5_half.png", width = 85, dpi = 300, height = 85, 
-       units = "mm")
+ggsave("Figures/Figure_5_half.png", width = 85, dpi = 300, units = "mm")
 
 b %>% 
   dplyr::select(-index) %>% 
