@@ -523,7 +523,7 @@ a3boM <- tidyer(model2.3$a[[2]], "2.3", "M")
 dfGE <- rbind(a0GE, a0iGE, a1GE, a1iGE, a2GE, a2bGE, a2biGE, a3GE, a3bGE, a3biGE, a3boGE, a3bIntGE, a3b2iGE)
 dfM <- rbind(a0M, a0iM, a1M, a1iM, a2M, a2bM, a2biM, a3M, a3bM, a3biM, a3boM, a3bIntM, a3b2iM)
 keepGE <- dfGE %>% 
-  # filter(!grepl(" i", Model)) %>%
+  filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & GE != 0) %>% 
   mutate(Presence = if_else(GE != 0, 1, 0)) %>% 
   dplyr::select(-Component, -GE, Rownames) %>% 
@@ -535,7 +535,7 @@ keepGE <- keepGE[, -grep("Rownames", colnames(keepGE))]
 keepGE[is.na(keepGE)] <- 0
 
 keepM <- dfM %>% 
-  # filter(!grepl(" i", Model)) %>%
+  filter(!grepl(" i", Model)) %>%
   filter(Component == "V1" & M != 0) %>% 
   mutate(Presence = if_else(M != 0, 1, 0)) %>% 
   dplyr::select(-Component, -M, Rownames) %>% 
@@ -548,7 +548,7 @@ keepM <- keepM[, -grep("Rownames", colnames(keepM))]
 keepM[is.na(keepM)] <- 0
 
 
-text_sizes <- c(1.3, 1.3, 1, 1, 1.5, 1.5)
+text_sizes <- 1 #c(1.3, 1.3, 1, 1, 1.5, 1.5)
 dfGE %>% 
   filter(Component == "V1" & GE != 0) %>% 
   ggplot() +
@@ -569,7 +569,7 @@ dfM %>%
 pdf("compare_models/Figures/new_upsets.pdf")
 png("compare_models/Figures/Figure7.png", width = 170, units = "mm", 
     res = 300, height = 142)
-upset(keepGE, order.by = "freq", nsets = 6, 
+upset(keepGE, order.by = "freq", nsets = 6, nintersects = 30,
       sets = rev(colnames(keepGE)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes, scale.sets = "identity")
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
@@ -581,7 +581,7 @@ upset(keepGE, order.by = "freq", keep.order = TRUE,
 grid.text("Genes shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 png("compare_models/Figures/Figure8.png", width = 170, units = "mm", 
     res = 300, height = 142)
-upset(keepM, order.by = "freq", nsets = 6, 
+upset(keepM, order.by = "freq", nsets = 6, nintersects = 30,
       sets = rev(colnames(keepM)), keep.order = TRUE,
       line.size = NA, text.scale = text_sizes)
 grid.text("OTUs shared in models", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
