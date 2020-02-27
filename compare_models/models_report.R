@@ -306,6 +306,22 @@ df %>%
        x = "Transcriptome", y = "Microbiome") +
   scale_color_viridis_c()
 
+df %>% 
+  dplyr::filter(!grepl(" i$", Model)) %>%
+  dplyr::rename(CD = IBD) %>% 
+  dplyr::mutate(CD = case_when(CD != "CD" ~ "Control",
+                               TRUE ~ "CD")) %>% 
+  dplyr::filter(Component == "comp1") %>% 
+  ggplot() +
+  geom_point(aes(GE, M, col = Active_area), size = 0.5) +
+  # stat_ellipse(aes(GE, M, col = IBD, group = IBD), type = "norm", 
+  #              show.legend = FALSE) +
+  facet_wrap(~Model, scales = "free", nrow = 2) + 
+  labs(x = "Transcriptome", y = "Microbiome", col = "Status") +
+  scale_x_continuous(breaks = seq(-0.25, 0.75, by = 0.25)) +
+  scale_y_continuous(breaks = seq(-0.25, 0.75, by = 0.25))
+
+
 p_by_loc <- df %>% 
   filter(!grepl(" i$", Model)) %>% 
   filter(Component == "comp1") %>% 
