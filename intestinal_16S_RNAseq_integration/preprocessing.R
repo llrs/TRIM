@@ -39,7 +39,7 @@ setwd(cd)
 expr <- norm_expr_colnames(expr)
 # normalize names of samples
 colnames(otus_table_i) <- gsub("[0-9]+\\.(.+)$", "\\1", colnames(otus_table_i))
-
+saveRDS(otus_table_i, "raw_otus.RDS")
 # Normalize the RNA metadata
 meta_r <- meta_r_norm(meta_r)
 
