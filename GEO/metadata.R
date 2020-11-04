@@ -104,18 +104,3 @@ stopifnot(nrow(files_microbiome) == 158)
 stopifnot(all(c(files_microbiome$Left, files_microbiome$Right) %in% mfastq$V1))
 stopifnot(all(c(files_microbiome$Left, files_microbiome$Right) %in% md5sum_16S$V2))
 stopifnot(sum(md5sum_16S$V2 %in% c(files_microbiome$Left, files_microbiome$Right)) == 316)
-
-# RAW FILES ####
-# To plug in any data 
-pivot_
-mutate("instrument model" = "Illumina HiSeq 4000",
-       "single or paire-end" = "paired",
-       "filetype" = "fastq",
-       "read length" = 255) # Check the size
-
-# Pending the checksum
-
-
-# Proceessed data files ####
-# To plug on the data
-mutate("file type" = "csv")
