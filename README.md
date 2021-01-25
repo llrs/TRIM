@@ -1,4 +1,6 @@
-# Purpose
+[![DOI](https://zenodo.org/badge/105653514.svg)](https://zenodo.org/badge/latestdoi/105653514)
+
+# Purpose 
 
 This repository analyzes the relationship between the microbiome and the transcriptome on IBD.
 
