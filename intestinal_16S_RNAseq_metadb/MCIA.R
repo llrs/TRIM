@@ -11,7 +11,7 @@ l <- lapply(A[1:2], t)
 out <- mcia(l)
 plot(out)
 # plot(out$mcoa)
-out$mcoa
+# out$mcoa
 
 # Extract results to compare with inteRmodels/RGCCA enhanced. ####
 meta_r$Ileum <- ifelse(meta_r$Exact_location == "ILEUM", "ileum", "colon")
@@ -49,3 +49,4 @@ C <- matrix(rep(1, 4), ncol = 2) # What is the model ?
 sum(C*out$mcoa$cov2/2)/(sum(C)/2) # Seems more realistic but I don't understand what it is.
 # Or 
 RGCCA:::ave_inner(C, out$mcoa$SynVar)
+
