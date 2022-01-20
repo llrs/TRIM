@@ -87,7 +87,17 @@ ggplot(richness_rel, aes(IBD, effective)) +
   labs(y = "Alpha diversity", x = element_blank()) +
   theme_minimal()
 ggsave("Figures/alpha_diversity.png")
-
+# To filter just for our samples
+meta_r <- readRDS("intestinal_16S_RNAseq_metadb/meta.RDS")
+richness_rel %>% 
+  filter(Seq_code_uDNA %in% meta_r$Seq_code_uDNA) %>% dim()
+  ggplot(aes(IBD, effective)) +
+  geom_boxplot(alpha = 0, outlier.size = 0) +
+  geom_jitter(height = 0) +
+  facet_grid(`Alpha diversity` ~ ileum, scales = "free", drop = TRUE) +
+  labs(y = "Alpha diversity", x = element_blank()) +
+  theme_minimal()
+ggsave("Figures/alpha_diversity.png")
 
 
 aTNF_ASV <- readRDS("../design_ngs/data_out/ASV_sequences.RDS")
