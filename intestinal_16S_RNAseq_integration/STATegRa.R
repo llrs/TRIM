@@ -6,6 +6,9 @@ today <- format(Sys.time(), "%Y%m%d")
 
 A <- readRDS("TRIM.RDS")
 expr <- t(A[["RNAseq"]])
+
+meta_i <- readRDS("meta.RDS")
+stopifnot(all(meta_i$`Sample Name_RNA` == colnames(expr)))
 colnames(expr) <- seq_len(ncol(expr))
 rownames(meta_i) <- seq_len(nrow(meta_i))
 B1 <- createOmicsExpressionSet(Data = expr, 
@@ -15,7 +18,7 @@ microbiota <- t(A[["16S"]])
 colnames(microbiota) <- seq_len(ncol(microbiota))
 B2 <- createOmicsExpressionSet(Data = microbiota, 
                                pData = meta_i)
-cc <- selectCommonComps(X = expr, Y = microbiota, Rmax = 3)
+# cc <- STATegRa:::selectCommonComps(X = expr, Y = microbiota, Rmax = 3)
 
 pdf(paste0("Figures/", today, "_STATegRa.pdf"))
 discoRes <- omicsCompAnalysis(Input=list("expr" = B1, "micro" = B2), 
@@ -24,12 +27,12 @@ discoRes <- omicsCompAnalysis(Input=list("expr" = B1, "micro" = B2),
                               center=TRUE, scale=TRUE, weight=TRUE)
 
 plotRes(object=discoRes, comps=c(1, 2), what="scores", type="common",
-        combined=FALSE, block="", color="Time", shape=NULL, labels=NULL,
+        combined=FALSE, color="Time", shape=NULL, labels=NULL,
         background=TRUE, palette=NULL, pointSize=1, labelSize=NULL,
         axisSize=NULL, titleSize=NULL) 
 
 plotRes(object=discoRes, comps=c(1, 2), what="scores", type="common",
-        combined=FALSE, block="", color="HSCT_responder", shape=NULL, labels=NULL,
+        combined=FALSE, color="HSCT_responder", shape=NULL, labels=NULL,
         background=TRUE, palette=NULL, pointSize=1, labelSize=NULL,
         axisSize=NULL, titleSize=NULL) 
 
@@ -37,6 +40,15 @@ p1 <- plotRes(object=discoRes, comps=c(1, 2), what="scores", type="individual",
               combined=FALSE, block="expr", color="Time", shape=NULL,
               labels=NULL, background=TRUE, palette=NULL, pointSize=1,
               labelSize=NULL, axisSize=NULL, titleSize=NULL)
+plotRes(object=discoRes, comps=c(1, 2), what="scores", type="individual",
+              combined=FALSE, block="expr", color="Exact_location", shape=NULL,
+              labels=NULL, background=TRUE, palette=NULL, pointSize=1,
+              labelSize=NULL, axisSize=NULL, titleSize=NULL)
+plotRes(object=discoRes, comps=c(1, 1), what="scores", type="individual",
+              combined=FALSE, block=c("expr", "micro"), color="Exact_location", shape=NULL,
+              labels=NULL, background=TRUE, palette=NULL, pointSize=1,
+              labelSize=NULL, axisSize=NULL, titleSize=NULL)
+
 # Associated to second block
 p2 <- plotRes(object=discoRes, comps=c(1, 2), what="scores", type="individual",
               combined=FALSE, block="micro", color="Time", shape=NULL,
