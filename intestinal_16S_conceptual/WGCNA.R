@@ -31,7 +31,7 @@ meta_i <- meta_i_norm(meta_i)
 
 enableWGCNAThreads()
 # All together is not possible
-data.wgcna <- t(otus_table_i[, meta_i$HSCT_responder != "C" & meta_i$CD_Aftected_area %in% "COLON"])
+data.wgcna <- t(otus_table_i[, !(meta_i$HSCT_responder %in% "C") & meta_i$CD_Aftected_area %in% "COLON"])
 
 
 powers <- seq(from = 1, to = 20, by = 1)
