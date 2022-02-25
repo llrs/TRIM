@@ -145,7 +145,7 @@ df <- rbind(
   merge(m3biGE, m3biM, all = TRUE, by = inter)
 )
 
-# saveRDS(df, "models_summary_new.RDS")
+saveRDS(df, "compare_models/models_summary_new.RDS")
 df <- readRDS("compare_models/models_summary_new.RDS")
 
 # Model 1.2 plots####
