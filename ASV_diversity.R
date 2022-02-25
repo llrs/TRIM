@@ -90,7 +90,7 @@ ggsave("Figures/alpha_diversity.png")
 # To filter just for our samples
 meta_r <- readRDS("intestinal_16S_RNAseq_metadb/meta.RDS")
 richness_rel %>% 
-  filter(Seq_code_uDNA %in% meta_r$Seq_code_uDNA) %>% dim()
+  filter(Seq_code_uDNA %in% meta_r$Seq_code_uDNA) %>% 
   ggplot(aes(IBD, effective)) +
   geom_boxplot(alpha = 0, outlier.size = 0) +
   geom_jitter(height = 0) +
