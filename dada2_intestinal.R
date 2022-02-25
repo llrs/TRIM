@@ -32,7 +32,7 @@ filtR1 <- paste0(tempdir_r1, "/filt_", basename(r1))
 filtR2 <- paste0(tempdir_r2, "/filt_", basename(r2))
 
 FaT <- filterAndTrim(fwd=r1, filt=filtR1, rev=r2, filt.rev=filtR2,
-              trimLeft = 5, truncLen= 260,
+              trimLeft = 20, truncLen= 260, trimRight = 20,
               maxN=0, maxEE=2, matchIDs = TRUE,
               compress=TRUE, verbose=FALSE)
 
