@@ -26,6 +26,9 @@ ggplot(data_plot) +
   geom_point(aes(SynVar1, SynVar2, col = IBD, shape = IBD)) +
   theme_bw()
 
+library("pROC")
+roc <- multiclass.roc(data_plot$SynVar1[!is.na(meta_r$Ileum)], response = meta_r$Ileum[!is.na(meta_r$Ileum)], levels = unique(meta_r$Ileum[!is.na(meta_r$Ileum)]))
+auc(roc)
 
 # So it seems that the synthetic scores is the one that has the common space
 # But all the variables are all important for all the dimensions, making it hard to understant the meaning. 
