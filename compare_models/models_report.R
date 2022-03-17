@@ -81,6 +81,21 @@ names(model2.1i$a) <- names(model2$Y)
 
 
 meta <- readRDS("intestinal_16S_RNAseq_metadb/meta.RDS")
+rna <- model2.2$a$RNAseq[, 1]
+rna <- rna[rna != 0]
+k <- mapIds(EnsDb.Hsapiens.v86, keys = ver, keytype = "GENEID", column = "SYMBOL")
+kk <- k[!is.na(k)]
+names(kk) <- NULL
+write.csv(kk, "symbol_genes_model2.2_HSCT.csv", row.names = FALSE)
+cat(kk, "symbol_genes_model2.2_HSCT.txt")
+
+
+taxa <- readRDS("intestinal_16S_RNAseq_metadb/otus_tax.RDS")
+otus <- model2.2$a$`16S`[, 1]
+otus <- names(otus[otus != 0])
+otus_taxa <- unique(taxa[otus, ])
+write.csv(otus_taxa, "taxa_model2.2_HSCT.csv", row.names = FALSE)
+saveRDS(otus_taxa, "taxa_model2.2_hsct.RDS")
 
 merger <- function(data) {
   if ("GE" %in% colnames(data)) {
@@ -684,7 +699,7 @@ sapply(names(m), function(x) {
             file = file.path(folder, name), 
             row.names = FALSE)
 })
-taxa <- readRDS("intestinal_16S_RNAseq_metadb/otus_tax.RDS")
+
 sapply(names(m), function(x) {
   name <- paste0("weights_M_model_", gsub(" ", "_", x), ".csv")
   write.csv(integration::weights_otus(m[[x]], taxa), 
@@ -756,12 +771,25 @@ for (i in colnames(dfGE)[31:38]) {
 dev.off()
 
 # Plot ROC curves 
-ggplot(df2, aes(d = ifelse(Exact_location == "ILEUM", "I", "C"), m = GE)) + 
+df2 <- df %>% 
+  filter(!grepl(" i$", Model)) %>% 
+  filter(Component == "comp1")
+ggplot(df2, aes(d = ifelse(Exact_location == "ILEUM", "I", "C"), m = GE,  col = Model)) + 
   geom_abline(slope = 1, intercept = 0, col = "gray") +
   plotROC::geom_roc(increasing = TRUE, labels = FALSE, n.cuts = 0) + 
-  facet_wrap(~Model, nrow = 2) + 
+  # facet_wrap(~Model, nrow = 2) + 
   ggtitle("Location in GE") + 
   labs(caption = "IBD")
+ggsave("Figures/AUC_models.png")
+
+p1 <- df2 %>% 
+  filter(!is.na(Exact_location)) %>% 
+  mutate(d = ifelse(Exact_location == "ILEUM", "I", "C")) %>% 
+  ggplot(aes(d = d, m = GE,  col = Model), n.cuts = 0) + 
+  geom_roc() +
+  style_roc()
+
+plotROC::calc_auc(p1)
 ggplot(df2, aes(d = SEX, m = GE)) + 
   geom_abline(slope = 1, intercept = 0, col = "gray") +
   plotROC::geom_roc(increasing = TRUE, labels = FALSE, n.cuts = 0) +
