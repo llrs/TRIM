@@ -33,3 +33,14 @@ Munich <- ggplot(o[[3]]) +
   labs(title = "Munich", x = "", y = "Reads")
 Munich+Macrogen+Michigan
 ggsave("Figures/reads.png")
+
+
+r <- read.delim("reads.txt", header = FALSE, stringsAsFactors = FALSE)
+f <- r[c(TRUE, FALSE), ]
+rr <- r[rev(c(TRUE, FALSE)), ]
+df <- data.frame(files = f, reads = as.numeric(rr))
+df <- df[df$reads != 0, ]
+pdf("Figures/read_sequences.pdf")
+barplot(sort(df$reads), ylim = c(0, 10^5))
+barplot(log10(sort(df$reads)), ylim = c(0, 5))
+dev.off()
