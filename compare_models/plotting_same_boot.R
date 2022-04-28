@@ -63,10 +63,12 @@ p <- ggplot(b) +
              data = as.data.frame(model0$AVE[AVE_names])[1, , drop = FALSE], 
              fill = "red", col = "black", shape = 21) +
   stat_ellipse(aes(inner, outer, col = model)) +
-  labs(title = "AVE in bootstraps", x = "Inner AVE", y = "Outer AVE") +
+  labs(title = "AVE in bootstraps in HSCT dataset", x = "Inner AVE", y = "Outer AVE", col = "Model", shape = "Model") +
   theme(legend.position = "bottom") +
   scale_x_continuous(breaks = seq(0, 0.8, by = 0.1)) +
   scale_y_continuous(breaks = seq(0, 0.8, by = 0.01))
+
+ggsave("Figures/hsct_bootstrap_models.png", plot = p, dpi = 300, units = "mm")
 ggsave("Figures/Figure_6.png", plot = p, width = 170, dpi = 300, units = "mm")
 ggsave("Figures/Figure_6_half.png", plot = p, width = 85, dpi = 300, units = "mm")
 
