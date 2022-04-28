@@ -162,6 +162,9 @@ pca_ir_var <- round(summary(pca_ir)$importance[2, ] * 100, digits = 2)
 
 pca_ir_x <- pca_ir_x[rownames(pca_ir_x) %in% meta_r$`Sample Name_RNA`, ]
 meta_r_ord <- meta_r[meta_r$`Sample Name_RNA` %in% rownames(pca_ir_x), ]
+meta_r_ord <- mutate(meta_r_ord, Location = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                                         is.na(Exact_location) ~ NA_character_,
+                                         TRUE ~ "Colon"))
 pcair <- cbind(pca_ir_x, meta_r_ord[match(rownames(pca_ir_x), meta_r_ord$`Sample Name_RNA`), ])
 
 pir <- ggplot(pcair, aes(PC1, PC2)) +
@@ -197,6 +200,17 @@ pir +
   geom_text(aes(col = Exact_location, label = paste(ID, Time, sep = "_"))) +
   guides(col = guide_legend(title = "Region"))
 
+library("dplyr")
+pcair %>% 
+  filter(!is.na(Location)) %>% 
+  ggplot() +
+  geom_point(aes(PC1, PC2, col = Location, shape = Location)) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) +
+  scale_color_discrete(na.value = "gray50") +
+  ggtitle("PCA RNAseq") 
+
 pir +
   geom_text(aes(col = Involved_Healthy, label = paste(ID, Time, sep = "_"))) +
   guides(col = guide_legend(title = "Involved area"))
@@ -211,6 +225,9 @@ pca_ir_var <- round(summary(pca_ir)$importance[2, ] * 100, digits = 2)
 
 pca_ir_x <- pca_ir_x[rownames(pca_ir_x) %in% meta_r$`Sample Name_RNA`, ]
 meta_r_ord <- meta_r[meta_r$`Sample Name_RNA` %in% rownames(pca_ir_x), ]
+meta_r_ord <- mutate(meta_r_ord, Location = case_when(Exact_location == "ILEUM" ~ "Ileum", 
+                                                      is.na(Exact_location) ~ NA_character_,
+                                                      TRUE ~ "Colon"))
 pcair <- cbind(pca_ir_x, meta_r_ord[match(rownames(pca_ir_x), meta_r_ord$`Sample Name_RNA`), ])
 
 pir_trim <- ggplot(pcair, aes(PC1, PC2)) +
@@ -223,7 +240,14 @@ pir_trim +
   geom_text(aes(col = ID, label = paste(ID, Time, sep = "_"))) +
   scale_color_manual(values = colors_ir) +
   guides(col = guide_legend(title = "Patient"))
-  
+pcair %>% 
+  filter(!is.na(Location)) %>% 
+  ggplot(aes(PC1, PC2)) +
+  geom_point(aes(col = Location, shape = Location)) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab(paste("PC1", pca_ir_var[1], "%")) +
+  ylab(paste("PC2", pca_ir_var[2], "%")) +
+  ggtitle("PCA RNAseq")
 pir_trim +
   geom_text(aes(col = HSCT_responder, label = paste(Time, ID, sep = "_"))) +
   guides(col = guide_legend(title = "Responders"))
