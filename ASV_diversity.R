@@ -59,6 +59,15 @@ richness_rel <- filter(r2, `Alpha diversity` %in% c("Shannon", "Simpson")) %>%
   ))
 saveRDS(richness_rel, "alpha_diversity_aTNF_controls.RDS")
 saveRDS(richness_rel, "_aTNF_controls.RDS")
+p <- ggplot(richness_rel, aes(IBD, effective)) +
+  geom_boxplot(alpha = 0, outlier.size = 0) +
+  geom_jitter(height = 0) +
+  # facet_grid(`Alpha diversity` ~ ileum, scales = "free", drop = TRUE) +
+  labs(y = "Alpha diversity", x = element_blank(), 
+       title = "ASV diversity") +
+  theme_minimal()
+p
+
 
 
 # Diversity of all samples
@@ -80,24 +89,29 @@ richness_rel <- filter(r2, `Alpha diversity` %in% c("Shannon", "Simpson")) %>%
   ),
   ileum = ifelse(Exact_location %in% "ILEUM", "ileum", "colon"),
   IBD = forcats::fct_relevel(IBD, "CONTROL", "CD", "UC"))
-ggplot(richness_rel, aes(IBD, effective)) +
+p <- ggplot(richness_rel, aes(IBD, effective)) +
   geom_boxplot(alpha = 0, outlier.size = 0) +
   geom_jitter(height = 0) +
   facet_grid(`Alpha diversity` ~ ileum, scales = "free", drop = TRUE) +
-  labs(y = "Alpha diversity", x = element_blank()) +
+  labs(y = "Alpha diversity", x = element_blank(), 
+       title = "ASV diversity") +
   theme_minimal()
-ggsave("Figures/alpha_diversity.png")
+p
+ggsave(filename = "Figures/alpha_diversity.png")
 # To filter just for our samples
 meta_r <- readRDS("intestinal_16S_RNAseq_metadb/meta.RDS")
-richness_rel %>% 
+p <- richness_rel %>% 
   filter(Seq_code_uDNA %in% meta_r$Seq_code_uDNA) %>% 
   ggplot(aes(IBD, effective)) +
   geom_boxplot(alpha = 0, outlier.size = 0) +
   geom_jitter(height = 0) +
   facet_grid(`Alpha diversity` ~ ileum, scales = "free", drop = TRUE) +
-  labs(y = "Alpha diversity", x = element_blank()) +
+  labs(y = "Alpha diversity", x = element_blank(), title = "ASV diversity") +
   theme_minimal()
-ggsave("Figures/alpha_diversity.png")
+p
+ggsave("Figures/alpha_diversity.png", plot = p)
+ggsave(plot = p, filename = "~/Documents/projects/thesis/images/hsct-ASV-diversity.png", width = 170,
+       units = "mm", dpi = 300, bg = "white")
 
 
 aTNF_ASV <- readRDS("../design_ngs/data_out/ASV_sequences.RDS")

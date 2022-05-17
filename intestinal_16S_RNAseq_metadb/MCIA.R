@@ -20,8 +20,10 @@ data_plot <- cbind(out$mcoa$SynVar, meta_r)
 ggplot(data_plot) +
   geom_point(aes(SynVar1, SynVar2, col = Ileum, shape = IBD), size = 5) +
   theme_bw() +
-  labs(title = "MCIA")
+  labs(title = "MCIA on HSCT")
 ggsave("Figures/MCIA_SynVar.png")
+ggsave(filename = "~/Documents/projects/thesis/images/hsct-mcia.png", width = 170,
+       units = "mm", dpi = 300, bg = "white")
 ggplot(data_plot) +
   geom_point(aes(SynVar1, SynVar2, col = IBD, shape = IBD)) +
   theme_bw()
